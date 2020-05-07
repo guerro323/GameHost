@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using DefaultEcs;
 using DryIoc;
+using GameHost.Event;
 using GameHost.Injection;
 
 namespace GameHost.Core.Ecs
@@ -12,6 +13,14 @@ namespace GameHost.Core.Ecs
     {
         public readonly Context Ctx;
         public readonly World   Mgr;
+
+        public IReadOnlyCollection<object> SystemList
+        {
+            get
+            {
+                return systemList.Elements;
+            }
+        }
 
         public IReadOnlyCollection<IUpdateSystem> UpdateLoop
         {
@@ -134,7 +143,7 @@ namespace GameHost.Core.Ecs
         public void Add(object obj, Type[] updateBefore, Type[] updateAfter)
         {
             systemMap[obj.GetType()] = obj;
-            systemList.Set(obj, updateBefore, updateAfter);
+            systemList.Set(obj, updateAfter, updateBefore);
             Ctx.Register(obj);
 
             var asWorldSystem = (IWorldSystem)obj;
@@ -149,6 +158,8 @@ namespace GameHost.Core.Ecs
                     updateLoop.Add(update);
                     break;
             }
+            
+            Ctx.SignalApp(new OnWorldSystemAdded {Source = this, System = obj});
         }
 
         /// <summary>

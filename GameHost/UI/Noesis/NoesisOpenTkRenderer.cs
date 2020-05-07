@@ -1,4 +1,6 @@
-﻿using Noesis;
+﻿using System;
+using System.Threading;
+using Noesis;
 using OpenToolkit.Windowing.Common;
 using MouseButtonEventArgs = OpenToolkit.Windowing.Common.MouseButtonEventArgs;
 using MouseWheelEventArgs = OpenToolkit.Windowing.Common.MouseWheelEventArgs;
@@ -9,6 +11,8 @@ namespace GameHost.UI.Noesis
     {
         public NoesisOpenTkRenderer(INativeWindow window)
         {
+            Console.WriteLine("created on: " + Thread.CurrentThread.Name);
+            
             Window = window;
             SetWindow(window);
         }

@@ -19,6 +19,7 @@
     <PackageReference Include="SharpInputSystem.DirectX" Version="0.5.16" />
     <PackageReference Include="SharpInputSystem.SWF" Version="0.5.16" />
     <PackageReference Include="SharpInputSystem.X11" Version="0.5.16" />
+    <PackageReference Include="ZLogger" Version="1.2.0" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="OpenToolkit.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
@@ -50,5 +51,8 @@
     <None Update="soloud_x64.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Graphics" />
   </ItemGroup>
 </Project>

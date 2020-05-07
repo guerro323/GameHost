@@ -10,6 +10,7 @@ using GameHost.Entities;
 
 namespace GameHost.Input
 {
+    [RestrictToApplication(typeof(GameInputThreadingHost))]
     public class InputSystem : AppSystem
     {
         private GameInputThreadingClient client;
@@ -20,6 +21,7 @@ namespace GameHost.Input
         }
     }
     
+    [RestrictToApplication(typeof(GameInputThreadingHost))]
     public abstract class InputBackendBase : AppSystem
     {
         protected InputBackendManager backendMgr;

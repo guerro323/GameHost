@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Core.Threading;
 using GameHost.Injection;
 using OpenToolkit.Windowing.Common;
+using OpenToolkit.Windowing.Desktop;
+using OpenToolkit.Windowing.GraphicsLibraryFramework;
 
 namespace GameHost.Applications
 {
@@ -29,8 +32,25 @@ namespace GameHost.Applications
         
         protected override void OnThreadStart()
         {
-            window.MakeCurrent();
-            while (true)
+            Noesis.Log.SetLogCallback((level, channel, message) =>
+            {
+                if (channel == "")
+                {
+                    // [TRACE] [DEBUG] [INFO] [WARNING] [ERROR]
+                    string[] prefixes = new string[] {"T", "D", "I", "W", "E"};
+                    string   prefix   = (int) level < prefixes.Length ? prefixes[(int) level] : " ";
+                    Console.WriteLine("[NOESIS/" + prefix + "] " + message);
+                }
+            });
+
+            unsafe
+            {
+                while (!window.IsVisible) { }
+            }
+            
+            Console.WriteLine("made on: " + Thread.CurrentThread.Name);
+
+            while (!CancellationToken.IsCancellationRequested && window.Exists && !window.IsExiting)
             {
                 if (queuedSystemTypes.Count > 0)
                 {
@@ -44,6 +64,8 @@ namespace GameHost.Applications
                     systemTypes.AddRange(queuedSystemTypes);
                     queuedSystemTypes.Clear();
                 }
+                
+                window.MakeCurrent();
 
                 using (SynchronizeThread())
                 {

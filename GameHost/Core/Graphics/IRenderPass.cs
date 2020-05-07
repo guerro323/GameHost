@@ -1,0 +1,87 @@
+﻿using System;
+using System.Collections.Generic;
+using GameHost.Applications;
+using GameHost.Core.Applications;
+using GameHost.Core.Ecs;
+using GameHost.Event;
+using JetBrains.Annotations;
+
+namespace GameHost.Core.Graphics
+{
+    public enum EPassType
+    {
+        Pre     = -1,
+        Default = 0,
+        Post    = 1
+    }
+
+    [InjectSystemToWorld]
+    [RestrictToApplication(typeof(GameRenderThreadingHost))]
+    public abstract class RenderPassBase : IInitSystem, IWorldSystem
+    {
+        WorldCollection IWorldSystem.WorldCollection { get; set; }
+
+        void IInitSystem.OnInit()
+        {
+            OnInit();
+        }
+
+        public WorldCollection World => ((IWorldSystem)this).WorldCollection;
+
+        public abstract EPassType Type { get; }
+
+        protected virtual  void OnInit() { }
+        public abstract void Execute();
+    }
+
+    [RestrictToApplication(typeof(GameRenderThreadingHost))]
+    [UpdateAfter(typeof(StartRenderSystem)), UpdateBefore(typeof(EndRenderSystem))]
+    public class RenderPassManager : AppSystem, IReceiveAppEvent<OnWorldSystemAdded>
+    {
+        private Dictionary<EPassType, OrderedList<RenderPassBase>> renderPassByType;
+
+        protected override void OnInit()
+        {
+            base.OnInit();
+            
+            renderPassByType = new Dictionary<EPassType, OrderedList<RenderPassBase>>(3);
+            foreach (var elem in Enum.GetValues(typeof(EPassType)))
+                renderPassByType[(EPassType)elem] = new OrderedList<RenderPassBase>();
+
+            foreach (var system in World.SystemList)
+            {
+                tryAddSystemAndForget(system);
+            }
+        }
+
+        protected override void OnUpdate()
+        {
+            base.OnUpdate();
+
+            void updatePass(EPassType type)
+            {
+                foreach (var element in renderPassByType[type].Elements)
+                    element.Execute();
+            }
+
+            updatePass(EPassType.Pre);
+            updatePass(EPassType.Default);
+            updatePass(EPassType.Post);
+        }
+
+        void IReceiveAppEvent<OnWorldSystemAdded>.OnEvent(OnWorldSystemAdded t)
+        {
+            if (t.System is RenderPassBase tr)
+                renderPassByType[tr.Type].Add(tr, OrderedList.GetAfter(tr.GetType()), OrderedList.GetBefore(tr.GetType()));
+        }
+
+        private void tryAddSystemAndForget(object system)
+        {
+            if (system is RenderPassBase tr)
+            {
+                renderPassByType[tr.Type].Add(tr, OrderedList.GetAfter(tr.GetType()), OrderedList.GetBefore(tr.GetType()));
+                Console.WriteLine($"{tr.Type} -> {tr.GetType()}");
+            }
+        }
+    }
+}

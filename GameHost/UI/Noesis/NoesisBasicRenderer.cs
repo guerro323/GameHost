@@ -1,13 +1,20 @@
 ﻿using System;
+using System.Threading;
+using GameHost.Applications;
+using GameHost.Core.Applications;
+using GameHost.Core.Ecs;
 using Noesis;
 using NoesisApp;
+using OpenToolkit.Windowing.GraphicsLibraryFramework;
 
 namespace GameHost.UI.Noesis
 {
-    public class NoesisBasicRenderer : IDisposable
+    [RestrictToApplication(typeof(GameRenderThreadingHost))]
+    public class NoesisSystem : AppSystem
     {
-        static NoesisBasicRenderer()
+        protected override void OnInit()
         {
+            base.OnInit();
             GUI.Init("", "");
 
             Application.SetThemeProviders();
@@ -17,7 +24,10 @@ namespace GameHost.UI.Noesis
             GUI.SetTextureProvider(new LocalTextureProvider(Environment.CurrentDirectory));
             GUI.SetFontProvider(new EmbeddedFontProvider(null, null));
         }
+    }
 
+    public class NoesisBasicRenderer : IDisposable
+    {
         public View     View     { get; private set; }
         public Renderer Renderer { get; private set; }
 
@@ -35,6 +45,8 @@ namespace GameHost.UI.Noesis
         {
             View = GUI.CreateView(xamlObject);
             View.SetFlags(RenderFlags.PPAA | RenderFlags.LCD);
+
+            Console.WriteLine("Loaded Object on " + Thread.CurrentThread.Name);
 
             Renderer = View.Renderer;
             Renderer.Init(new RenderDeviceGL());

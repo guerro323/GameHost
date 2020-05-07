@@ -11,7 +11,7 @@ namespace GameHost.Core
     {
         public Type[] Types;
 
-        public UpdateOrderBaseAttribute(params Type[] t)
+        protected UpdateOrderBaseAttribute(Type[] t)
         {
             Types = t;
         }
@@ -19,10 +19,16 @@ namespace GameHost.Core
 
     public class UpdateAfterAttribute : UpdateOrderBaseAttribute
     {
+        public UpdateAfterAttribute(params Type[] t) : base(t)
+        {
+        }
     }
 
     public class UpdateBeforeAttribute : UpdateOrderBaseAttribute
     {
+        public UpdateBeforeAttribute(params Type[] t) : base(t)
+        {
+        }
     }
 
     public static class OrderedList
