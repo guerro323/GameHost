@@ -59,9 +59,6 @@ namespace GameHost.UI.Noesis
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
             GL.Viewport(0, 0, Window.Size.X, Window.Size.Y);
             GL.ColorMask(true, true, true, true);
-
-            GL.ClearColor(0.0f, 0.2f, 0.0f, 1.0f);
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         }
     }
 
@@ -79,8 +76,6 @@ namespace GameHost.UI.Noesis
                 renderer.SetSize(Window.Size.X, Window.Size.Y);
                 renderer.Render();
             }
-
-            Window.SwapBuffers();
         }
     }
 }

@@ -10,7 +10,7 @@ using OpenToolkit.Windowing.GraphicsLibraryFramework;
 namespace GameHost.UI.Noesis
 {
     [RestrictToApplication(typeof(GameRenderThreadingHost))]
-    public class NoesisSystem : AppSystem
+    public class NoesisInitializationSystem : AppSystem
     {
         protected override void OnInit()
         {

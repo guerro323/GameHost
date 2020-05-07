@@ -48,8 +48,7 @@ namespace GameHost.Applications
                 while (!window.IsVisible) { }
             }
             
-            Console.WriteLine("made on: " + Thread.CurrentThread.Name);
-
+            window.MakeCurrent();
             while (!CancellationToken.IsCancellationRequested && window.Exists && !window.IsExiting)
             {
                 if (queuedSystemTypes.Count > 0)
@@ -64,8 +63,6 @@ namespace GameHost.Applications
                     systemTypes.AddRange(queuedSystemTypes);
                     queuedSystemTypes.Clear();
                 }
-                
-                window.MakeCurrent();
 
                 using (SynchronizeThread())
                 {
@@ -73,6 +70,9 @@ namespace GameHost.Applications
                     worldCollection.DoUpdatePass();
                 }
             }
+            
+            worldCollection.Mgr.Dispose();
+            worldCollection.Ctx.Container.Dispose();
         }
     }
 

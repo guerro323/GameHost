@@ -53,7 +53,7 @@ namespace GameHost.Applications
         {
             var updateSw = new Stopwatch();
             var totalSw  = new Stopwatch();
-            
+
             var managedWorldTime = new ManagedWorldTime();
 
             totalSw.Start();
@@ -83,7 +83,7 @@ namespace GameHost.Applications
                     standardSystemTypes.AddRange(queuedSystems);
                     queuedSystems.Clear();
                 }
-                
+
                 for (var i = 0; i < updateCount; i++)
                 {
                     Frame++;
@@ -95,13 +95,13 @@ namespace GameHost.Applications
                             {
                                 timeEntity = world.Mgr.CreateEntity();
                                 timeEntity.Set(new WorldTime());
-                                
+
                                 world.Ctx.Container.UseInstance<IManagedWorldTime>(managedWorldTime);
                             }
 
                             timeEntity.Set(new WorldTime {Delta = (float)frequency.TotalSeconds, Total = elapsedTime.TotalSeconds});
                             managedWorldTime.Update(timeEntity);
-                            
+
                             world.DoInitializePass();
                             world.DoUpdatePass();
                         }
@@ -109,7 +109,8 @@ namespace GameHost.Applications
                 }
 
                 const string simulation = "simulation";
-                GamePerformance.Set(simulation, spanDt * 0.001f);
+                if (updateCount > 0)
+                    GamePerformance.SetElapsedDelta(simulation, spanDt);
 
                 elapsedTime = totalSw.Elapsed;
 

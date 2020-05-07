@@ -8,7 +8,7 @@ namespace GameHost.Core.Game
     {
         private static ConcurrentDictionary<string, long> _TimeSpanByType = new ConcurrentDictionary<string, long>();
 
-        public static void Set(string title, TimeSpan elapsed)
+        public static void SetElapsedDelta(string title, TimeSpan elapsed)
         {
             _TimeSpanByType[title] = elapsed.Ticks;
         }
@@ -16,6 +16,11 @@ namespace GameHost.Core.Game
         public static TimeSpan Get(string title)
         {
             return TimeSpan.FromTicks(_TimeSpanByType[title]);
+        }
+
+        public static int GetFps(string title)
+        {
+            return (int)(1 / Get(title).TotalSeconds);
         }
 
         public static IReadOnlyDictionary<string, long> GetAll()

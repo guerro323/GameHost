@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using Noesis;
 using OpenToolkit.Windowing.Common;
@@ -12,7 +13,7 @@ namespace GameHost.UI.Noesis
         public NoesisOpenTkRenderer(INativeWindow window)
         {
             Console.WriteLine("created on: " + Thread.CurrentThread.Name);
-            
+
             Window = window;
             SetWindow(window);
         }
@@ -47,33 +48,48 @@ namespace GameHost.UI.Noesis
             }
         }
 
-        private void WindowOnMouseAct(MouseButtonEventArgs obj)
+        private ConcurrentStack<MouseButtonEventArgs> mouseButtonEvents  = new ConcurrentStack<MouseButtonEventArgs>();
+        private ConcurrentStack<MouseWheelEventArgs>  mouseWheelEvents   = new ConcurrentStack<MouseWheelEventArgs>();
+        private ConcurrentStack<MouseMoveEventArgs>   mouseMoveEvents    = new ConcurrentStack<MouseMoveEventArgs>();
+        private ConcurrentStack<ResizeEventArgs>      windowResizeEvents = new ConcurrentStack<ResizeEventArgs>();
+
+        public override void Update(double time)
         {
-            if (obj.IsPressed)
+            while (mouseButtonEvents.TryPop(out var mbEvent))
             {
-                View.MouseButtonDown((int)Window.MousePosition.X, (int)Window.MousePosition.Y, ToNoesis(obj.Button));
+                if (mbEvent.IsPressed)
+                    View.MouseButtonDown((int)Window.MousePosition.X, (int)Window.MousePosition.Y, ToNoesis(mbEvent.Button));
+                else
+                    View.MouseButtonUp((int)Window.MousePosition.X, (int)Window.MousePosition.Y, ToNoesis(mbEvent.Button));
             }
-            else
+
+            while (mouseWheelEvents.TryPop(out var mwEvent))
             {
-                View.MouseButtonUp((int)Window.MousePosition.X, (int)Window.MousePosition.Y, ToNoesis(obj.Button));
+                View.MouseWheel((int)mwEvent.OffsetX, (int)mwEvent.OffsetY, 0);
             }
+
+            while (mouseMoveEvents.TryPop(out var mvEvent))
+            {
+                View.MouseMove((int)mvEvent.X, (int)mvEvent.Y);
+            }
+
+            while (windowResizeEvents.TryPop(out var wrEvent))
+            {
+                SetSize(wrEvent.Width, wrEvent.Height);
+            }
+
+            mouseButtonEvents.Clear();
+            mouseWheelEvents.Clear();
+            mouseMoveEvents.Clear();
+            windowResizeEvents.Clear();
+
+            base.Update(time);
         }
 
-        private void WindowOnMouseWheel(MouseWheelEventArgs obj)
-        {
-            // what is the last argument?
-            View.MouseWheel((int)obj.OffsetX, (int)obj.OffsetY, 0);
-        }
-
-        private void WindowOnMouseMove(MouseMoveEventArgs obj)
-        {
-            View.MouseMove((int)obj.X, (int)obj.Y);
-        }
-
-        private void WindowOnResize(ResizeEventArgs obj)
-        {
-            SetSize(obj.Width, obj.Height);
-        }
+        private void WindowOnMouseAct(MouseButtonEventArgs  obj) => mouseButtonEvents.Push(obj);
+        private void WindowOnMouseWheel(MouseWheelEventArgs obj) => mouseWheelEvents.Push(obj);
+        private void WindowOnMouseMove(MouseMoveEventArgs   obj) => mouseMoveEvents.Push(obj);
+        private void WindowOnResize(ResizeEventArgs         obj) => windowResizeEvents.Push(obj);
 
         private static MouseButton ToNoesis(OpenToolkit.Windowing.Common.Input.MouseButton button)
         {
