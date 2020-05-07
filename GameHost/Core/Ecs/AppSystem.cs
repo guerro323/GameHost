@@ -3,11 +3,24 @@ using System.Collections.Generic;
 using DefaultEcs;
 using GameHost.Core.Bindables;
 using GameHost.Injection;
+using JetBrains.Annotations;
 
 namespace GameHost.Core.Ecs
 {
     [AttributeUsage(AttributeTargets.Class)]
+    [UsedImplicitly] // would it possible to 'remove' it when DontInject attribute is present?
     public class InjectSystemToWorldAttribute : Attribute
+    {
+    }
+
+    /// <summary>
+    /// Adding this attribute to a system will make it not inject into a world.
+    /// It will ignore parents <see cref="InjectSystemToWorldAttribute"/>.
+    /// Children that use <see cref="InjectSystemToWorldAttribute"/> will ignore this attribute.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class)]
+    [Obsolete("This attribute is not yet implemented.")]
+    public class DontInjectSystemToWorldAttribute : Attribute
     {
     }
 

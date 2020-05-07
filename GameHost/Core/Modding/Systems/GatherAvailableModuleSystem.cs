@@ -56,13 +56,15 @@ namespace GameHost.Core.Modding.Systems
             var files = (await trStorage.GetFilesAsync("*.dll")).ToList();
             // Destroy unloaded modules...
             DestroyUnloadedModules();
-
-            Console.WriteLine("files found: " + files.Count);
-
+            
             foreach (var file in files)
             {
-                var rm = World.Mgr.CreateEntity();
                 var assemblyName = file.Name.Replace(".dll", "");
+                var rm = FindOrCreateEntity(assemblyName);
+                // We have found an already existing module, does not do further operation on it...
+                if (rm.Has<RegisteredModule>() && rm.Get<RegisteredModule>().State != ModuleState.None)
+                    continue;
+                    
                 rm.Set(new RegisteredModule {Info = {NameId = assemblyName, DisplayName = assemblyName, Author = "not-loaded"}});
                 rm.Set(file);
             }
@@ -73,6 +75,25 @@ namespace GameHost.Core.Modding.Systems
             isTaskRunning = false;
         }
 
+        /// <summary>
+        /// Find an existing entity with an assembly name or create a new one.
+        /// </summary>
+        /// <param name="assemblyName"></param>
+        /// <returns>An existing or new entity.</returns>
+        private Entity FindOrCreateEntity(string assemblyName)
+        {
+            foreach (var ent in moduleSet.GetEntities())
+            {
+                if (ent.Get<RegisteredModule>().Info.NameId == assemblyName)
+                    return ent;
+            }
+
+            return World.Mgr.CreateEntity();
+        }
+
+        /// <summary>
+        /// Destroy modules that are 100% not loaded. (no trace left in GC)
+        /// </summary>
         private void DestroyUnloadedModules()
         {
             foreach (var ent in moduleSet.GetEntities())
@@ -82,6 +103,11 @@ namespace GameHost.Core.Modding.Systems
             }
         }
 
+        /// <summary>
+        /// Destroy all entities of a set.
+        /// TODO: DestroyEntities(set) should be an extension method.
+        /// </summary>
+        /// <param name="set"></param>
         private void DestroyEntities(EntitySet set)
         {
             foreach (var ent in set.GetEntities()) ent.Dispose();
