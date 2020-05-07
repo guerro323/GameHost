@@ -22,25 +22,25 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="OpenToolkit.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\OpenTK\opentk\src\OpenToolkit.Core\bin\Release\netstandard2.0\OpenToolkit.Core.dll</HintPath>
+      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Core\bin\Release\netstandard2.0\OpenToolkit.Core.dll</HintPath>
     </Reference>
     <Reference Include="OpenToolkit.Graphics, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\OpenTK\opentk\src\OpenToolkit.Graphics\bin\Release\netstandard2.0\OpenToolkit.Graphics.dll</HintPath>
+      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Graphics\bin\Release\netstandard2.0\OpenToolkit.Graphics.dll</HintPath>
     </Reference>
     <Reference Include="OpenToolkit.Input, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\OpenTK\opentk\src\OpenToolkit.Input\bin\Release\netstandard2.0\OpenToolkit.Input.dll</HintPath>
+      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Input\bin\Release\netstandard2.0\OpenToolkit.Input.dll</HintPath>
     </Reference>
     <Reference Include="OpenToolkit.Mathematics, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\OpenTK\opentk\src\OpenToolkit.Graphics\bin\Release\netstandard2.0\OpenToolkit.Mathematics.dll</HintPath>
+      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Graphics\bin\Release\netstandard2.0\OpenToolkit.Mathematics.dll</HintPath>
     </Reference>
     <Reference Include="OpenToolkit.Windowing.Common, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\OpenTK\opentk\src\OpenToolkit.Windowing.Desktop\bin\Release\netcoreapp3.0\OpenToolkit.Windowing.Common.dll</HintPath>
+      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Windowing.Desktop\bin\Release\netcoreapp3.0\OpenToolkit.Windowing.Common.dll</HintPath>
     </Reference>
     <Reference Include="OpenToolkit.Windowing.Desktop, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\OpenTK\opentk\src\OpenToolkit.Windowing.Desktop\bin\Release\netcoreapp3.0\OpenToolkit.Windowing.Desktop.dll</HintPath>
+      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Windowing.Desktop\bin\Release\netcoreapp3.0\OpenToolkit.Windowing.Desktop.dll</HintPath>
     </Reference>
     <Reference Include="OpenToolkit.Windowing.GraphicsLibraryFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\OpenTK\opentk\src\OpenToolkit.Windowing.Desktop\bin\Release\netcoreapp3.0\OpenToolkit.Windowing.GraphicsLibraryFramework.dll</HintPath>
+      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Windowing.Desktop\bin\Release\netcoreapp3.0\OpenToolkit.Windowing.GraphicsLibraryFramework.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
