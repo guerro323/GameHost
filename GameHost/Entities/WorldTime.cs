@@ -3,6 +3,8 @@ using ImTools;
 
 namespace GameHost.Entities
 {
+    public struct SingletonComponent<T> {}
+    
     public struct WorldTime
     {
         public double Total;
