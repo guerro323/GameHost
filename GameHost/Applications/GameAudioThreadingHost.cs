@@ -1,4 +1,6 @@
-﻿using GameHost.Core.Threading;
+﻿using System;
+using GameHost.Core.Threading;
+using GameHost.Injection;
 
 namespace GameHost.Applications
 {
@@ -7,6 +9,15 @@ namespace GameHost.Applications
         protected override void OnInit()
         {
             AddInstance(Instance.CreateInstance<Instance>("AudioApplication", Context));
+        }
+
+        protected override void OnQuit()
+        {
+            
+        }
+
+        public GameAudioThreadingHost(Context context, TimeSpan? frequency = null) : base(context, frequency)
+        {
         }
     }
 
