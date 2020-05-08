@@ -46,6 +46,11 @@ namespace GameHost.Injection
             Register(o);
             Container.UseInstance<TIn>(o);
         }
+        
+        public void Bind<TInOut>(TInOut o)
+        {
+            Bind<TInOut, TInOut>(o);
+        }
 
         public void SignalApp<T>(in T data, bool recurse = true, bool childFirst = false)
             where T : IAppEvent

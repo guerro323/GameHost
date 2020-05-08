@@ -13,12 +13,10 @@
     <PackageReference Include="ImGui.NET" Version="*" />
     <PackageReference Include="DefaultEcs" Version="0.14.1" />
     <PackageReference Include="JetBrains.Annotations" Version="2020.1.0" />
+    <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta12" />
+    <PackageReference Include="NetFabric.Hyperlinq.Analyzer" Version="1.5.6" />
     <PackageReference Include="Noesis.App" Version="3.0.0-beta6" />
     <PackageReference Include="opentoolkit.redist.glfw" Version="3.3.0-pre20190424184726" />
-    <PackageReference Include="SharpInputSystem.Core" Version="0.5.16" />
-    <PackageReference Include="SharpInputSystem.DirectX" Version="0.5.16" />
-    <PackageReference Include="SharpInputSystem.SWF" Version="0.5.16" />
-    <PackageReference Include="SharpInputSystem.X11" Version="0.5.16" />
     <PackageReference Include="ZLogger" Version="1.2.0" />
   </ItemGroup>
   <ItemGroup>

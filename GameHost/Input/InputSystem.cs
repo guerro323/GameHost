@@ -68,7 +68,7 @@ namespace GameHost.Input
         {
             using (client.SynchronizeThread())
             {
-                client.Listener.worldCollection.Ctx.SignalApp(new OnInputSynchronizeData());
+                client.Listener.WorldCollection.Ctx.SignalApp(new OnInputSynchronizeData());
             }
         }
     }

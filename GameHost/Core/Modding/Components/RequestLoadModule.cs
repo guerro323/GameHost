@@ -43,6 +43,7 @@ namespace GameHost.Core.Modding.Components
 
             moduleMgr = World.GetOrCreate<ModuleManager>();
 
+            Storage = new ContextBindingStrategy(Context, true).Resolve<IStorage>();
             Storage.GetOrCreateDirectoryAsync("Modules").ContinueWith(task => this.Storage = new ModuleStorage(task.Result));
         }
 

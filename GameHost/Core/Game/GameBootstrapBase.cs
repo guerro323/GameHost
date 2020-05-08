@@ -1,7 +1,9 @@
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
 using DefaultEcs;
+using DryIoc;
 using GameHost.Applications;
 using GameHost.Core.IO;
 using GameHost.Injection;
@@ -14,14 +16,18 @@ namespace GameHost.Core.Game
     {    
         public Context Context { get; }
 
+        private MainThreadHost mainHost;
+
         public GameBootstrapBase(Context context)
         {
             Context = context;
             
             context.Bind<IStorage, LocalStorage>(new LocalStorage(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "/" + GetGameInformation().NameAsFolder));
+            Debug.Assert(context.Container.Resolve<IStorage>() != null, "context.Container.Resolve<IStorage>() != null");
+            Debug.Assert(context.Container.Resolve<IStorage>() is LocalStorage, "context.Container.Resolve<IStorage>() is LocalStorage");
         
-            using var mainThread = new MainThreadHost(context);
-            mainThread.ListenOnThread(Thread.CurrentThread);
+            mainHost = new MainThreadHost(context);
+            mainHost.ListenOnThread(Thread.CurrentThread);
         }
 
         public void Run()
@@ -34,7 +40,7 @@ namespace GameHost.Core.Game
 
         public virtual void Dispose()
         {
-        
+            mainHost.Dispose();
         }
 
         public abstract GameInformation GetGameInformation();

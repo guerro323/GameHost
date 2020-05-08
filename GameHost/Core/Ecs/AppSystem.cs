@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using DefaultEcs;
-using GameHost.Core.Bindables;
+using DryIoc;
+using GameHost.Core.Threading;
 using GameHost.Injection;
 using JetBrains.Annotations;
 
@@ -34,6 +34,7 @@ namespace GameHost.Core.Ecs
 
         public Context         Context { get; private set; }
         public WorldCollection World   { get; private set; }
+        public DependencyResolver DependencyResolver { get; private set; }
 
         protected virtual void OnInit()
         {
@@ -43,6 +44,11 @@ namespace GameHost.Core.Ecs
         protected virtual void OnUpdate()
         {
         
+        }
+
+        protected virtual void OnDependenciesResolved(IEnumerable<object> dependencies)
+        {
+            
         }
 
         public virtual void Dispose()
@@ -65,7 +71,7 @@ namespace GameHost.Core.Ecs
 
         public virtual bool CanUpdate()
         {
-            return Enabled;
+            return Enabled && DependencyResolver.Dependencies.Count == 0;
         }
 
         WorldCollection IWorldSystem.WorldCollection
@@ -78,38 +84,13 @@ namespace GameHost.Core.Ecs
             {
                 World   = value;
                 Context = value.Ctx;
+
+                DependencyResolver = new DependencyResolver(Context.Container.Resolve<IScheduler>(), Context)
+                {
+                    DefaultStrategy = new ContextBindingStrategy(Context, true)
+                };
+                DependencyResolver.OnComplete(OnDependenciesResolved);
             }
-        }
-    }
-
-    public class ComponentBindable<TValue> : Bindable<TValue>
-    {
-        public World WorldTarget { get; private set; }
-
-        private IDisposable disposable;
-
-        public ComponentBindable(World world)
-        {
-            WorldTarget = world;
-        }
-
-        public void UseEntitySet(EntitySet set)
-        {
-
-        }
-
-        public void BindTo<TComponent>()
-        {
-            disposable = WorldTarget.SubscribeComponentChanged<TComponent>(OnUpdate);
-        }
-
-        public override void Dispose()
-        {
-            disposable.Dispose();
-        }
-
-        private void OnUpdate<TComponent>(in Entity entity, in TComponent oldValue, in TComponent newValue)
-        {
         }
     }
 }

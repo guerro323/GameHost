@@ -10,7 +10,9 @@ using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.IO;
 using GameHost.Core.Modding.Components;
+using GameHost.Entities;
 using GameHost.Injection;
+using NetFabric.Hyperlinq;
 
 namespace GameHost.Core.Modding.Systems
 {
@@ -70,7 +72,7 @@ namespace GameHost.Core.Modding.Systems
             }
 
             // Finally destroy refresh requests...
-            DestroyEntities(refreshSet);
+            refreshSet.DisposeAllEntities();
 
             isTaskRunning = false;
         }
@@ -82,13 +84,10 @@ namespace GameHost.Core.Modding.Systems
         /// <returns>An existing or new entity.</returns>
         private Entity FindOrCreateEntity(string assemblyName)
         {
-            foreach (var ent in moduleSet.GetEntities())
-            {
-                if (ent.Get<RegisteredModule>().Info.NameId == assemblyName)
-                    return ent;
-            }
-
-            return World.Mgr.CreateEntity();
+            return moduleSet.GetEntities()
+                            .Where(e => e.Get<RegisteredModule>().Info.NameId == assemblyName)
+                            .First()
+                            .Match(e => e, World.Mgr.CreateEntity);
         }
 
         /// <summary>
@@ -101,16 +100,6 @@ namespace GameHost.Core.Modding.Systems
                 if (ent.Get<RegisteredModule>().State == ModuleState.None)
                     ent.Dispose();
             }
-        }
-
-        /// <summary>
-        /// Destroy all entities of a set.
-        /// TODO: DestroyEntities(set) should be an extension method.
-        /// </summary>
-        /// <param name="set"></param>
-        private void DestroyEntities(EntitySet set)
-        {
-            foreach (var ent in set.GetEntities()) ent.Dispose();
         }
     }
 }

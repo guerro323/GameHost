@@ -143,7 +143,12 @@ namespace GameHost.Core.Threading
         private Scheduler scheduler;
 
         public Thread    GetThread()    => thread;
-        public Scheduler GetScheduler() => scheduler;
+        public Scheduler GetScheduler()
+        {
+            if (thread == null)
+                throw new NullReferenceException($"scheduler was null since thread <{typeof(T)}> did not start.");
+            return scheduler;
+        }
 
         public bool IsListening { get; private set; }
 
@@ -157,7 +162,7 @@ namespace GameHost.Core.Threading
             thread = null;
         }
 
-        public void ListenOnThread(Thread wantedThread)
+        public virtual void ListenOnThread(Thread wantedThread)
         {
             if (IsListening)
                 throw new InvalidOperationException("Already listening");
@@ -166,11 +171,12 @@ namespace GameHost.Core.Threading
                 throw new InvalidOperationException($"No Thread with type '{typeof(T).Name}' should exist when calling 'ApplicationHostThreading.ListenOnThread()'");
 
             ThreadingHost.TypeToThread[typeof(T)] = new ThreadingHost.ThreadHost {Thread = thread = wantedThread, Host = this, Semaphore = new ThreadingHost.CustomSemaphore {Origin = typeof(T), Impl = new SemaphoreSlim(1, 1)}};
-
+            
             cts         = new CancellationTokenSource();
             IsListening = true;
 
             scheduler = new Scheduler(thread);
+            Console.WriteLine($"Listen on thread {thread.Name}");
         }
 
         public override void Listen()

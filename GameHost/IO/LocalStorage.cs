@@ -30,15 +30,6 @@ namespace GameHost.IO
             return Task.FromResult(directory.GetFiles(pattern).Select(f => (IFile) new LocalFile(f)));
         }
 
-        public async Task<byte[]> GetFileContentAsync(string path)
-        {
-            using var stream = File.Open(path, FileMode.Open);
-
-            var mem = new byte[stream.Length];
-            await stream.ReadAsync(mem, 0, mem.Length);
-            return mem;
-        }
-
         public Task<IStorage> GetOrCreateDirectoryAsync(string path)
         {
             var target = directory.CreateSubdirectory(path);
@@ -52,6 +43,15 @@ namespace GameHost.IO
 
         public string Name     => file.Name;
         public string FullName => file.FullName;
+
+        public async Task<byte[]> GetContentAsync()
+        {
+            await using var stream = File.Open(FullName, FileMode.Open);
+
+            var mem = new byte[stream.Length];
+            await stream.ReadAsync(mem, 0, mem.Length);
+            return mem;
+        }
 
         public LocalFile(FileInfo file)
         {

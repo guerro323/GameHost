@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.Loader;
+using System.Threading;
 using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Core.Modding;
@@ -18,34 +19,47 @@ namespace GameHost.Applications
         private Dictionary<string, CModule> loadedModules = new Dictionary<string, CModule>();
         private WorldCollection worldCollection;
 
-        public event Action<CModule> OnModuleAdded;
+        private List<Type> systemTypes = new List<Type>();
+        private List<Type> queuedSystemTypes = new List<Type>();
 
         public MainThreadHost(Context context)
         {
             worldCollection = new WorldCollection(context, new World());
-            worldCollection.Ctx.Bind<AssemblyLoadContext, ModuleAssemblyLoadContext>(new ModuleAssemblyLoadContext());
-            
-            var systemList = new List<Type>(32);
-            AppSystemResolver.ResolveFor<MainThreadHost>(systemList);
-
-            foreach (var system in systemList)
-                worldCollection.GetOrCreate(system);
         }
 
         public WorldCollection WorldCollection => worldCollection;
 
-        protected override void OnThreadStart()
+        // that's quite ugly, if only we could use OnThreadStart instead...
+        public override void ListenOnThread(Thread wantedThread)
         {
-            throw new Exception("Should not be called.");
+            base.ListenOnThread(wantedThread);
+            worldCollection.Ctx.Bind<AssemblyLoadContext, ModuleAssemblyLoadContext>(new ModuleAssemblyLoadContext());
+            worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
+            
+            AppSystemResolver.ResolveFor<MainThreadHost>(queuedSystemTypes);
         }
 
+        protected override void OnThreadStart()
+        {
+            throw new InvalidOperationException();
+        }
 
         public void Update()
         {
+            if (GetThread() == null)
+                throw new NullReferenceException("MainThreadHost was disposed.");
+                
             GetScheduler().Run();
             
             using (SynchronizeThread())
             {
+                foreach (var system in queuedSystemTypes)
+                {
+                    worldCollection.GetOrCreate(system);
+                }
+                systemTypes.AddRange(queuedSystemTypes);
+                queuedSystemTypes.Clear();
+                
                 worldCollection.DoInitializePass();
                 worldCollection.DoUpdatePass();
             }

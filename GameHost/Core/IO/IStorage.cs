@@ -31,13 +31,6 @@ namespace GameHost.Core.IO
         Task<IEnumerable<IFile>> GetFilesAsync(string pattern);
 
         /// <summary>
-        /// Get a file content in bytes
-        /// </summary>
-        /// <param name="path">Relative Path</param>
-        /// <returns>File content in bytes</returns>
-        Task<byte[]> GetFileContentAsync(string path);
-
-        /// <summary>
         /// Get or create a directory at a relative path.
         /// </summary>
         /// <param name="path">Relative Path</param>
@@ -59,5 +52,12 @@ namespace GameHost.Core.IO
         /// The full path to this file
         /// </summary>
         string FullName { get; }
+        
+        /// <summary>
+        /// Get a file content in bytes
+        /// </summary>
+        /// <param name="path">Relative Path</param>
+        /// <returns>File content in bytes</returns>
+        Task<byte[]> GetContentAsync();
     }
 }

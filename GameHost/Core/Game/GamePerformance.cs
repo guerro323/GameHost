@@ -15,7 +15,10 @@ namespace GameHost.Core.Game
 
         public static TimeSpan Get(string title)
         {
-            return TimeSpan.FromTicks(_TimeSpanByType[title]);
+            if (!_TimeSpanByType.TryGetValue(title, out var span))
+                return TimeSpan.Zero;
+
+            return TimeSpan.FromTicks(span);
         }
 
         public static int GetFps(string title)

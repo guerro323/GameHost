@@ -130,6 +130,7 @@ namespace GameHost.Applications
             {
                 var worldCollection = new WorldCollection(instance.Context, instance.Context.Container.Resolve<World>(ifu) ?? new World());
                 worldCollection.Ctx.Bind<IManagedWorldTime, ManagedWorldTime>();
+                worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
                 
                 foreach (var type in standardSystemTypes)
                     worldCollection.GetOrCreate(type);

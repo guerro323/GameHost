@@ -1,4 +1,5 @@
-﻿using DryIoc;
+﻿using System;
+using DryIoc;
 
 namespace GameHost.Injection
 {
@@ -6,7 +7,12 @@ namespace GameHost.Injection
     {
     }
 
-    public struct ContextBindingStrategy : IStrategy
+    public interface IDependencyStrategy : IStrategy
+    {
+        object Resolve(Type type);
+    }
+    
+    public struct ContextBindingStrategy : IDependencyStrategy
     {
         private Context ctx;
         private bool resolveInParent;
@@ -19,14 +25,19 @@ namespace GameHost.Injection
 
         public T Resolve<T>()
         {
-            var result = ctx.Container.Resolve<T>(resolveInParent ? IfUnresolved.ReturnDefault : IfUnresolved.Throw);
+            return (T) Resolve(typeof(T));
+        }
+
+        public object Resolve(Type type)
+        {
+            var result = ctx.Container.Resolve(type, resolveInParent ? IfUnresolved.ReturnDefault : IfUnresolved.Throw);
             if (!resolveInParent || result != null)
                 return result;
 
             var inner = ctx.Parent;
             while (result == null && inner != null)
             {
-                result = inner.Container.Resolve<T>(IfUnresolved.ReturnDefault);
+                result = inner.Container.Resolve(type, IfUnresolved.ReturnDefault);
                 inner  = inner.Parent;
             }
 

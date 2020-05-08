@@ -8,7 +8,8 @@ namespace GameHost.Core.Threading
     {
         bool IsOnSameThread();
         void Run();
-        void Schedule(Action action);
+        void Add(Action action);
+        void AddOnce(Action action);
     }
 
     public class Scheduler : IScheduler
@@ -30,15 +31,29 @@ namespace GameHost.Core.Threading
         {
             lock (scheduledTasks)
             {
-                while (scheduledTasks.TryDequeue(out var task))
+                var taskLength = scheduledTasks.Count;
+                var i = 0;
+                while (scheduledTasks.TryDequeue(out var task) && i++ < taskLength)
                     task.Invoke();
             }
         }
 
-        public void Schedule(Action action)
+        public void Add(Action action)
         {
             lock (synchronizationObject)
                 scheduledTasks.Enqueue(new ScheduledTask {Action = action});
+        }
+
+        public void AddOnce(Action action)
+        {
+            lock (synchronizationObject)
+            {
+                foreach (var task in scheduledTasks)
+                    if (task.Action == action)
+                        return;
+                
+                scheduledTasks.Enqueue(new ScheduledTask {Action = action});
+            }
         }
 
         private class ScheduledTask

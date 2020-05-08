@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using DefaultEcs;
-using DryIoc;
 using GameHost.Core.Ecs;
 using GameHost.Core.Game;
 using GameHost.Core.Threading;
@@ -13,41 +12,42 @@ namespace GameHost.Applications
 {
     public abstract class GameThreadedHostApplicationBase<T> : ThreadingHost<T>
     {
+        private TimeSpan frequency;
+
+        protected Dictionary<Instance, WorldCollection> MappedWorldCollection = new Dictionary<Instance, WorldCollection>(1);
+        protected List<Type>                            queuedSystemTypes     = new List<Type>();
+
+        protected List<Type> systemTypes = new List<Type>();
+
+        protected Stopwatch UpdateStopwatch, TotalStopwatch;
+
+        protected GameThreadedHostApplicationBase(Context context, TimeSpan? frequency = null)
+        {
+            this.frequency = frequency ?? TimeSpan.FromSeconds(1f / 1000f);
+            Context        = context;
+
+            if (autoResolveSystem)
+            {
+                AppSystemResolver.ResolveFor<T>(systemTypes);
+            }
+        }
+
         protected bool    QuitApplication { get; set; }
         protected Context Context         { get; }
 
-        protected List<Type> systemTypes       = new List<Type>();
-        protected List<Type> queuedSystemTypes = new List<Type>();
-
         protected virtual bool autoResolveSystem => true;
-
-        protected Dictionary<Instance, WorldCollection> MappedWorldCollection = new Dictionary<Instance, WorldCollection>(1);
-
-        private TimeSpan frequency;
 
         public TimeSpan Frequency
         {
             get
             {
                 using (SynchronizeThread())
+                {
                     return frequency;
+                }
             }
-            set
-            {
-                ThreadingHost.Synchronize<GameSimulationThreadingHost, TimeSpan, TimeSpan>(f => frequency = f, value, null, value, cc: CancellationToken);
-            }
+            set => ThreadingHost.Synchronize<GameSimulationThreadingHost, TimeSpan, TimeSpan>(f => frequency = f, value, null, value, cc: CancellationToken);
         }
-
-        protected GameThreadedHostApplicationBase(Context context, TimeSpan? frequency = null)
-        {
-            this.frequency = frequency ?? TimeSpan.FromSeconds(1f / 1000f);
-            this.Context   = context;
-            
-            if (autoResolveSystem)
-                AppSystemResolver.ResolveFor<T>(systemTypes);
-        }
-
-        protected Stopwatch UpdateStopwatch, TotalStopwatch;
 
         protected override void OnThreadStart()
         {
@@ -84,7 +84,9 @@ namespace GameHost.Applications
 
                 var wait = frequency - spanDt;
                 if (wait > TimeSpan.Zero)
+                {
                     CancellationToken.WaitHandle.WaitOne(wait);
+                }
             }
 
             OnQuit();
@@ -95,7 +97,9 @@ namespace GameHost.Applications
         protected virtual void OnUpdate(ref int fixedUpdateCount, double elapsedTime)
         {
             for (var i = 0; i != fixedUpdateCount; i++)
+            {
                 OnFixedUpdate(i, (float)frequency.TotalSeconds, elapsedTime);
+            }
         }
 
         protected virtual void OnFixedUpdate(int step, float delta, double elapsedTime)
@@ -116,7 +120,9 @@ namespace GameHost.Applications
             foreach (var world in MappedWorldCollection.Values)
             {
                 foreach (var systemType in queuedSystemTypes)
+                {
                     world.GetOrCreate(systemType);
+                }
             }
         }
 
@@ -134,22 +140,31 @@ namespace GameHost.Applications
         {
             var worldCollection = new WorldCollection(Context, new World());
             worldCollection.Ctx.Bind<IManagedWorldTime, ManagedWorldTime>();
+            worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
 
             foreach (var type in systemTypes)
+            {
                 worldCollection.GetOrCreate(type);
+            }
 
             MappedWorldCollection[instance] = worldCollection;
         }
 
         internal class TimeSystem : IWorldSystem
         {
+            private Entity          timeEntity;
+            private WorldCollection worldCollection;
+
+            [DependencyStrategy]
+            public IManagedWorldTime WorldTime { get; set; }
+
             public WorldCollection WorldCollection
             {
                 get => worldCollection;
                 set
                 {
                     worldCollection = value;
-                    
+
                     timeEntity = worldCollection.Mgr.CreateEntity();
                     worldCollection.Mgr.SetMaxCapacity<SingletonComponent<WorldTime>>(1);
 
@@ -159,17 +174,13 @@ namespace GameHost.Applications
                 }
             }
 
-            [DependencyStrategy]
-            public IManagedWorldTime WorldTime { get; set; }
-
-            private Entity timeEntity;
-            private WorldCollection worldCollection;
-
             public void Update(WorldTime time)
             {
                 if (!timeEntity.IsAlive)
+                {
                     return;
-                    
+                }
+
                 timeEntity.Set(time);
                 if (WorldTime is ManagedWorldTime managed)
                 {
