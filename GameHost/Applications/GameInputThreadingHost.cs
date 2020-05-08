@@ -40,6 +40,8 @@ namespace GameHost.Applications
             var fts = new FixedTimeStep {TargetFrameTimeMs = frequency.Milliseconds};
             while (!CancellationToken.IsCancellationRequested)
             {
+                GetScheduler().Run();
+                
                 Frame++;
 
                 var spanDt = updateSw.Elapsed;

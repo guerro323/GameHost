@@ -62,6 +62,8 @@ namespace GameHost.Applications
             var fts         = new FixedTimeStep {TargetFrameTimeMs = Frequency.Milliseconds};
             do
             {
+                GetScheduler().Run();
+                
                 var spanDt = updateSw.Elapsed;
                 updateSw.Restart();
 

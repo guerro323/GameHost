@@ -54,23 +54,23 @@ namespace GameHost.UI.Noesis
 
         public void SetSize(int width, int height)
         {
-            View.SetSize(width, height);
+            View?.SetSize(width, height);
         }
 
         public virtual void Update(double time)
         {
-            View.Update(time);
+            View?.Update(time);
         }
 
         public void PrepareRender()
         {
-            Renderer.UpdateRenderTree();
-            Renderer.RenderOffscreen();
+            Renderer?.UpdateRenderTree();
+            Renderer?.RenderOffscreen();
         }
 
         public void Render()
         {
-            Renderer.Render();
+            Renderer?.Render();
         }
     }
 }

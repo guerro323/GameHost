@@ -146,5 +146,23 @@ namespace GameHost.Core.Modding.Systems
                 hostSystem.Value.UnloadModule(entity);
             }
         }
+
+        public T GetModule<T>(string moduleName)
+            where T : CModule
+        {
+            lock (hostSystem.Value)
+            {
+                return (T) hostSystem.Value.ModuleMap[moduleName];
+            }
+        }
+        
+        public T GetModule<T>(Assembly assembly)
+            where T : CModule
+        {
+            lock (hostSystem.Value)
+            {
+                return (T) hostSystem.Value.ModuleMap[assembly.GetName().Name];
+            }
+        }
     }
 }

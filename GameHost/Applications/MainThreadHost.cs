@@ -42,6 +42,8 @@ namespace GameHost.Applications
 
         public void Update()
         {
+            GetScheduler().Run();
+            
             using (SynchronizeThread())
             {
                 worldCollection.DoInitializePass();

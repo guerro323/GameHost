@@ -14,9 +14,11 @@ namespace GameHost.Core.Bindables
             {
                 if (!protection.CanModifyValue)
                     throw new InvalidOperationException("Can not modify values");
-                
+
+                Console.WriteLine("on value change - 1");
                 if (EqualityComparer<T>.Default.Equals(this.value, value))
                     return;
+                Console.WriteLine("on value change - 2");
                 InvokeOnUpdate(ref value);
             }
         }
@@ -86,7 +88,7 @@ namespace GameHost.Core.Bindables
             private object Protection;
             private bool   IsEnabled;
 
-            public bool CanModifyValue => Protection != null && !IsEnabled;
+            public bool CanModifyValue => Protection == null || (Protection != null && !IsEnabled);
 
             public ProtectedValue(object protection)
             {

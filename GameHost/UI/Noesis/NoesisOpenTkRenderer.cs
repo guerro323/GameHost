@@ -58,19 +58,19 @@ namespace GameHost.UI.Noesis
             while (mouseButtonEvents.TryPop(out var mbEvent))
             {
                 if (mbEvent.IsPressed)
-                    View.MouseButtonDown((int)Window.MousePosition.X, (int)Window.MousePosition.Y, ToNoesis(mbEvent.Button));
+                    View?.MouseButtonDown((int)Window.MousePosition.X, (int)Window.MousePosition.Y, ToNoesis(mbEvent.Button));
                 else
-                    View.MouseButtonUp((int)Window.MousePosition.X, (int)Window.MousePosition.Y, ToNoesis(mbEvent.Button));
+                    View?.MouseButtonUp((int)Window.MousePosition.X, (int)Window.MousePosition.Y, ToNoesis(mbEvent.Button));
             }
 
             while (mouseWheelEvents.TryPop(out var mwEvent))
             {
-                View.MouseWheel((int)mwEvent.OffsetX, (int)mwEvent.OffsetY, 0);
+                View?.MouseWheel((int)mwEvent.OffsetX, (int)mwEvent.OffsetY, 0);
             }
 
             while (mouseMoveEvents.TryPop(out var mvEvent))
             {
-                View.MouseMove((int)mvEvent.X, (int)mvEvent.Y);
+                View?.MouseMove((int)mvEvent.X, (int)mvEvent.Y);
             }
 
             while (windowResizeEvents.TryPop(out var wrEvent))

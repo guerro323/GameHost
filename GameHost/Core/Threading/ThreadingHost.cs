@@ -140,7 +140,10 @@ namespace GameHost.Core.Threading
         private Thread                  thread;
         private CancellationTokenSource cts;
 
-        public Thread GetThread() => thread;
+        private Scheduler scheduler;
+
+        public Thread    GetThread()    => thread;
+        public Scheduler GetScheduler() => scheduler;
 
         public bool IsListening { get; private set; }
 
@@ -166,12 +169,15 @@ namespace GameHost.Core.Threading
 
             cts         = new CancellationTokenSource();
             IsListening = true;
+
+            scheduler = new Scheduler(thread);
         }
 
         public override void Listen()
         {
             ListenOnThread(new Thread(OnThreadStart));
             thread.Name = $"{typeof(T).Name}'s thread";
+            scheduler   = new Scheduler(thread);
             thread.Start();
         }
 

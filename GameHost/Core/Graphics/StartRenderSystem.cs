@@ -11,12 +11,13 @@ namespace GameHost.Core.Graphics
     [RestrictToApplication(typeof(GameRenderThreadingHost))]
     public class StartRenderSystem : AppSystem
     {
+        [DependencyStrategy]
+        public IGraphicTool Gt { get; set; }
+
         protected override void OnUpdate()
         {
             base.OnUpdate();
-            
-            GL.ClearColor(0.0f, 0.2f, 0.0f, 0.0f);
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            Gt.Clear(null);
         }
     }
 
@@ -24,13 +25,12 @@ namespace GameHost.Core.Graphics
     public class EndRenderSystem : AppSystem
     {
         [DependencyStrategy]
-        public IGameWindow Window { get; set; }
+        public IGraphicTool Gt { get; set; }
 
         protected override void OnUpdate()
         {
             base.OnUpdate();
-
-            Window.SwapBuffers();
+            Gt.SwapBuffers();
         }
     }
 }
