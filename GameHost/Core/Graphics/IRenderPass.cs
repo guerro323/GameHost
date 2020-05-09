@@ -80,7 +80,6 @@ namespace GameHost.Core.Graphics
             if (system is RenderPassBase tr)
             {
                 renderPassByType[tr.Type].Add(tr, OrderedList.GetAfter(tr.GetType()), OrderedList.GetBefore(tr.GetType()));
-                Console.WriteLine($"{tr.Type} -> {tr.GetType()}");
             }
         }
     }

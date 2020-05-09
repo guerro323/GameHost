@@ -59,15 +59,11 @@ namespace GameHost.Injection
             
             if (allResolved && onComplete != null)
             {
-                Console.WriteLine("all resolved, source: " + source);
-                
                 onComplete(Dependencies.Where(d => d.IsResolved && d is IResolvedObject).Select(d => ((IResolvedObject)d).Resolved));
                 onComplete = null;
                 Dependencies.Clear();
             }
 
-            Console.WriteLine($"try resolve, source: {source}");
-            
             if (!allResolved)
                 scheduler.AddOnce(Update);
         }

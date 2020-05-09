@@ -31,15 +31,34 @@ namespace GameHost.Core.Ecs
     [InjectSystemToWorld]
     public abstract class AppSystem : IDisposable, IInitSystem, IUpdateSystem
     {
+        /// <summary>
+        /// Is this <see cref="AppSystem"/> enabled?
+        /// </summary>
         public bool Enabled { get; set; } = true;
 
+        /// <summary>
+        /// The <see cref="Context"/> (referenced from <see cref="WorldCollection"/>) of this <see cref="AppSystem"/>
+        /// </summary>
         public Context         Context { get; private set; }
+        /// <summary>
+        /// The <see cref="WorldCollection"/> of this <see cref="AppSystem"/>.
+        /// </summary>
         public WorldCollection World   { get; private set; }
+        /// <summary>
+        /// The <see cref="DependencyResolver"/> of this <see cref="AppSystem"/>.
+        /// <remarks>
+        /// The first initialization of the resolver is using the strategy <see cref="DefaultAppSystemStrategy"/>
+        /// </remarks>
+        /// </summary>
         public DependencyResolver DependencyResolver { get; private set; }
 
         private IEnumerable<object> callResolved;
         private List<IDisposable> disposables = new List<IDisposable>();
 
+        /// <summary>
+        /// Add an object with <see cref="IDisposable"/>> that will be disposed when <see cref="Dispose"/> is called on this system.
+        /// </summary>
+        /// <param name="disposable"></param>
         public void AddDisposable(IDisposable disposable) => disposables.Add(disposable);
 
         protected virtual void OnInit()
@@ -52,11 +71,21 @@ namespace GameHost.Core.Ecs
         
         }
 
+        /// <summary>
+        /// This function is called when all initial dependencies are resolved.
+        /// <remarks>
+        /// Called right before <see cref="OnUpdate"/>
+        /// </remarks>
+        /// </summary>
+        /// <param name="dependencies"></param>
         protected virtual void OnDependenciesResolved(IEnumerable<object> dependencies)
         {
-            
+
         }
 
+        /// <summary>
+        /// Disposing the system and its internal resources.
+        /// </summary>
         public virtual void Dispose()
         {
             foreach (var disposable in disposables)
@@ -77,6 +106,10 @@ namespace GameHost.Core.Ecs
             OnUpdate();
         }
 
+        /// <summary>
+        /// Return a boolean that indicate if this system can invoke <see cref="OnUpdate"/>
+        /// </summary>
+        /// <returns></returns>
         public virtual bool CanUpdate()
         {
             if (callResolved != null)

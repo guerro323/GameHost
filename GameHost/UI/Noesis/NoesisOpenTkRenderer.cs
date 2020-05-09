@@ -12,8 +12,6 @@ namespace GameHost.UI.Noesis
     {
         public NoesisOpenTkRenderer(INativeWindow window)
         {
-            Console.WriteLine("created on: " + Thread.CurrentThread.Name);
-
             Window = window;
             SetWindow(window);
         }

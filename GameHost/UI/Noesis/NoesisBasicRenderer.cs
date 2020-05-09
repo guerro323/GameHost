@@ -45,9 +45,7 @@ namespace GameHost.UI.Noesis
         {
             View = GUI.CreateView(xamlObject);
             View.SetFlags(RenderFlags.PPAA | RenderFlags.LCD);
-
-            Console.WriteLine("Loaded Object on " + Thread.CurrentThread.Name);
-
+            
             Renderer = View.Renderer;
             Renderer.Init(new RenderDeviceGL());
         }

@@ -32,7 +32,7 @@ namespace GameHost.Core.Ecs
                     if (restrict == null || restrict.IsValid<TApplication>())
                     {
                         foundTypes.Add(type);
-                        Console.WriteLine($"Adding system to application {{{typeof(TApplication).Name}}}: {type.Name}");
+                        //Console.WriteLine($"Adding system to application {{{typeof(TApplication).Name}}}: {type.Name}");
                     }
                 }
             }

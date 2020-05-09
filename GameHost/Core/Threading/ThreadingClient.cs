@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 using GameHost.Core.Applications;
 
@@ -13,8 +14,16 @@ namespace GameHost.Core.Threading
 
         public override void Connect()
         {
+            var sw = new Stopwatch();
+            sw.Start();
+            while (!ThreadingHost.TypeToThread.ContainsKey(typeof(TListener)))
+            {
+                if (sw.Elapsed.TotalSeconds > 1)
+                    throw new InvalidOperationException($"Connecting to {typeof(TListener)} has taken too much time.");
+            }
+
             if (thread != null)
-                Console.WriteLine(string.Format("Successfuly connected to '{0}' thread", typeof(TListener).Name));
+                Console.WriteLine($"Successfuly connected to '{typeof(TListener).Name}' thread");
 
             IsConnected = true;
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Modding;
 using GameHost.Core.Modding.Systems;
@@ -30,6 +31,15 @@ namespace GameHost.Injection
 
             if (type.IsSubclassOf(typeof(CModule)))
                 return collection.GetOrCreate<ModuleManager>().GetModule(source.GetType().Assembly);
+
+            if (type.IsSubclassOf(typeof(ApplicationClientBase)))
+            {
+                var instance = (ApplicationClientBase) Activator.CreateInstance(type);
+                instance.Connect();
+                if (source is AppSystem app)
+                    app.AddDisposable(instance);
+                return instance;
+            }
 
             return new ContextBindingStrategy(collection.Ctx, true).Resolve(type);
         }

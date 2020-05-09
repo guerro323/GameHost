@@ -179,7 +179,6 @@ namespace GameHost.Core.Threading
             IsListening = true;
 
             scheduler = new Scheduler(thread);
-            Console.WriteLine($"Listen on thread {thread.Name}");
         }
 
         public override void Listen()

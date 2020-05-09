@@ -6,6 +6,7 @@ using DefaultEcs;
 using GameHost.Core.Bindables;
 using GameHost.Core.IO;
 using GameHost.Injection;
+using GameHost.IO;
 
 namespace GameHost.Core.Modding
 {
@@ -19,6 +20,8 @@ namespace GameHost.Core.Modding
         /// </summary>
         public readonly Bindable<IStorage> Storage;
 
+        public readonly DllStorage DllStorage;
+
         private object bindableProtection = new object();
 
         public CModule(Entity source, Context ctxParent, SModuleInfo original)
@@ -26,9 +29,10 @@ namespace GameHost.Core.Modding
             if (!original.IsNameIdValid())
                 throw new InvalidOperationException($"The mod '{original.NameId}' has invalid characters!");
 
-            Source   = source;
-            Ctx     = new Context(ctxParent);
-            Storage = new Bindable<IStorage>(protection: bindableProtection);
+            Source     = source;
+            Ctx        = new Context(ctxParent);
+            Storage    = new Bindable<IStorage>(protection: bindableProtection);
+            DllStorage = new DllStorage(GetType().Assembly);
 
             var strategy = new ContextBindingStrategy(Ctx, true);
             var storage  = strategy.Resolve<IStorage>();

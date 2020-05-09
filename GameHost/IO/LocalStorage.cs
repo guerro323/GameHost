@@ -16,7 +16,6 @@ namespace GameHost.IO
         {
             if (!directory.Exists)
                 directory.Create();
-            Console.WriteLine(directory.FullName);
 
             this.directory = directory;
         }
