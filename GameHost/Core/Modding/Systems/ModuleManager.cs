@@ -50,7 +50,7 @@ namespace GameHost.Core.Modding.Systems
                     // these components are used for when the assembly get unloaded and if we need them back...
                     rm.Set(asm);
                     rm.Set(asm.GetName());
-                    
+
                     LoadModule(rm);
                 }
             }
@@ -70,7 +70,7 @@ namespace GameHost.Core.Modding.Systems
                 if (entity.Has<IFile>())
                     return LoadContext.LoadFromAssemblyPath(entity.Get<IFile>().FullName);
                 Console.WriteLine(":(");
-                
+
                 return null;
             }
 
@@ -90,13 +90,13 @@ namespace GameHost.Core.Modding.Systems
                 var attr = asm.GetCustomAttribute<ModuleDescriptionAttribute>();
                 if (attr == null)
                     throw new InvalidOperationException($"The assembly '{asm}' is not a valid module.");
-                
+
                 module.Info.Author = attr.Author;
 
                 var cmodType = attr.IsValid ? attr.ModuleType : typeof(CModule);
-                var cmod = Activator.CreateInstance(cmodType, entity, Context, module.Info);
-                
-                ModuleMap[module.Info.NameId] = (CModule) cmod;
+                var cmod     = Activator.CreateInstance(cmodType, entity, Context, module.Info);
+
+                ModuleMap[module.Info.NameId] = (CModule)cmod;
                 entity.Set(asm);
                 entity.Set(cmod);
             }
@@ -109,13 +109,13 @@ namespace GameHost.Core.Modding.Systems
                 Debug.Assert(ModuleMap.ContainsKey(module.Info.NameId), "ModuleMap.ContainsKey(module.Info.NameId)");
 
                 module.State = ModuleState.Unloading;
-                
+
                 if (entity.Has<Assembly>())
                     entity.Remove<Assembly>();
             }
         }
 
-        private MainThreadClient client;
+        private MainThreadClient           client;
         private Lazy<RestrictedHostSystem> hostSystem;
 
         protected override void OnInit()
@@ -147,22 +147,17 @@ namespace GameHost.Core.Modding.Systems
             }
         }
 
-        public T GetModule<T>(string moduleName)
-            where T : CModule
+        public CModule GetModule(string moduleName)
         {
             lock (hostSystem.Value)
             {
-                return (T) hostSystem.Value.ModuleMap[moduleName];
+                return hostSystem.Value.ModuleMap[moduleName];
             }
         }
-        
-        public T GetModule<T>(Assembly assembly)
-            where T : CModule
-        {
-            lock (hostSystem.Value)
-            {
-                return (T) hostSystem.Value.ModuleMap[assembly.GetName().Name];
-            }
-        }
+
+        public CModule GetModule(Assembly assembly) => GetModule(assembly.GetName().Name);
+
+        public T GetModule<T>(string   moduleName) where T : CModule => (T)GetModule(moduleName);
+        public T GetModule<T>(Assembly assembly) where T : CModule   => (T)GetModule(assembly);
     }
 }

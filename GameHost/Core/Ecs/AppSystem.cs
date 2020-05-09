@@ -100,7 +100,7 @@ namespace GameHost.Core.Ecs
 
                 DependencyResolver = new DependencyResolver(Context.Container.Resolve<IScheduler>(), Context, $"Thread({Thread.CurrentThread.Name}) System[{GetType().Name}]")
                 {
-                    DefaultStrategy = new ContextBindingStrategy(Context, true)
+                    DefaultStrategy = new DefaultAppSystemStrategy(this, World)
                 };
                 DependencyResolver.OnComplete(enumerable => callResolved = enumerable);
             }
