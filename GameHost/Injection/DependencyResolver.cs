@@ -13,10 +13,12 @@ namespace GameHost.Injection
         public IDependencyStrategy  DefaultStrategy;
 
         private readonly IScheduler scheduler;
+        private readonly string source;
 
-        public DependencyResolver(IScheduler scheduler, Context context)
+        public DependencyResolver(IScheduler scheduler, Context context, string source = "")
         {
             this.scheduler = scheduler;
+            this.source = source;
         }
 
         public void Add<T>([CanBeNull] IDependencyStrategy strategy = null)
@@ -54,13 +56,17 @@ namespace GameHost.Injection
                 if (!dep.IsResolved)
                     allResolved = false;
             }
-
+            
             if (allResolved && onComplete != null)
             {
+                Console.WriteLine("all resolved, source: " + source);
+                
                 onComplete(Dependencies.Where(d => d.IsResolved && d is IResolvedObject).Select(d => ((IResolvedObject)d).Resolved));
                 onComplete = null;
                 Dependencies.Clear();
             }
+
+            Console.WriteLine($"try resolve, source: {source}");
             
             if (!allResolved)
                 scheduler.AddOnce(Update);
@@ -107,10 +113,12 @@ namespace GameHost.Injection
             scheduler.AddOnce(Update);
         }
 
-        public class ReturnByRefDependency<T> : DependencyBase
+        public class ReturnByRefDependency<T> : DependencyBase, IResolvedObject
         {
             public Type           Type;
             public ReturnByRef<T> Function;
+
+            public object Resolved { get; private set; }
 
             public ReturnByRefDependency(Type type, ReturnByRef<T> fun, IDependencyStrategy strategy)
             {
@@ -121,11 +129,11 @@ namespace GameHost.Injection
 
             public override void Resolve()
             {
-                var resolved = Strategy.Resolve(Type);
-                if (resolved != null)
+                Resolved = Strategy.Resolve(Type);
+                if (Resolved != null)
                 {
                     // The ref object will be replaced by the resolved.
-                    Function() = (T)resolved;
+                    Function() = (T)Resolved;
                     IsResolved = true;
                     return;
                 }

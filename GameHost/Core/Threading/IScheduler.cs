@@ -8,7 +8,7 @@ namespace GameHost.Core.Threading
     {
         bool IsOnSameThread();
         void Run();
-        void Add(Action action);
+        void Add(Action     action);
         void AddOnce(Action action);
     }
 
@@ -16,25 +16,35 @@ namespace GameHost.Core.Threading
     {
         private Thread scheduleThread;
 
-        private object synchronizationObject;
+        private object               synchronizationObject;
         private Queue<ScheduledTask> scheduledTasks;
-        
+
         public Scheduler(Thread targetThread = null)
         {
-            scheduleThread = targetThread ?? Thread.CurrentThread;
+            scheduleThread        = targetThread ?? Thread.CurrentThread;
             synchronizationObject = new object();
-            scheduledTasks = new Queue<ScheduledTask>();
+            scheduledTasks        = new Queue<ScheduledTask>();
         }
 
         public bool IsOnSameThread() => scheduleThread == Thread.CurrentThread;
+
         public void Run()
         {
-            lock (scheduledTasks)
+            lock (synchronizationObject)
             {
                 var taskLength = scheduledTasks.Count;
-                var i = 0;
+                var i          = 0;
                 while (scheduledTasks.TryDequeue(out var task) && i++ < taskLength)
-                    task.Invoke();
+                {
+                    try
+                    {
+                        task.Invoke();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }
             }
         }
 
@@ -51,7 +61,7 @@ namespace GameHost.Core.Threading
                 foreach (var task in scheduledTasks)
                     if (task.Action == action)
                         return;
-                
+
                 scheduledTasks.Enqueue(new ScheduledTask {Action = action});
             }
         }

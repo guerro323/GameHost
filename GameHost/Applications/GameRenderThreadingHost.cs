@@ -54,7 +54,7 @@ namespace GameHost.Applications
 
             // todo: we shouldn't explicitly do new() here, but parent contexts aren't used normal Resolve<>()... 
             worldCollection.Ctx.Bind<IGraphicTool, OpenGl4GraphicTool>(new OpenGl4GraphicTool(window));
-            worldCollection.Ctx.Bind<IScheduler, IScheduler>(GetScheduler());
+            worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
 
             while (!CancellationToken.IsCancellationRequested && window.Exists && !window.IsExiting)
             {

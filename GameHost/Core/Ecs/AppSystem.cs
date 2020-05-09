@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using DryIoc;
 using GameHost.Core.Threading;
 using GameHost.Injection;
@@ -36,6 +37,11 @@ namespace GameHost.Core.Ecs
         public WorldCollection World   { get; private set; }
         public DependencyResolver DependencyResolver { get; private set; }
 
+        private IEnumerable<object> callResolved;
+        private List<IDisposable> disposables = new List<IDisposable>();
+
+        public void AddDisposable(IDisposable disposable) => disposables.Add(disposable);
+
         protected virtual void OnInit()
         {
 
@@ -53,7 +59,9 @@ namespace GameHost.Core.Ecs
 
         public virtual void Dispose()
         {
-
+            foreach (var disposable in disposables)
+                disposable?.Dispose();
+            disposables.Clear();
         }
 
         // Interfaces implementation
@@ -71,6 +79,11 @@ namespace GameHost.Core.Ecs
 
         public virtual bool CanUpdate()
         {
+            if (callResolved != null)
+            {
+                OnDependenciesResolved(callResolved);
+                callResolved = null;
+            }
             return Enabled && DependencyResolver.Dependencies.Count == 0;
         }
 
@@ -85,11 +98,11 @@ namespace GameHost.Core.Ecs
                 World   = value;
                 Context = value.Ctx;
 
-                DependencyResolver = new DependencyResolver(Context.Container.Resolve<IScheduler>(), Context)
+                DependencyResolver = new DependencyResolver(Context.Container.Resolve<IScheduler>(), Context, $"Thread({Thread.CurrentThread.Name}) System[{GetType().Name}]")
                 {
                     DefaultStrategy = new ContextBindingStrategy(Context, true)
                 };
-                DependencyResolver.OnComplete(OnDependenciesResolved);
+                DependencyResolver.OnComplete(enumerable => callResolved = enumerable);
             }
         }
     }

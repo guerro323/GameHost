@@ -67,12 +67,15 @@ namespace GameHost.Core.Bindables
             this.value = value;
         }
 
-        public virtual void Subscribe(in ValueChanged<T> listener)
+        public virtual void Subscribe(in ValueChanged<T> listener, bool invokeNow = false)
         {
             if (SubscribedListeners is List<ValueChanged<T>> list && !list.Contains(listener))
                 list.Add(listener);
             else
                 throw new InvalidOperationException("You've replaced the list type by something else!");
+
+            if (invokeNow)
+                listener(value, value);
         }
 
         public void SetDefault() => Value = Default;

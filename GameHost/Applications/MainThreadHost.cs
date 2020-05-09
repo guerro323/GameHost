@@ -35,6 +35,8 @@ namespace GameHost.Applications
             base.ListenOnThread(wantedThread);
             worldCollection.Ctx.Bind<AssemblyLoadContext, ModuleAssemblyLoadContext>(new ModuleAssemblyLoadContext());
             worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
+
+            wantedThread.Name = "MainThread";
             
             AppSystemResolver.ResolveFor<MainThreadHost>(queuedSystemTypes);
         }

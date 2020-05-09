@@ -8,6 +8,8 @@ namespace GameHost.Core.Threading
 {
     public static class ThreadingHost
     {
+        public delegate void OnSynchronizationSuccess<in T>(T host);
+
         public struct ThreadHost
         {
             public object          Host;
@@ -109,12 +111,13 @@ namespace GameHost.Core.Threading
                 onFail?.Invoke(failData);
         }
 
-        public static async void Synchronize<T>(Action onSuccess, Action onFail, int timeoutMs = 5000, CancellationToken cc = default)
+        public static async void Synchronize<T>(OnSynchronizationSuccess<T> onSuccess, Action onFail, int timeoutMs = 5000, CancellationToken cc = default) 
+            where T : ApplicationHostBase
         {
             var semaphore = GetSemaphore<T>();
             if (semaphore.CanRunSemaphore() == false)
             {
-                onSuccess?.Invoke();
+                onSuccess?.Invoke(GetListener<T>());
                 return;
             }
 
@@ -123,7 +126,7 @@ namespace GameHost.Core.Threading
                 semaphore.Use(Thread.CurrentThread);
                 try
                 {
-                    onSuccess?.Invoke();
+                    onSuccess?.Invoke(GetListener<T>());
                 }
                 finally
                 {
