@@ -12,9 +12,8 @@ namespace GameHost.UI.Noesis
     [RestrictToApplication(typeof(GameRenderThreadingHost))]
     public class NoesisInitializationSystem : AppSystem
     {
-        protected override void OnInit()
+        public NoesisInitializationSystem(WorldCollection collection) : base(collection)
         {
-            base.OnInit();
             GUI.Init("", "");
 
             Application.SetThemeProviders();

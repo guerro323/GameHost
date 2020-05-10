@@ -1,26 +1,29 @@
-﻿using DefaultEcs;
+﻿using System;
+using DefaultEcs;
 using ImTools;
 
 namespace GameHost.Entities
 {
-    public struct SingletonComponent<T> {}
-    
+    public struct SingletonComponent<T>
+    {
+    }
+
     public struct WorldTime
     {
-        public double Total;
-        public float  Delta;
+        public TimeSpan Total;
+        public TimeSpan Delta;
     }
 
     public interface IManagedWorldTime
     {
-        public double Total { get; }
-        public float Delta { get; }
+        public TimeSpan Total { get; }
+        public TimeSpan Delta { get; }
     }
 
     public class ManagedWorldTime : IManagedWorldTime
     {
-        public double Total { get; private set; }
-        public float  Delta { get; private set; }
+        public TimeSpan Total { get; private set; }
+        public TimeSpan Delta { get; private set; }
 
         public void Update(Entity source)
         {

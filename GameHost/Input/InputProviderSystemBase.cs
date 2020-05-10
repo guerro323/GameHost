@@ -17,12 +17,13 @@ namespace GameHost.Input
         where T : IInputProvider
     {
         private InputProviderEndBarrier barrier;
-        protected bool DataHasBeenReadThisFrame { get; private set; }
 
-        protected override void OnInit()
+        protected InputProviderSystemBase(WorldCollection collection) : base(collection)
         {
-            base.OnInit();
+            DependencyResolver.Add(() => ref barrier);
         }
+        
+        protected bool DataHasBeenReadThisFrame { get; private set; }
 
         protected EntityRecord GetEntityRecord(Entity entity)
         {
@@ -48,10 +49,9 @@ namespace GameHost.Input
         public readonly EntityCommandRecorder Recorder;
 
         private GameInputThreadingHost host;
-
-        protected override void OnInit()
+        
+        public InputProviderEndBarrier(WorldCollection collection) : base(collection)
         {
-            base.OnInit();
         }
     }
 }

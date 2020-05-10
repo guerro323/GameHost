@@ -101,7 +101,7 @@ namespace GameHost.Applications
                                 world.Ctx.Container.UseInstance<IManagedWorldTime>(managedWorldTime);
                             }
 
-                            timeEntity.Set(new WorldTime {Delta = (float)frequency.TotalSeconds, Total = elapsedTime.TotalSeconds});
+                            timeEntity.Set(new WorldTime {Delta = frequency, Total = elapsedTime});
                             managedWorldTime.Update(timeEntity);
 
                             world.DoInitializePass();

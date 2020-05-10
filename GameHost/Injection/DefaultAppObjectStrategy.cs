@@ -4,15 +4,16 @@ using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Modding;
 using GameHost.Core.Modding.Systems;
+using NetFabric.Hyperlinq;
 
 namespace GameHost.Injection
 {
-    public class DefaultAppSystemStrategy : IDependencyStrategy
+    public class DefaultAppObjectStrategy : IDependencyStrategy
     {
         private readonly WorldCollection collection;
-        private readonly object source;
+        private readonly object          source;
 
-        public DefaultAppSystemStrategy(object source, WorldCollection collection)
+        public DefaultAppObjectStrategy(object source, WorldCollection collection)
         {
             this.source     = source;
             this.collection = collection;
@@ -20,7 +21,7 @@ namespace GameHost.Injection
 
         public object Resolve(Type type)
         {
-            if (type.IsSubclassOf(typeof(IWorldSystem)))
+            if (type.GetInterfaces().Contains((typeof(IWorldSystem))))
             {
                 // todo: check correct application
                 return collection.GetOrCreate(type);
@@ -30,11 +31,12 @@ namespace GameHost.Injection
                 return source.GetType().Assembly;
 
             if (type.IsSubclassOf(typeof(CModule)))
-                return collection.GetOrCreate<ModuleManager>().GetModule(source.GetType().Assembly);
+                return collection.GetOrCreate(world => new ModuleManager(world)).GetModule(source.GetType().Assembly);
 
             if (type.IsSubclassOf(typeof(ApplicationClientBase)))
             {
-                var instance = (ApplicationClientBase) Activator.CreateInstance(type);
+                Console.WriteLine($"create {type}");
+                var instance = (ApplicationClientBase)Activator.CreateInstance(type);
                 instance.Connect();
                 if (source is AppSystem app)
                     app.AddDisposable(instance);

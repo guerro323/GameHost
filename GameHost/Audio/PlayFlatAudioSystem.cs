@@ -13,9 +13,8 @@ namespace GameHost.Audio
     [RestrictToApplication(typeof(GameAudioThreadingHost))]
     public class PlayFlatAudioSystem : AppSystem
     {
-        protected override void OnUpdate()
+        public PlayFlatAudioSystem(WorldCollection collection) : base(collection)
         {
-            base.OnUpdate();
         }
     }
 }

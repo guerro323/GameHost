@@ -4,6 +4,7 @@ using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Event;
+using GameHost.Injection;
 using JetBrains.Annotations;
 
 namespace GameHost.Core.Graphics
@@ -17,21 +18,26 @@ namespace GameHost.Core.Graphics
 
     [InjectSystemToWorld]
     [RestrictToApplication(typeof(GameRenderThreadingHost))]
-    public abstract class RenderPassBase : IInitSystem, IWorldSystem
+    public abstract class RenderPassBase : AppObject, IInitSystem, IWorldSystem
     {
-        WorldCollection IWorldSystem.WorldCollection { get; set; }
+        WorldCollection IWorldSystem.WorldCollection => World;
 
         void IInitSystem.OnInit()
         {
             OnInit();
         }
 
-        public WorldCollection World => ((IWorldSystem)this).WorldCollection;
+        public WorldCollection World { get; }
 
         public abstract EPassType Type { get; }
 
-        protected virtual  void OnInit() { }
-        public abstract void Execute();
+        protected virtual void OnInit() { }
+        public abstract   void Execute();
+
+        protected RenderPassBase(WorldCollection worldCollection) : base(worldCollection.Ctx)
+        {
+            this.World = worldCollection;
+        }
     }
 
     [RestrictToApplication(typeof(GameRenderThreadingHost))]
@@ -81,6 +87,10 @@ namespace GameHost.Core.Graphics
             {
                 renderPassByType[tr.Type].Add(tr, OrderedList.GetAfter(tr.GetType()), OrderedList.GetBefore(tr.GetType()));
             }
+        }
+
+        public RenderPassManager(WorldCollection collection) : base(collection)
+        {
         }
     }
 }

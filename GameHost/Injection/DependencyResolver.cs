@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using GameHost.Core.IO;
 using GameHost.Core.Threading;
 using JetBrains.Annotations;
@@ -15,17 +17,34 @@ namespace GameHost.Injection
         private readonly IScheduler scheduler;
         private readonly string source;
 
+        private ConcurrentBag<TaskCompletionSource<bool>> dependencyCompletion;
+
+        public Task DependencyCompletion
+        {
+            get
+            {
+                var tcs = new TaskCompletionSource<bool>();
+                dependencyCompletion.Add(tcs);
+                return tcs.Task;
+            }
+        }
+
         public DependencyResolver(IScheduler scheduler, Context context, string source = "")
         {
+            dependencyCompletion = new ConcurrentBag<TaskCompletionSource<bool>>();
+            
             this.scheduler = scheduler;
             this.source = source;
         }
 
-        public void Add<T>([CanBeNull] IDependencyStrategy strategy = null)
+        public void AddDependency(DependencyBase dependency)
         {
-            Dependencies.Add(new Dependency(strategy ?? DefaultStrategy, typeof(T)));
+            Dependencies.Add(dependency);
             scheduler.AddOnce(Update);
         }
+
+        public void Add<T>([CanBeNull] IDependencyStrategy strategy = null) => AddDependency(new Dependency(strategy ?? DefaultStrategy, typeof(T)));
+        public void Add<T>(ReturnByRef<T> func, IDependencyStrategy strategy = null) => AddDependency(new ReturnByRefDependency<T>(typeof(T), func, strategy ?? DefaultStrategy));
 
         private Action<IEnumerable<object>> onComplete;
 
@@ -56,12 +75,20 @@ namespace GameHost.Injection
                 if (!dep.IsResolved)
                     allResolved = false;
             }
-            
+
             if (allResolved && onComplete != null)
             {
                 onComplete(Dependencies.Where(d => d.IsResolved && d is IResolvedObject).Select(d => ((IResolvedObject)d).Resolved));
                 onComplete = null;
                 Dependencies.Clear();
+            }
+
+            // Be sure to set the result right after onComplete has been called
+            if (allResolved && dependencyCompletion.Count > 0)
+            {
+                foreach (var tcs in dependencyCompletion)
+                    tcs.SetResult(true);
+                dependencyCompletion.Clear();
             }
 
             if (!allResolved)
@@ -99,15 +126,14 @@ namespace GameHost.Injection
             }
 
             public object Resolved { get; private set; }
+
+            public override string ToString()
+            {
+                return $"Dependency(type={Type}, completed={Resolved != null})";
+            }
         }
 
         public delegate ref T ReturnByRef<T>();
-
-        public void Add<T>(ReturnByRef<T> func, IDependencyStrategy strategy = null)
-        {
-            Dependencies.Add(new ReturnByRefDependency<T>(typeof(T), func, strategy ?? DefaultStrategy));
-            scheduler.AddOnce(Update);
-        }
 
         public class ReturnByRefDependency<T> : DependencyBase, IResolvedObject
         {
@@ -135,6 +161,11 @@ namespace GameHost.Injection
                 }
                 
                 IsResolved = false;
+            }
+            
+            public override string ToString()
+            {
+                return $"Dependency(type={Type}, completed={IsResolved})";
             }
         }
     }

@@ -12,6 +12,7 @@ using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.IO;
 using GameHost.Core.Modding.Components;
+using GameHost.Core.Threading;
 using GameHost.Injection;
 
 namespace GameHost.Core.Modding.Systems
@@ -23,8 +24,14 @@ namespace GameHost.Core.Modding.Systems
         {
             public Dictionary<string, CModule> ModuleMap;
 
-            [DependencyStrategy]
-            public AssemblyLoadContext LoadContext { get; set; }
+            private AssemblyLoadContext loadContext;
+            private IScheduler          scheduler;
+
+            public RestrictedHostSystem(WorldCollection collection) : base(collection)
+            {
+                DependencyResolver.Add(() => ref loadContext);
+                DependencyResolver.Add(() => ref scheduler);
+            }
 
             protected override void OnInit()
             {
@@ -66,90 +73,99 @@ namespace GameHost.Core.Modding.Systems
                 if (entity.Has<Assembly>())
                     return entity.Get<Assembly>();
                 if (entity.Has<AssemblyName>())
-                    return LoadContext.LoadFromAssemblyName(entity.Get<AssemblyName>());
+                    return loadContext.LoadFromAssemblyName(entity.Get<AssemblyName>());
                 if (entity.Has<IFile>())
-                    return LoadContext.LoadFromAssemblyPath(entity.Get<IFile>().FullName);
+                    return loadContext.LoadFromAssemblyPath(entity.Get<IFile>().FullName);
                 Console.WriteLine(":(");
 
                 return null;
             }
 
-            public void LoadModule(Entity entity)
+            public async Task LoadModule(Entity entity)
             {
                 CheckEntity(entity);
 
-                ref var module = ref entity.Get<RegisteredModule>();
-                Debug.Assert(!ModuleMap.ContainsKey(module.Info.NameId), "!ModuleMap.ContainsKey(module.Info.NameId)");
+                await DependencyResolver.DependencyCompletion;
+                scheduler.Add(() =>
+                {
+                    ref var module = ref entity.Get<RegisteredModule>();
+                    Debug.Assert(!ModuleMap.ContainsKey(module.Info.NameId), "!ModuleMap.ContainsKey(module.Info.NameId)");
 
-                module.State = ModuleState.IsLoading;
+                    module.State = ModuleState.IsLoading;
 
-                var asm = GetAssembly(entity);
-                if (asm == null)
-                    throw new FileLoadException("could not load module: " + module.Info.NameId);
+                    var asm = GetAssembly(entity);
+                    if (asm == null)
+                        throw new FileLoadException("could not load module: " + module.Info.NameId);
 
-                var attr = asm.GetCustomAttribute<ModuleDescriptionAttribute>();
-                if (attr == null)
-                    throw new InvalidOperationException($"The assembly '{asm}' is not a valid module.");
+                    var attr = asm.GetCustomAttribute<ModuleDescriptionAttribute>();
+                    if (attr == null)
+                        throw new InvalidOperationException($"The assembly '{asm}' is not a valid module.");
 
-                module.Info.Author = attr.Author;
+                    module.Info.Author = attr.Author;
 
-                var cmodType = attr.IsValid ? attr.ModuleType : typeof(CModule);
-                var cmod     = Activator.CreateInstance(cmodType, entity, Context, module.Info);
+                    var cmodType = attr.IsValid ? attr.ModuleType : typeof(CModule);
+                    var cmod     = Activator.CreateInstance(cmodType, entity, Context, module.Info);
 
-                ModuleMap[module.Info.NameId] = (CModule)cmod;
-                entity.Set(asm);
-                entity.Set(cmod);
+                    ModuleMap[module.Info.NameId] = (CModule)cmod;
+                    entity.Set(asm);
+                    entity.Set(cmod);
+                });
             }
 
-            public void UnloadModule(Entity entity)
+            public async Task UnloadModule(Entity entity)
             {
                 CheckEntity(entity);
 
-                ref var module = ref entity.Get<RegisteredModule>();
-                Debug.Assert(ModuleMap.ContainsKey(module.Info.NameId), "ModuleMap.ContainsKey(module.Info.NameId)");
+                await DependencyResolver.DependencyCompletion;
+                scheduler.Add(() =>
+                {
+                    ref var module = ref entity.Get<RegisteredModule>();
+                    Debug.Assert(ModuleMap.ContainsKey(module.Info.NameId), "ModuleMap.ContainsKey(module.Info.NameId)");
 
-                module.State = ModuleState.Unloading;
+                    module.State = ModuleState.Unloading;
 
-                if (entity.Has<Assembly>())
-                    entity.Remove<Assembly>();
+                    if (entity.Has<Assembly>())
+                        entity.Remove<Assembly>();
+                });
             }
         }
 
         private MainThreadClient           client;
         private Lazy<RestrictedHostSystem> hostSystem;
 
-        protected override void OnInit()
+        public ModuleManager(WorldCollection collection) : base(collection)
         {
-            base.OnInit();
-            client = new MainThreadClient();
-            client.Connect();
+            DependencyResolver.Add(() => ref client);
+        }
 
+        protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
+        {
             hostSystem = new Lazy<RestrictedHostSystem>(() =>
             {
                 using (client.SynchronizeThread())
-                    return client.Listener.WorldCollection.GetOrCreate<RestrictedHostSystem>();
+                    return client.Listener.WorldCollection.GetOrCreate(world => new RestrictedHostSystem(world));
             });
         }
 
         public void LoadModule(Entity entity)
         {
-            lock (hostSystem.Value)
+            lock (hostSystem.Value.Synchronization)
             {
-                hostSystem.Value.LoadModule(entity);
+                hostSystem.Value.LoadModule(entity).Wait();
             }
         }
 
         public void UnloadModule(Entity entity)
         {
-            lock (hostSystem.Value)
+            lock (hostSystem.Value.Synchronization)
             {
-                hostSystem.Value.UnloadModule(entity);
+                hostSystem.Value.UnloadModule(entity).Wait();
             }
         }
 
         public CModule GetModule(string moduleName)
         {
-            lock (hostSystem.Value)
+            lock (hostSystem.Value.Synchronization)
             {
                 return hostSystem.Value.ModuleMap[moduleName];
             }

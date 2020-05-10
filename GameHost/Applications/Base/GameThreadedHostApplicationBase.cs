@@ -19,17 +19,13 @@ namespace GameHost.Applications
 
         protected List<Type> systemTypes = new List<Type>();
 
-        protected Stopwatch UpdateStopwatch, TotalStopwatch;
+        protected ApplicationWorker Worker { get; }
 
         protected GameThreadedHostApplicationBase(Context context, TimeSpan? frequency = null)
         {
             this.frequency = frequency ?? TimeSpan.FromSeconds(1f / 1000f);
             Context        = context;
-
-            if (autoResolveSystem)
-            {
-                AppSystemResolver.ResolveFor<T>(systemTypes);
-            }
+            Worker         = new ApplicationWorker(GetType().Name);
         }
 
         protected bool    QuitApplication { get; set; }
@@ -51,8 +47,8 @@ namespace GameHost.Applications
 
         protected override void OnThreadStart()
         {
-            UpdateStopwatch = new Stopwatch();
-            TotalStopwatch  = new Stopwatch();
+            // Automatically add systems when asked to auto resolve them...
+            if (autoResolveSystem) AppSystemResolver.ResolveFor<T>(queuedSystemTypes);
 
             OnInit();
 
@@ -60,13 +56,14 @@ namespace GameHost.Applications
             var fts         = new FixedTimeStep {TargetFrameTimeMs = Frequency.Milliseconds};
             while (!CancellationToken.IsCancellationRequested && !QuitApplication)
             {
-                var spanDt = UpdateStopwatch.Elapsed;
-                UpdateStopwatch.Restart();
-
+                // We ask for the scheduler to run the tasks it was asked to in the beginning of this frame.
+                // TODO: Or maybe we should do that in the end of the frame?
                 GetScheduler().Run();
 
+                // Try add queued systems into other worlds...
                 if (queuedSystemTypes.Count > 0)
                 {
+                    // Make sure no one can mess with thread safety here
                     using (SynchronizeThread())
                     {
                         OnQueuedSystemsAdded();
@@ -76,13 +73,17 @@ namespace GameHost.Applications
                     queuedSystemTypes.Clear();
                 }
 
-                // Make sure no one can mess with thread safety here
-                var updateCount = fts.GetUpdateCount(spanDt.TotalSeconds);
-                OnUpdate(ref updateCount, elapsedTime.TotalSeconds);
+                var delta       = Worker.Delta;
+                var updateCount = fts.GetUpdateCount(delta.TotalSeconds);
 
-                elapsedTime = TotalStopwatch.Elapsed;
+                using (Worker.StartMonitoring(Frequency))
+                {
+                    // Make sure no one can mess with thread safety here
+                    using (SynchronizeThread())
+                        OnUpdate(ref updateCount, elapsedTime);
+                }
 
-                var wait = frequency - spanDt;
+                var wait = frequency - delta;
                 if (wait > TimeSpan.Zero)
                 {
                     CancellationToken.WaitHandle.WaitOne(wait);
@@ -94,20 +95,20 @@ namespace GameHost.Applications
 
         protected abstract void OnInit();
 
-        protected virtual void OnUpdate(ref int fixedUpdateCount, double elapsedTime)
+        protected virtual void OnUpdate(ref int fixedUpdateCount, TimeSpan elapsedTime)
         {
             for (var i = 0; i != fixedUpdateCount; i++)
             {
-                OnFixedUpdate(i, (float)frequency.TotalSeconds, elapsedTime);
+                OnFixedUpdate(i, frequency, elapsedTime);
             }
         }
 
-        protected virtual void OnFixedUpdate(int step, float delta, double elapsedTime)
+        protected virtual void OnFixedUpdate(int step, TimeSpan delta, TimeSpan elapsedTime)
         {
             foreach (var world in MappedWorldCollection.Values)
             {
                 world.DoInitializePass();
-                var timeSystem = world.GetOrCreate<TimeSystem>();
+                var timeSystem = world.GetOrCreate(collection => new TimeSystem {WorldCollection = collection});
                 timeSystem.Update(new WorldTime {Delta = delta, Total = elapsedTime});
                 world.DoUpdatePass();
             }

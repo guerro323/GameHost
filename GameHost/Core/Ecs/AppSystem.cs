@@ -29,7 +29,7 @@ namespace GameHost.Core.Ecs
     /// Represent an application system that will automatically be injected in worlds.
     /// </summary>
     [InjectSystemToWorld]
-    public abstract class AppSystem : IDisposable, IInitSystem, IUpdateSystem
+    public abstract class AppSystem : AppObject, IDisposable, IInitSystem, IUpdateSystem
     {
         /// <summary>
         /// Is this <see cref="AppSystem"/> enabled?
@@ -37,29 +37,29 @@ namespace GameHost.Core.Ecs
         public bool Enabled { get; set; } = true;
 
         /// <summary>
-        /// The <see cref="Context"/> (referenced from <see cref="WorldCollection"/>) of this <see cref="AppSystem"/>
-        /// </summary>
-        public Context         Context { get; private set; }
-        /// <summary>
         /// The <see cref="WorldCollection"/> of this <see cref="AppSystem"/>.
         /// </summary>
-        public WorldCollection World   { get; private set; }
-        /// <summary>
-        /// The <see cref="DependencyResolver"/> of this <see cref="AppSystem"/>.
-        /// <remarks>
-        /// The first initialization of the resolver is using the strategy <see cref="DefaultAppSystemStrategy"/>
-        /// </remarks>
-        /// </summary>
-        public DependencyResolver DependencyResolver { get; private set; }
+        public WorldCollection World { get; private set; }
 
-        private IEnumerable<object> callResolved;
-        private List<IDisposable> disposables = new List<IDisposable>();
+        public AppSystem(WorldCollection collection) : base(null)
+        {
+            World   = collection;
+            Context = collection.Ctx;
+        }
 
-        /// <summary>
-        /// Add an object with <see cref="IDisposable"/>> that will be disposed when <see cref="Dispose"/> is called on this system.
-        /// </summary>
-        /// <param name="disposable"></param>
-        public void AddDisposable(IDisposable disposable) => disposables.Add(disposable);
+        protected override void OnContextSet()
+        {
+            List<DependencyResolver.DependencyBase> inheritedDependencies = null;
+            if (DependencyResolver?.Dependencies.Count > 0)
+                inheritedDependencies = DependencyResolver.Dependencies;
+            
+            DependencyResolver                 = new DependencyResolver(Context.Container.Resolve<IScheduler>(), Context, $"Thread({Thread.CurrentThread.Name}) System[{GetType().Name}]");
+            DependencyResolver.DefaultStrategy = new DefaultAppObjectStrategy(this, World);
+            DependencyResolver.OnComplete(OnDependenciesResolved);
+            
+            if (inheritedDependencies != null)
+                DependencyResolver.Dependencies.AddRange(inheritedDependencies);
+        }
 
         protected virtual void OnInit()
         {
@@ -68,7 +68,7 @@ namespace GameHost.Core.Ecs
 
         protected virtual void OnUpdate()
         {
-        
+
         }
 
         /// <summary>
@@ -86,11 +86,9 @@ namespace GameHost.Core.Ecs
         /// <summary>
         /// Disposing the system and its internal resources.
         /// </summary>
-        public virtual void Dispose()
+        public override void Dispose()
         {
-            foreach (var disposable in disposables)
-                disposable?.Dispose();
-            disposables.Clear();
+            base.Dispose();
         }
 
         // Interfaces implementation
@@ -112,31 +110,9 @@ namespace GameHost.Core.Ecs
         /// <returns></returns>
         public virtual bool CanUpdate()
         {
-            if (callResolved != null)
-            {
-                OnDependenciesResolved(callResolved);
-                callResolved = null;
-            }
             return Enabled && DependencyResolver.Dependencies.Count == 0;
         }
 
-        WorldCollection IWorldSystem.WorldCollection
-        {
-            get
-            {
-                return World;
-            }
-            set
-            {
-                World   = value;
-                Context = value.Ctx;
-
-                DependencyResolver = new DependencyResolver(Context.Container.Resolve<IScheduler>(), Context, $"Thread({Thread.CurrentThread.Name}) System[{GetType().Name}]")
-                {
-                    DefaultStrategy = new DefaultAppSystemStrategy(this, World)
-                };
-                DependencyResolver.OnComplete(enumerable => callResolved = enumerable);
-            }
-        }
+        WorldCollection IWorldSystem.WorldCollection => World;
     }
 }

@@ -34,7 +34,7 @@ namespace GameHost.Core.Threading
             {
                 var taskLength = scheduledTasks.Count;
                 var i          = 0;
-                while (scheduledTasks.TryDequeue(out var task) && i++ < taskLength)
+                while (i++ < taskLength && scheduledTasks.TryDequeue(out var task))
                 {
                     try
                     {
@@ -51,7 +51,9 @@ namespace GameHost.Core.Threading
         public void Add(Action action)
         {
             lock (synchronizationObject)
+            {
                 scheduledTasks.Enqueue(new ScheduledTask {Action = action});
+            }
         }
 
         public void AddOnce(Action action)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.Loader;
 using DefaultEcs;
@@ -25,30 +26,32 @@ namespace GameHost.Core.Modding.Components
     [RestrictToApplication(typeof(MainThreadHost))]
     public class ManageModuleLoadSystem : AppSystem
     {
-        private EntitySet loadSet, unloadSet;
-
+        private IStorage storage;
+        private AssemblyLoadContext assemblyLoadContext;
         private ModuleManager moduleMgr;
-
-        [DependencyStrategy]
-        public IStorage Storage { get; set; }
-
-        [DependencyStrategy]
-        public AssemblyLoadContext AssemblyLoadContext { get; set; }
+        
+        public ManageModuleLoadSystem(WorldCollection collection) : base(collection)
+        {
+            DependencyResolver.Add(() => ref storage);
+            DependencyResolver.Add(() => ref assemblyLoadContext);
+            DependencyResolver.Add(() => ref moduleMgr);
+        }
+        
+        private EntitySet loadSet, unloadSet;
 
         protected override void OnInit()
         {
             base.OnInit();
             loadSet   = World.Mgr.GetEntities().With<RequestLoadModule>().AsSet();
             unloadSet = World.Mgr.GetEntities().With<RequestUnloadModule>().AsSet();
-
-            moduleMgr = World.GetOrCreate<ModuleManager>();
-
-            Storage = new ContextBindingStrategy(Context, true).Resolve<IStorage>();
-            Storage.GetOrCreateDirectoryAsync("Modules").ContinueWith(task => this.Storage = new ModuleStorage(task.Result));
         }
 
-        // todo: base.CanUpdate() should also include dependencies
-        public override bool CanUpdate() => base.CanUpdate() && (Storage as ModuleStorage) != null && AssemblyLoadContext != null;
+        protected override async void OnDependenciesResolved(IEnumerable<object> dependencies)
+        {
+            storage = new ModuleStorage(await storage.GetOrCreateDirectoryAsync("Modules"));
+        }
+
+        public override bool CanUpdate() => base.CanUpdate() && storage is ModuleStorage;
 
         protected override void OnUpdate()
         {

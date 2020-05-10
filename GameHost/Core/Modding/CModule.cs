@@ -54,6 +54,7 @@ namespace GameHost.Core.Modding
         }
     }
 
+    [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = false)]
     public class ModuleDescriptionAttribute : Attribute
     {
         public readonly string DisplayName, Author;

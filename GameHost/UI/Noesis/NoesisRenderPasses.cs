@@ -14,6 +14,10 @@ namespace GameHost.UI.Noesis
     public abstract class NoesisRenderPassBase : RenderPassBase
     {
         public Span<NoesisOpenTkRenderer> Components => World.Mgr.Get<NoesisOpenTkRenderer>();
+
+        protected NoesisRenderPassBase(WorldCollection worldCollection) : base(worldCollection)
+        {
+        }
     }
     
     public class NoesisRenderPrePass : NoesisRenderPassBase
@@ -34,6 +38,10 @@ namespace GameHost.UI.Noesis
             }
 
             time += 0.01f;
+        }
+
+        public NoesisRenderPrePass(WorldCollection worldCollection) : base(worldCollection)
+        {
         }
     }
 
@@ -60,6 +68,10 @@ namespace GameHost.UI.Noesis
             GL.Viewport(0, 0, Window.Size.X, Window.Size.Y);
             GL.ColorMask(true, true, true, true);
         }
+
+        public NoesisRenderDefaultPass(WorldCollection worldCollection) : base(worldCollection)
+        {
+        }
     }
 
     public class NoesisRenderPostPass : NoesisRenderPassBase
@@ -76,6 +88,10 @@ namespace GameHost.UI.Noesis
                 renderer.SetSize(Window.Size.X, Window.Size.Y);
                 renderer.Render();
             }
+        }
+
+        public NoesisRenderPostPass(WorldCollection worldCollection) : base(worldCollection)
+        {
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
@@ -10,8 +11,10 @@ using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.IO;
 using GameHost.Core.Modding.Components;
+using GameHost.Core.Threading;
 using GameHost.Entities;
 using GameHost.Injection;
+using GameHost.IO;
 using NetFabric.Hyperlinq;
 
 namespace GameHost.Core.Modding.Systems
@@ -19,11 +22,22 @@ namespace GameHost.Core.Modding.Systems
     [RestrictToApplication(typeof(MainThreadHost))]
     public class GatherAvailableModuleSystem : AppSystem
     {
-        private IStorage  trStorage;
+        private IStorage   storage;
+        private IScheduler scheduler;
+
+        public GatherAvailableModuleSystem(WorldCollection worldCollection) : base(worldCollection)
+        {
+            DependencyResolver.Add(() => ref storage);
+            DependencyResolver.Add(() => ref scheduler);
+        }
+
+        protected override async void OnDependenciesResolved(IEnumerable<object> dependencies)
+        {
+            storage = new ModuleStorage(await storage.GetOrCreateDirectoryAsync("Modules"));
+        }
+
         private EntitySet refreshSet, moduleSet;
 
-        private bool isTaskRunning;
-        
         protected override void OnInit()
         {
             base.OnInit();
@@ -35,44 +49,44 @@ namespace GameHost.Core.Modding.Systems
             moduleSet = World.Mgr.GetEntities()
                              .With<RegisteredModule>()
                              .AsSet();
-            
+
             World.Mgr.CreateEntity().Set(new RefreshModuleList());
-
-            var ctxStrategy = new ContextBindingStrategy(Context, true);
-            var storage     = ctxStrategy.Resolve<IStorage>();
-
-            storage.GetOrCreateDirectoryAsync("Modules").ContinueWith(task => trStorage = task.Result);
         }
+
+        private bool isTaskRunning;
 
         public override bool CanUpdate() =>
             base.CanUpdate()
-            && !isTaskRunning // can not update if there is already a task running 
-            && trStorage != null     // can not update if we have an invalid or non-existant storage
-            && refreshSet.Count > 0; // can not update if there are no request...
+            && !isTaskRunning           // can not update if there is already a task running 
+            && storage is ModuleStorage // can not update if we have an invalid or non-existant storage
+            && refreshSet.Count > 0;    // can not update if there are no request...
 
         protected override async void OnUpdate()
         {
             base.OnUpdate();
 
             isTaskRunning = true;
-            var files = (await trStorage.GetFilesAsync("*.dll")).ToList();
+            var files = (await storage.GetFilesAsync("*.dll")).ToList();
             // Destroy unloaded modules...
-            DestroyUnloadedModules();
-            
+            scheduler.AddOnce(DestroyUnloadedModules);
+
             foreach (var file in files)
             {
                 var assemblyName = file.Name.Replace(".dll", "");
-                var rm = FindOrCreateEntity(assemblyName);
+                var rm           = FindOrCreateEntity(assemblyName);
                 // We have found an already existing module, does not do further operation on it...
                 if (rm.Has<RegisteredModule>() && rm.Get<RegisteredModule>().State != ModuleState.None)
                     continue;
-                    
-                rm.Set(new RegisteredModule {Info = {NameId = assemblyName, DisplayName = assemblyName, Author = "not-loaded"}});
-                rm.Set(file);
+
+                scheduler.Add(() =>
+                {
+                    rm.Set(new RegisteredModule {Info = {NameId = assemblyName, DisplayName = assemblyName, Author = "not-loaded"}});
+                    rm.Set(file);
+                });
             }
 
             // Finally destroy refresh requests...
-            refreshSet.DisposeAllEntities();
+            scheduler.AddOnce(refreshSet.DisposeAllEntities);
 
             isTaskRunning = false;
         }

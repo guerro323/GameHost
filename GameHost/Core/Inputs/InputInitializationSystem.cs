@@ -8,9 +8,7 @@ namespace GameHost.Core.Inputs
     [RestrictToApplication(typeof(GameInputThreadingHost))]
     public class InputInitializationSystem : AppSystem
     {
-        public IStorage Storage { get; set; }
-
-        protected override void OnInit()
+        public InputInitializationSystem(WorldCollection collection) : base(collection)
         {
         }
     }

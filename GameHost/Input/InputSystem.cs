@@ -15,23 +15,22 @@ namespace GameHost.Input
     {
         private GameInputThreadingClient client;
 
-        protected override void OnInit()
+        public InputSystem(WorldCollection collection) : base(collection)
         {
-            client = new GameInputThreadingClient();
+            DependencyResolver.Add(() => ref client);
         }
     }
-    
+
     [RestrictToApplication(typeof(GameInputThreadingHost))]
     public abstract class InputBackendBase : AppSystem
     {
         protected InputBackendManager backendMgr;
 
-        protected override void OnInit()
+        protected InputBackendBase(WorldCollection collection) : base(collection)
         {
-            base.OnInit();
-            backendMgr = World.GetOrCreate<InputBackendManager>();
+            DependencyResolver.Add(() => ref backendMgr);
         }
-        
+
         public override bool CanUpdate() => base.CanUpdate() && backendMgr.Backend == this;
 
         protected internal abstract void OnDisable();
@@ -53,17 +52,21 @@ namespace GameHost.Input
                 backend?.OnEnable();
             }
         }
+
+        public InputBackendManager(WorldCollection collection) : base(collection)
+        {
+        }
     }
-    
+
     public class ReceiveFromInputThreadSystem : AppSystem
     {
         private GameInputThreadingClient client;
 
-        protected override void OnInit()
+        public ReceiveFromInputThreadSystem(WorldCollection collection) : base(collection)
         {
-            client = new GameInputThreadingClient();
+            DependencyResolver.Add(() => ref client);
         }
-
+        
         protected override void OnUpdate()
         {
             using (client.SynchronizeThread())

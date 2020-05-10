@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using DryIoc;
+using GameHost.Core.Ecs;
 using GameHost.Entities;
 using GameHost.Injection;
 using OpenToolkit.Windowing.Common;
@@ -50,6 +51,10 @@ namespace GameHost.Input.OpenTKBackend
         private void OnKeyUp(KeyboardKeyEventArgs obj)
         {
             keyPresses[InputManagerNaming.GetKeyId(obj.Key)] = false;
+        }
+
+        public OpenTkInputBackend(WorldCollection collection) : base(collection)
+        {
         }
     }
 }

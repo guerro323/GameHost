@@ -14,9 +14,8 @@ namespace GameHost.Entities
 
     public class EntitySchematicSystem : AppSystem
     {
-        protected override void OnInit()
+        public EntitySchematicSystem(WorldCollection collection) : base(collection)
         {
-            
         }
     }
 }

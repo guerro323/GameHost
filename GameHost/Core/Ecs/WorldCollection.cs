@@ -105,18 +105,18 @@ namespace GameHost.Core.Ecs
             }
         }
 
-        public T GetOrCreate<T>() where T : class, IWorldSystem, new()
+        public T GetOrCreate<T>(Func<WorldCollection, T> createFunction) where T : class, IWorldSystem
         {
-            return GetOrCreate<T>(OrderedList.GetBefore(typeof(T)), OrderedList.GetAfter(typeof(T)));
+            return GetOrCreate(createFunction, OrderedList.GetBefore(typeof(T)), OrderedList.GetAfter(typeof(T)));
         }
 
-        public T GetOrCreate<T>(Type[] updateBefore, Type[] updateAfter)
-            where T : class, IWorldSystem, new()
+        public T GetOrCreate<T>(Func<WorldCollection, T> createFunction, Type[] updateBefore, Type[] updateAfter)
+            where T : class, IWorldSystem
         {
             if (systemMap.TryGetValue(typeof(T), out var obj))
                 return (T)obj;
             
-            obj = new T();
+            obj = createFunction(this);
             new InjectPropertyStrategy(Ctx, true).Inject(obj);
             Add(obj, updateBefore, updateAfter);
             return (T) obj;
@@ -127,7 +127,7 @@ namespace GameHost.Core.Ecs
             if (systemMap.TryGetValue(type, out var obj))
                 return obj;
 
-            obj = Activator.CreateInstance(type);
+            obj = Activator.CreateInstance(type, args: this);
             new InjectPropertyStrategy(Ctx, true).Inject(obj);
             Add(obj, OrderedList.GetBefore(obj.GetType()), OrderedList.GetAfter(obj.GetType()));
             return obj;
@@ -145,9 +145,6 @@ namespace GameHost.Core.Ecs
             systemMap[obj.GetType()] = obj;
             systemList.Set(obj, updateAfter, updateBefore);
             Ctx.Register(obj);
-
-            var asWorldSystem = (IWorldSystem)obj;
-            asWorldSystem.WorldCollection = this;
             
             switch (obj)
             {
@@ -191,7 +188,7 @@ namespace GameHost.Core.Ecs
 
     public interface IWorldSystem
     {
-        WorldCollection WorldCollection { get; set; }
+        WorldCollection WorldCollection { get; }
     }
 
     public interface IUpdateSystem : IWorldSystem

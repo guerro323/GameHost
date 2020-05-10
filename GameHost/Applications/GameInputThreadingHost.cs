@@ -48,7 +48,7 @@ namespace GameHost.Applications
                 if (backend == null)
                     throw new Exception("Should not happen");
 
-                Listener.WorldCollection.GetOrCreate<InputBackendManager>()
+                Listener.WorldCollection.GetOrCreate<InputBackendManager>(world => new InputBackendManager(world))
                         .Backend = backend;
             }
         }

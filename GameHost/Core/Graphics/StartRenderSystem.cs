@@ -11,26 +11,34 @@ namespace GameHost.Core.Graphics
     [RestrictToApplication(typeof(GameRenderThreadingHost))]
     public class StartRenderSystem : AppSystem
     {
-        [DependencyStrategy]
-        public IGraphicTool Gt { get; set; }
+        private IGraphicTool graphicTool;
 
         protected override void OnUpdate()
         {
             base.OnUpdate();
-            Gt.Clear(null);
+            graphicTool.Clear(null);
+        }
+
+        public StartRenderSystem(WorldCollection collection) : base(collection)
+        {
+            DependencyResolver.Add(() => ref graphicTool);
         }
     }
 
     [RestrictToApplication(typeof(GameRenderThreadingHost))]
     public class EndRenderSystem : AppSystem
     {
-        [DependencyStrategy]
-        public IGraphicTool Gt { get; set; }
+        private IGraphicTool graphicTool;
 
         protected override void OnUpdate()
         {
             base.OnUpdate();
-            Gt.SwapBuffers();
+            graphicTool.SwapBuffers();
+        }
+
+        public EndRenderSystem(WorldCollection collection) : base(collection)
+        {
+            DependencyResolver.Add(() => ref graphicTool);
         }
     }
 }
