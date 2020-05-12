@@ -19,10 +19,13 @@ namespace GameHost.Injection
 
         private ConcurrentBag<TaskCompletionSource<bool>> dependencyCompletion;
 
-        public Task DependencyCompletion
+        public Task AsTask
         {
             get
             {
+                if (Dependencies.Count == 0)
+                    return Task.CompletedTask;
+                
                 var tcs = new TaskCompletionSource<bool>();
                 dependencyCompletion.Add(tcs);
                 return tcs.Task;
@@ -78,9 +81,20 @@ namespace GameHost.Injection
 
             if (allResolved && onComplete != null)
             {
-                onComplete(Dependencies.Where(d => d.IsResolved && d is IResolvedObject).Select(d => ((IResolvedObject)d).Resolved));
+                var resolvedDependencies = Dependencies
+                                           .Where(d => d.IsResolved && d is IResolvedObject)
+                                           .Select(d => ((IResolvedObject)d).Resolved)
+                                           .ToList();
+                
+                onComplete(resolvedDependencies);
                 onComplete = null;
                 Dependencies.Clear();
+               // Console.WriteLine($"completed {source}");
+            }
+            else
+            {
+                var str = Dependencies.Aggregate(source, (current, dep) => current + $"\n{dep}; {dep.IsResolved}");
+                //Console.WriteLine(str);
             }
 
             // Be sure to set the result right after onComplete has been called

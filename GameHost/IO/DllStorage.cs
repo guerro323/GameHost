@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Enumeration;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -12,21 +13,32 @@ namespace GameHost.IO
     {
         public Assembly Assembly { get; }
 
+        /// <summary>
+        /// Used for when we instantiate DllStorage as a child.
+        /// </summary>
+        private string parentPath;
+
         public DllStorage(Assembly assembly)
         {
             Assembly = assembly;
         }
 
-        public string CurrentPath => Assembly.GetName().Name;
-        
+        public string CurrentPath => new string(DllEmbeddedFile.ToDirectoryLike(Assembly.GetName().Name));
+
         public Task<IEnumerable<IFile>> GetFilesAsync(string pattern)
         {
-            return Task.FromResult(Assembly.GetManifestResourceNames().Select(mrn => (IFile) new DllEmbeddedFile(Assembly, mrn)));
+            return Task.FromResult(Assembly.GetManifestResourceNames()
+                                           .Select(mrn => (IFile)new DllEmbeddedFile(Assembly, mrn))
+                                           .Where(file => FileSystemName.MatchesSimpleExpression(pattern, file.Name)));
         }
 
         public Task<IStorage> GetOrCreateDirectoryAsync(string path)
         {
-            throw new NullReferenceException($"Can not invoke '{nameof(GetOrCreateDirectoryAsync)}' in a '{nameof(DllStorage)}'");
+            var success = Assembly.GetManifestResourceNames().Any(name => DllEmbeddedFile.ToDirectoryLike(name).StartsWith(CurrentPath + "/" + path));
+            if (!success)
+                throw new InvalidOperationException("No such directory in path: " + path);
+
+            return Task.FromResult((IStorage)new ChildStorage(this, new DllStorage(Assembly) {parentPath = path}));
         }
     }
 
@@ -38,18 +50,24 @@ namespace GameHost.IO
         public string Name { get; }
         public string FullName { get; }
 
-        public DllEmbeddedFile(Assembly assembly, string manifestName)
+        public static ReadOnlySpan<char> ToDirectoryLike(string origin, bool ignoreExtension = true)
         {
-            Assembly     = assembly;
-            ManifestName = manifestName;
-            var lastDotIndex = ManifestName.LastIndexOf('.');
-            var chars = new Span<char>(ManifestName.ToCharArray());
+            var lastDotIndex = ignoreExtension ? origin.Length : origin.LastIndexOf('.');
+            var chars        = new Span<char>(origin.ToCharArray());
             for (var i = 0; i < lastDotIndex; i++)
             {
                 if (chars[i] == '.')
                     chars[i] = '/';
             }
-            FullName = new string(chars);
+
+            return chars;
+        }
+
+        public DllEmbeddedFile(Assembly assembly, string manifestName)
+        {
+            Assembly     = assembly;
+            ManifestName = manifestName;
+            FullName     = new string(ToDirectoryLike(ManifestName, ignoreExtension: false));
             Name         = Path.GetFileName(FullName);
         }
 

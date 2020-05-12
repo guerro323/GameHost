@@ -13,7 +13,7 @@ namespace GameHost.Applications
 {
     public class GameSimulationThreadingHost : ThreadingHost<GameSimulationThreadingHost>
     {
-        private Dictionary<Instance, WorldCollection> worldCollectionPerInstance;
+        public Dictionary<Instance, WorldCollection> worldCollectionPerInstance;
 
         public int Frame { get; private set; }
 

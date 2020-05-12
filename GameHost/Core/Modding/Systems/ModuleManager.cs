@@ -85,7 +85,7 @@ namespace GameHost.Core.Modding.Systems
             {
                 CheckEntity(entity);
 
-                await DependencyResolver.DependencyCompletion;
+                await DependencyResolver.AsTask;
                 scheduler.Add(() =>
                 {
                     ref var module = ref entity.Get<RegisteredModule>();
@@ -116,7 +116,7 @@ namespace GameHost.Core.Modding.Systems
             {
                 CheckEntity(entity);
 
-                await DependencyResolver.DependencyCompletion;
+                await DependencyResolver.AsTask;
                 scheduler.Add(() =>
                 {
                     ref var module = ref entity.Get<RegisteredModule>();
@@ -130,50 +130,51 @@ namespace GameHost.Core.Modding.Systems
             }
         }
 
-        private MainThreadClient           client;
-        private Lazy<RestrictedHostSystem> hostSystem;
+        private RestrictedHostSystem hostSystem;
 
         public ModuleManager(WorldCollection collection) : base(collection)
         {
-            DependencyResolver.Add(() => ref client);
+            DependencyResolver.Add(() => ref hostSystem, new GetSystemFromTargetWorldStrategy(() =>
+            {
+                var client = new MainThreadClient();
+                client.Connect();
+
+                return client.Listener.WorldCollection;
+            }));
         }
 
-        protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
+        public async Task LoadModule(Entity entity)
         {
-            hostSystem = new Lazy<RestrictedHostSystem>(() =>
+            Console.WriteLine("moduuule?");
+            await DependencyResolver.AsTask;
+            Console.WriteLine("load da module");
+            lock (hostSystem.Synchronization)
             {
-                using (client.SynchronizeThread())
-                    return client.Listener.WorldCollection.GetOrCreate(world => new RestrictedHostSystem(world));
-            });
-        }
-
-        public void LoadModule(Entity entity)
-        {
-            lock (hostSystem.Value.Synchronization)
-            {
-                hostSystem.Value.LoadModule(entity).Wait();
+                hostSystem.LoadModule(entity).Wait();
             }
         }
 
-        public void UnloadModule(Entity entity)
+        public async Task UnloadModule(Entity entity)
         {
-            lock (hostSystem.Value.Synchronization)
+            await DependencyResolver.AsTask;
+            lock (hostSystem.Synchronization)
             {
-                hostSystem.Value.UnloadModule(entity).Wait();
+                hostSystem.UnloadModule(entity).Wait();
             }
         }
 
-        public CModule GetModule(string moduleName)
+        public async Task<CModule> GetModule(string moduleName)
         {
-            lock (hostSystem.Value.Synchronization)
+            await DependencyResolver.AsTask;
+            lock (hostSystem.Synchronization)
             {
-                return hostSystem.Value.ModuleMap[moduleName];
+                return hostSystem.ModuleMap[moduleName];
             }
         }
 
-        public CModule GetModule(Assembly assembly) => GetModule(assembly.GetName().Name);
+        public Task<CModule> GetModule(Assembly assembly) => GetModule(assembly.GetName().Name);
 
-        public T GetModule<T>(string   moduleName) where T : CModule => (T)GetModule(moduleName);
-        public T GetModule<T>(Assembly assembly) where T : CModule   => (T)GetModule(assembly);
+        public async Task<T> GetModule<T>(string   moduleName) where T : CModule => (T)await GetModule(moduleName);
+        public async Task<T> GetModule<T>(Assembly assembly) where T : CModule   => (T)await GetModule(assembly);
     }
 }

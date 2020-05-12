@@ -17,6 +17,7 @@ namespace GameHost.Core.Bindables
 
                 if (EqualityComparer<T>.Default.Equals(this.value, value))
                     return;
+                Console.WriteLine("on update!");
                 InvokeOnUpdate(ref value);
             }
         }

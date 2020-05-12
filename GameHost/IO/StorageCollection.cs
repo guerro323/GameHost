@@ -46,9 +46,22 @@ namespace GameHost.IO
             return result;
         }
 
-        public Task<IStorage> GetOrCreateDirectoryAsync(string path)
+        public async Task<IStorage> GetOrCreateDirectoryAsync(string path)
         {
-            throw new NotImplementedException("StorageCollection does not yet implement GetOrCreateDirectoryAsync()");
+            var result = new List<IStorage>();
+            foreach (var store in storageList)
+            {
+                try
+                {
+                    result.Add(await store.GetOrCreateDirectoryAsync(path));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+            }
+
+            return new ChildStorage(this, new StorageCollection(result));
         }
 
         public void Add(IStorage storage)

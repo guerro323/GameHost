@@ -105,6 +105,18 @@ namespace GameHost.Core.Ecs
             }
         }
 
+        public bool TryGet(Type type, out object obj)
+        {
+            return systemMap.TryGetValue(type, out obj);
+        }
+
+        public bool TryGet<T>(out T obj)
+        {
+            var success = TryGet(typeof(T), out var nonGenObj);
+            obj = (T)nonGenObj;
+            return success;
+        }
+
         public T GetOrCreate<T>(Func<WorldCollection, T> createFunction) where T : class, IWorldSystem
         {
             return GetOrCreate(createFunction, OrderedList.GetBefore(typeof(T)), OrderedList.GetAfter(typeof(T)));

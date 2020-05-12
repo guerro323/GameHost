@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Core.Game;
@@ -83,10 +84,11 @@ namespace GameHost.Applications
                         OnUpdate(ref updateCount, elapsedTime);
                 }
 
-                var wait = frequency - delta;
+                var wait = frequency - Worker.Delta;
                 if (wait > TimeSpan.Zero)
                 {
                     CancellationToken.WaitHandle.WaitOne(wait);
+                    Worker.Delta += wait;
                 }
             }
 
@@ -97,6 +99,7 @@ namespace GameHost.Applications
 
         protected virtual void OnUpdate(ref int fixedUpdateCount, TimeSpan elapsedTime)
         {
+            fixedUpdateCount = Math.Min(fixedUpdateCount, 1);
             for (var i = 0; i != fixedUpdateCount; i++)
             {
                 OnFixedUpdate(i, frequency, elapsedTime);
@@ -105,12 +108,15 @@ namespace GameHost.Applications
 
         protected virtual void OnFixedUpdate(int step, TimeSpan delta, TimeSpan elapsedTime)
         {
-            foreach (var world in MappedWorldCollection.Values)
+            using (Worker.StartFrame())
             {
-                world.DoInitializePass();
-                var timeSystem = world.GetOrCreate(collection => new TimeSystem {WorldCollection = collection});
-                timeSystem.Update(new WorldTime {Delta = delta, Total = elapsedTime});
-                world.DoUpdatePass();
+                foreach (var world in MappedWorldCollection.Values)
+                {
+                    world.DoInitializePass();
+                    var timeSystem = world.GetOrCreate(collection => new TimeSystem {WorldCollection = collection});
+                    timeSystem.Update(new WorldTime {Delta = delta, Total = elapsedTime});
+                    world.DoUpdatePass();
+                }
             }
         }
 
@@ -149,6 +155,14 @@ namespace GameHost.Applications
             }
 
             MappedWorldCollection[instance] = worldCollection;
+        }
+        
+        public virtual void InjectAssembly(Assembly assembly)
+        {
+            using (SynchronizeThread())
+            {
+                AppSystemResolver.ResolveFor<T>(assembly, queuedSystemTypes);
+            }
         }
 
         internal class TimeSystem : IWorldSystem

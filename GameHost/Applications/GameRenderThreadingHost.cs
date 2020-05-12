@@ -18,7 +18,7 @@ namespace GameHost.Applications
         private readonly IGameWindow window;
 
         // there should be only one worldCollection when rendering
-        private readonly WorldCollection worldCollection;
+        public readonly WorldCollection worldCollection;
 
         private List<Type> systemTypes       = new List<Type>();
         private List<Type> queuedSystemTypes = new List<Type>();

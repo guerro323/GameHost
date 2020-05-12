@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using JetBrains.Annotations;
 
 namespace GameHost.Core.Threading
@@ -25,6 +26,11 @@ namespace GameHost.Core.Threading
         /// A worker that can be updated multiple time. Mostly used with applications or scheduler
         /// </summary>
         Cycle = Heavy << 1
+    }
+
+    public struct WorkerFrame
+    {
+        public TimeSpan Delta;
     }
 
     public abstract class Worker
@@ -75,6 +81,11 @@ namespace GameHost.Core.Threading
         /// Delta time span
         /// </summary>
         public TimeSpan Delta { get; }
+    }
+
+    public interface IWorkerWithFrames
+    {
+        IReadOnlyList<WorkerFrame> Frames { get; }
     }
 
     /// <summary>

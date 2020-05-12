@@ -33,6 +33,8 @@ namespace GameHost.UI.Noesis
         public virtual void Dispose()
         {
             Renderer.Shutdown();
+            View     = null;
+            Renderer = null;
         }
 
         public void ParseXaml(string xaml)

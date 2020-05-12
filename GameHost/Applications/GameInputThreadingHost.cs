@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Core.Game;
@@ -42,15 +43,17 @@ namespace GameHost.Applications
         public void SetBackend<TBackend>()
             where TBackend : InputBackendBase
         {
-            using (SynchronizeThread())
+            Listener.GetScheduler().Add(() =>
             {
                 var backend = (InputBackendBase) Listener.WorldCollection.GetOrCreate(typeof(TBackend));
                 if (backend == null)
                     throw new Exception("Should not happen");
 
-                Listener.WorldCollection.GetOrCreate<InputBackendManager>(world => new InputBackendManager(world))
-                        .Backend = backend;
-            }
+                Listener.WorldCollection.GetOrCreate(world => new InputBackendManager(world))
+                        .Backend = backend;   
+            });
         }
+        
+        public void InjectAssembly(Assembly assembly) => Listener.InjectAssembly(assembly);
     }
 }

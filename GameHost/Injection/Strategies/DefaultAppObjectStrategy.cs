@@ -22,18 +22,15 @@ namespace GameHost.Injection
         public object Resolve(Type type)
         {
             if (type.GetInterfaces().Contains((typeof(IWorldSystem))))
-            {
-                // todo: check correct application
-                return collection.GetOrCreate(type);
-            }
+                return new ResolveSystemStrategy(collection).Resolve(type);
 
             if (type == typeof(Assembly))
                 return source.GetType().Assembly;
 
-            if (type.IsSubclassOf(typeof(CModule)))
-                return collection.GetOrCreate(world => new ModuleManager(world)).GetModule(source.GetType().Assembly);
+            if (typeof(CModule).IsAssignableFrom(type))
+                return collection.GetOrCreate(world => new ModuleManager(world)).GetModule(source.GetType().Assembly).Result;
 
-            if (type.IsSubclassOf(typeof(ApplicationClientBase)))
+            if (typeof(ApplicationClientBase).IsAssignableFrom(type))
             {
                 Console.WriteLine($"create {type}");
                 var instance = (ApplicationClientBase)Activator.CreateInstance(type);

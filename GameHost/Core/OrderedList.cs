@@ -7,6 +7,7 @@ using DryIoc;
 
 namespace GameHost.Core
 {
+    [AttributeUsage(AttributeTargets.All, AllowMultiple = true)]
     public abstract class UpdateOrderBaseAttribute : Attribute
     {
         public Type[] Types;

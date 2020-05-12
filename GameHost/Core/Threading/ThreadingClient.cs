@@ -22,8 +22,8 @@ namespace GameHost.Core.Threading
                     throw new InvalidOperationException($"Connecting to {typeof(TListener)} has taken too much time.");
             }
 
-            if (thread != null)
-                Console.WriteLine($"Successfuly connected to '{typeof(TListener).Name}' thread");
+            /*if (thread != null)
+                Console.WriteLine($"Successfuly connected to '{typeof(TListener).Name}' thread");*/
 
             IsConnected = true;
         }
