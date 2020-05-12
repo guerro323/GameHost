@@ -20,27 +20,36 @@ namespace GameHost.Input.OpenTKBackend
         }
         
         private Dictionary<string, KeyState> keyPresses;
+        private List<string> wantedKeysDown;
+        
         private IGameWindow window;
 
+        private Action resetKeyFunction;
+        
         protected override void OnInit()
         {
             base.OnInit();
             keyPresses = new Dictionary<string, KeyState>((int) Key.NonUSBackSlash);
+            wantedKeysDown = new List<string>(keyPresses.Count);
+            
             foreach (Key key in Enum.GetValues(typeof(Key)))
             {
                 keyPresses[InputManagerNaming.GetKeyId(key)] = new KeyState();
             }
-        }
 
-        private void resetKeys()
-        {
-            foreach (var keyPress in keyPresses)
-                keyPresses[keyPress.Key].IsDown = false;
+            resetKeyFunction = () =>
+            {
+                foreach (var kvp in keyPresses) 
+                    kvp.Value.IsDown = false;
+                for (var i = 0; i != wantedKeysDown.Count; i++)
+                    keyPresses[wantedKeysDown[i]].IsDown = true;
+                wantedKeysDown.Clear();
+            };
         }
 
         protected override void OnUpdate()
         {
-            scheduler.AddOnce(resetKeys);
+            scheduler.AddOnce(resetKeyFunction);
         }
 
         protected internal override void OnDisable()
@@ -63,7 +72,10 @@ namespace GameHost.Input.OpenTKBackend
 
         private void OnKeyDown(KeyboardKeyEventArgs obj)
         {
-            scheduler.Add(() => keyPresses[InputManagerNaming.GetKeyId(obj.Key)].IsDown = true);
+            scheduler.Add(() =>
+            {
+                wantedKeysDown.Add(InputManagerNaming.GetKeyId(obj.Key));
+            });
         }
 
         public OpenTkInputBackend(WorldCollection collection) : base(collection)

@@ -16,14 +16,15 @@ namespace GameHost.Core.Threading
     {
         private Thread scheduleThread;
 
-        private object               synchronizationObject;
-        private Queue<ScheduledTask> scheduledTasks;
+        private object synchronizationObject;
+
+        private Queue<ScheduledValueTask> scheduledValueTasks;
 
         public Scheduler(Thread targetThread = null)
         {
             scheduleThread        = targetThread ?? Thread.CurrentThread;
             synchronizationObject = new object();
-            scheduledTasks        = new Queue<ScheduledTask>();
+            scheduledValueTasks   = new Queue<ScheduledValueTask>();
         }
 
         public bool IsOnSameThread() => scheduleThread == Thread.CurrentThread;
@@ -32,9 +33,9 @@ namespace GameHost.Core.Threading
         {
             lock (synchronizationObject)
             {
-                var taskLength = scheduledTasks.Count;
+                var taskLength = scheduledValueTasks.Count;
                 var i          = 0;
-                while (i++ < taskLength && scheduledTasks.TryDequeue(out var task))
+                while (i++ < taskLength && scheduledValueTasks.TryDequeue(out var task))
                 {
                     try
                     {
@@ -52,7 +53,7 @@ namespace GameHost.Core.Threading
         {
             lock (synchronizationObject)
             {
-                scheduledTasks.Enqueue(new ScheduledTask {Action = action});
+                scheduledValueTasks.Enqueue(new ScheduledValueTask {Action = action});
             }
         }
 
@@ -60,15 +61,15 @@ namespace GameHost.Core.Threading
         {
             lock (synchronizationObject)
             {
-                foreach (var task in scheduledTasks)
+                foreach (var task in scheduledValueTasks)
                     if (task.Action == action)
                         return;
 
-                scheduledTasks.Enqueue(new ScheduledTask {Action = action});
+                scheduledValueTasks.Enqueue(new ScheduledValueTask {Action = action});
             }
         }
 
-        private class ScheduledTask
+        private struct ScheduledValueTask
         {
             public Action Action;
 

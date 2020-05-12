@@ -1,9 +1,16 @@
-﻿using Noesis;
+﻿using System;
+using Noesis;
+using EventArgs = Noesis.EventArgs;
 
 namespace GameHost.UI.Noesis
 {
-    public abstract class LoadableUserControl : UserControl, ILoadableInterface
+    public abstract class LoadableUserControl<TDataContext> : UserControl, ILoadableInterface
+        where TDataContext : class
     {
+        public TDataContext GenContext => (TDataContext) DataContext;
+        
+        protected virtual TDataContext provideDataContext() => Activator.CreateInstance<TDataContext>();
+        
         public LoadableUserControl()
         {
             Initialized += load;
@@ -12,6 +19,7 @@ namespace GameHost.UI.Noesis
 
         private void load(object sender, EventArgs args)
         {
+            DataContext = provideDataContext();
             OnLoad();
         }
 

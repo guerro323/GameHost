@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using GameHost.Core.Threading;
@@ -23,7 +24,8 @@ namespace GameHost.Applications
             deltaStopwatch      = new Stopwatch();
             elapsedStopwatch    = new Stopwatch();
             frameDeltaStopwatch = new Stopwatch();
-            Frames              = new List<WorkerFrame>(0);
+
+            FrameListener = new ConcurrentBag<IFrameListener>();
 
             Name = name ?? $"Unnamed '{GetType().Name}'";
         }
@@ -62,16 +64,20 @@ namespace GameHost.Applications
 
         public TimeSpan Delta { get; set; }
 
-        public IReadOnlyList<WorkerFrame> Frames { get; private set; }
+        public IProducerConsumerCollection<IFrameListener> FrameListener { get; private set; }
 
+        private int MonitorFrame;
         public WorkerMonitor StartMonitoring(TimeSpan targetFrameRate)
         {
+            MonitorFrame++;
             return new WorkerMonitor(this, targetFrameRate);
         }
 
+        private int Frame;
         public FrameMonitor StartFrame()
         {
-            return new FrameMonitor((List<WorkerFrame>)Frames, frameDeltaStopwatch);
+            Frame++;
+            return new FrameMonitor(this);
         }
 
         public struct WorkerMonitor : IDisposable
@@ -85,8 +91,6 @@ namespace GameHost.Applications
                 {
                     this.worker.targetFrameRate = targetFrameRate;
                     this.worker.Delta           = TimeSpan.Zero;
-
-                    ((List<WorkerFrame>)this.worker.Frames).Clear();
                 }
 
                 if (!this.worker.elapsedStopwatch.IsRunning)
@@ -108,22 +112,21 @@ namespace GameHost.Applications
 
         public struct FrameMonitor : IDisposable
         {
-            public readonly List<WorkerFrame> frames;
-            public readonly Stopwatch         stopwatch;
+            public readonly ApplicationWorker worker;
 
-            public FrameMonitor(List<WorkerFrame> frames, Stopwatch stopwatch)
+            public FrameMonitor(ApplicationWorker worker)
             {
-                this.frames    = frames;
-                this.stopwatch = stopwatch;
-
-                this.stopwatch.Restart();
+                this.worker = worker;
+                this.worker.frameDeltaStopwatch.Restart();
             }
 
             public void Dispose()
             {
-                this.stopwatch.Stop();
+                this.worker.frameDeltaStopwatch.Stop();
 
-                frames.Add(new WorkerFrame {Delta = stopwatch.Elapsed});
+                var wf = new WorkerFrame {CollectionIndex = this.worker.MonitorFrame, Frame = this.worker.Frame, Delta = this.worker.frameDeltaStopwatch.Elapsed};
+                foreach (var listener in this.worker.FrameListener) // it does allocate :(
+                    listener.Add(wf);
             }
         }
     }

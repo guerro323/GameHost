@@ -34,17 +34,21 @@ namespace GameHost.Core
 
     public static class OrderedList
     {
+        [ThreadStatic]
+        private static List<Type> _TemporaryList;
+        
         private static Type[] Get<T>(Type toCheck)
             where T : UpdateOrderBaseAttribute
         {
-            var list = new List<Type>(8);
+            _TemporaryList ??= new List<Type>(8);
+            _TemporaryList.Clear();
             foreach (var attribute in toCheck.GetAttributes(typeof(T), true))
             {
                 var attr = (T)attribute;
-                list.AddRange(attr.Types);
+                _TemporaryList.AddRange(attr.Types);
             }
 
-            return list.ToArray();
+            return _TemporaryList.ToArray();
         }
 
         public static Type[] GetAfter(Type toCheck)

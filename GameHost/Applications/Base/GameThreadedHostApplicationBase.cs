@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
 using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Core.Game;
@@ -15,12 +16,13 @@ namespace GameHost.Applications
     {
         private TimeSpan frequency;
 
-        protected Dictionary<Instance, WorldCollection> MappedWorldCollection = new Dictionary<Instance, WorldCollection>(1);
+        public Dictionary<Instance, WorldCollection> MappedWorldCollection = new Dictionary<Instance, WorldCollection>(1);
+        
         protected List<Type>                            queuedSystemTypes     = new List<Type>();
 
         protected List<Type> systemTypes = new List<Type>();
 
-        protected ApplicationWorker Worker { get; }
+        public ApplicationWorker Worker { get; }
 
         protected GameThreadedHostApplicationBase(Context context, TimeSpan? frequency = null)
         {
@@ -77,6 +79,8 @@ namespace GameHost.Applications
                 var delta       = Worker.Delta;
                 var updateCount = fts.GetUpdateCount(delta.TotalSeconds);
 
+                elapsedTime = Worker.Elapsed;
+
                 using (Worker.StartMonitoring(Frequency))
                 {
                     // Make sure no one can mess with thread safety here
@@ -87,6 +91,7 @@ namespace GameHost.Applications
                 var wait = frequency - Worker.Delta;
                 if (wait > TimeSpan.Zero)
                 {
+                    wait = TimeSpan.FromTicks(Math.Max(wait.Ticks, TimeSpan.FromMilliseconds(1).Ticks));
                     CancellationToken.WaitHandle.WaitOne(wait);
                     Worker.Delta += wait;
                 }
@@ -146,7 +151,7 @@ namespace GameHost.Applications
             where TInstance : Instance
         {
             var worldCollection = new WorldCollection(Context, new World());
-            worldCollection.Ctx.Bind<IManagedWorldTime, ManagedWorldTime>();
+            worldCollection.Ctx.Bind<IManagedWorldTime, ManagedWorldTime>(new ManagedWorldTime());
             worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
 
             foreach (var type in systemTypes)
@@ -195,7 +200,7 @@ namespace GameHost.Applications
                 {
                     return;
                 }
-
+                
                 timeEntity.Set(time);
                 if (WorldTime is ManagedWorldTime managed)
                 {

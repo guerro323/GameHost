@@ -1,37 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Threading;
-using DefaultEcs;
-using GameHost.Core.Ecs;
 using GameHost.Core.Graphics;
 using GameHost.Core.Threading;
 using GameHost.Injection;
 using OpenToolkit.Windowing.Common;
-using OpenToolkit.Windowing.Desktop;
-using OpenToolkit.Windowing.GraphicsLibraryFramework;
 
 namespace GameHost.Applications
 {
-    public class GameRenderThreadingHost : ThreadingHost<GameRenderThreadingHost>
+    public class GameRenderThreadingHost : GameThreadedHostApplicationBase<GameRenderThreadingHost>
     {
         private readonly IGameWindow window;
 
-        // there should be only one worldCollection when rendering
-        public readonly WorldCollection worldCollection;
-
-        private List<Type> systemTypes       = new List<Type>();
-        private List<Type> queuedSystemTypes = new List<Type>();
-
-        public GameRenderThreadingHost(IGameWindow window, Context context)
-        {
-            this.window          = window;
-            this.worldCollection = new WorldCollection(context, new World());
-
-            AppSystemResolver.ResolveFor<GameRenderThreadingHost>(queuedSystemTypes);
-        }
-
-        protected override void OnThreadStart()
+        protected override void OnInit()
         {
             Noesis.Log.SetLogCallback((level, channel, message) =>
             {
@@ -44,52 +24,39 @@ namespace GameHost.Applications
                 }
             });
 
-            unsafe
-            {
-                while (!window.IsVisible) { }
-            }
+            while (!window.IsVisible) { }
 
             window.MakeCurrent();
             window.VSync = VSyncMode.On;
 
-            // todo: we shouldn't explicitly do new() here, but parent contexts aren't used normal Resolve<>()... 
-            worldCollection.Ctx.Bind<IGraphicTool, OpenGl4GraphicTool>(new OpenGl4GraphicTool(window));
-            worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
-
-            while (!CancellationToken.IsCancellationRequested && window.Exists && !window.IsExiting)
-            {
-                GetScheduler().Run();
-                
-                if (queuedSystemTypes.Count > 0)
-                {
-                    // When creating new systems, we need to be sure the thread is safe
-                    using (SynchronizeThread())
-                    {
-                        foreach (var type in queuedSystemTypes)
-                            worldCollection.GetOrCreate(type);
-                    }
-
-                    systemTypes.AddRange(queuedSystemTypes);
-                    queuedSystemTypes.Clear();
-                }
-
-                using (SynchronizeThread())
-                {
-                    worldCollection.DoInitializePass();
-                    worldCollection.DoUpdatePass();
-                }
-            }
-
-            worldCollection.Mgr.Dispose();
-            worldCollection.Ctx.Container.Dispose();
+            AddInstance(Instance.CreateInstance<Instance>("ApplicationRender", Context));
         }
 
-        internal void InjectAssembly(Assembly assembly)
+        protected override void OnQuit()
         {
-            using (SynchronizeThread())
+        }
+
+        public GameRenderThreadingHost(IGameWindow window, Context context) : base(context)
+        {
+            this.window = window;
+        }
+
+        protected override void OnUpdate(ref int fixedUpdateCount, TimeSpan elapsedTime)
+        {
+            if (!window.Exists || window.IsExiting)
             {
-                AppSystemResolver.ResolveFor<GameRenderThreadingHost>(assembly, queuedSystemTypes);
+                QuitApplication = true;
+                return;
             }
+
+            base.OnUpdate(ref fixedUpdateCount, elapsedTime);
+        }
+
+        protected override void OnInstanceAdded<TInstance>(in TInstance instance)
+        {
+            base.OnInstanceAdded(in instance);
+            var worldCollection = MappedWorldCollection[instance];
+            worldCollection.Ctx.Bind<IGraphicTool, OpenGl4GraphicTool>(new OpenGl4GraphicTool(window));
         }
     }
 

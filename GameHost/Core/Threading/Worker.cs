@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 
@@ -30,6 +31,8 @@ namespace GameHost.Core.Threading
 
     public struct WorkerFrame
     {
+        public int      CollectionIndex;
+        public int      Frame;
         public TimeSpan Delta;
     }
 
@@ -82,10 +85,15 @@ namespace GameHost.Core.Threading
         /// </summary>
         public TimeSpan Delta { get; }
     }
+    
+    public interface IFrameListener
+    {
+        bool Add(WorkerFrame frame);
+    }
 
     public interface IWorkerWithFrames
     {
-        IReadOnlyList<WorkerFrame> Frames { get; }
+        IProducerConsumerCollection<IFrameListener> FrameListener { get; }
     }
 
     /// <summary>
