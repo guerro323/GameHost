@@ -9,7 +9,7 @@ using GameHost.Injection;
 
 namespace GameHost.Core.Ecs
 {
-    public class WorldCollection
+    public class WorldCollection : IDisposable
     {
         public readonly Context Ctx;
         public readonly World   Mgr;
@@ -195,6 +195,20 @@ namespace GameHost.Core.Ecs
             }
 
             leftInitSystem.Clear();
+        }
+
+        public void Dispose()
+        {
+            Mgr?.Dispose();
+            foreach (var sys in systemList)
+            {
+                if (sys is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+
+            systemList = null;
         }
     }
 

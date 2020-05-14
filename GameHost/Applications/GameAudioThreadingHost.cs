@@ -1,4 +1,5 @@
 ﻿using System;
+using DryIoc;
 using GameHost.Core.Threading;
 using GameHost.Injection;
 
@@ -8,7 +9,7 @@ namespace GameHost.Applications
     {
         protected override void OnInit()
         {
-            AddInstance(Instance.CreateInstance<Instance>("AudioApplication", Context));
+            AddInstance(new ContextBindingStrategy(Context, true).Resolve<Instance>());
         }
 
         protected override void OnQuit()

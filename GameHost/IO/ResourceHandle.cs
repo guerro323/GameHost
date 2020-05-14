@@ -2,41 +2,49 @@
 using GameHost.Entities;
 using System;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
 using System.Text;
+using DefaultEcs.Resource;
 using GameHost.Core.Ecs;
+using GameHost.Core.IO;
 
 namespace GameHost.IO
 {
     public abstract class Resource
     {
-        public abstract bool IsCompleted { get; }
+        protected Resource()
+        {
+        }
+    }
 
-        protected abstract T GetMetadata<T>();
+    public struct IsResourceLoaded<T>
+        where T : Resource
+    {
     }
 
     public struct ResourceHandle<T>
         where T : Resource
     {
-        public readonly Entity handleEntity;
+        private readonly Entity handleEntity;
 
-        public ResourceHandle(Entity entity)
+        public bool IsLoaded => handleEntity.Has<IsResourceLoaded<T>>();
+
+        public ResourceHandle(Entity handleEntity)
         {
-            handleEntity = entity;
-            if (!entity.Has<T>())
-                throw new Exception($"{entity.ToString()} is not initialized for resource management.");
+            this.handleEntity = handleEntity;
         }
+
+        public T Result => handleEntity.Get<T>();
     }
 
-    public struct TextResourceSchematic : IEntitySchematic
+    public struct LoadResourceViaFile
     {
-        public void Apply(Entity entity)
-        {
+        public IStorage Storage;
+        public string   Path;
+    }
 
-        }
-
-        public void Init(WorldCollection collection)
-        {
-
-        }
+    public struct AskLoadResource<T>
+        where T : Resource
+    {
     }
 }

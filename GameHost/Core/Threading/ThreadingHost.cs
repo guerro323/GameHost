@@ -52,6 +52,19 @@ namespace GameHost.Core.Threading
 
         public static readonly ConcurrentDictionary<Type, ThreadHost> TypeToThread = new ConcurrentDictionary<Type, ThreadHost>();
 
+        public static bool TryGetListener<T>(out T host)
+            where T : ApplicationHostBase
+        {
+            if (TypeToThread.TryGetValue(typeof(T), out var value))
+            {
+                host = (T)value.Host;
+                return true;
+            }
+
+            host = null;
+            return false;
+        }
+
         public static T GetListener<T>()
             where T : ApplicationHostBase
         {

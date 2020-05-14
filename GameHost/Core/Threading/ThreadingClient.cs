@@ -33,6 +33,13 @@ namespace GameHost.Core.Threading
         }
 
         public ThreadLocker SynchronizeThread() => ThreadingHost.Synchronize<TListener>();
+        public ThreadLocker SynchronizeThread(out TListener listener)
+        {
+            var threadLocker = ThreadingHost.Synchronize<TListener>();
+            listener = Listener;
+            return threadLocker;
+        }
+
         public TListener Listener => ThreadingHost.GetListener<TListener>();
     }
 }

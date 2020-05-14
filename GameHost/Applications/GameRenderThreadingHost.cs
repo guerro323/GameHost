@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using DryIoc;
 using GameHost.Core.Graphics;
 using GameHost.Core.Threading;
 using GameHost.Injection;
@@ -29,7 +30,7 @@ namespace GameHost.Applications
             window.MakeCurrent();
             window.VSync = VSyncMode.On;
 
-            AddInstance(Instance.CreateInstance<Instance>("ApplicationRender", Context));
+            AddInstance(Context.Container.Resolve<Instance>());
         }
 
         protected override void OnQuit()

@@ -141,6 +141,9 @@ namespace GameHost.Applications
         public void AddInstance<TInstance>(in TInstance instance)
             where TInstance : Instance
         {
+            if (instance == null)
+                throw new NullReferenceException(nameof(instance));
+            
             using (SynchronizeThread())
             {
                 OnInstanceAdded(in instance);
@@ -151,6 +154,7 @@ namespace GameHost.Applications
             where TInstance : Instance
         {
             var worldCollection = new WorldCollection(Context, new World());
+            worldCollection.Ctx.Bind<Instance>(instance);
             worldCollection.Ctx.Bind<IManagedWorldTime, ManagedWorldTime>(new ManagedWorldTime());
             worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
 

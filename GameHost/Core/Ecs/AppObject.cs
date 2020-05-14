@@ -8,8 +8,10 @@ namespace GameHost.Core.Ecs
 {
     public abstract class AppObject : IDisposable
     {
+        public bool IsDisposed { get; private set; }
+
         private Context context;
-        
+
         /// <summary>
         /// The <see cref="Context"/> (referenced from <see cref="WorldCollection"/>) of this <see cref="AppObject"/>
         /// </summary>
@@ -28,7 +30,7 @@ namespace GameHost.Core.Ecs
                 }
             }
         }
-        
+
         public readonly object Synchronization = new object();
 
         protected virtual void OnContextSet()
@@ -51,6 +53,7 @@ namespace GameHost.Core.Ecs
         /// </remarks>
         /// </summary>
         public DependencyResolver DependencyResolver { get; protected set; }
+
         protected List<IDisposable> ReferencedDisposables;
 
         public AppObject(Context context)
@@ -64,7 +67,7 @@ namespace GameHost.Core.Ecs
         /// </summary>
         /// <param name="disposable"></param>
         public void AddDisposable(IDisposable disposable) => ReferencedDisposables.Add(disposable);
-        
+
         public virtual void Dispose()
         {
             foreach (var d in ReferencedDisposables)
@@ -80,6 +83,9 @@ namespace GameHost.Core.Ecs
             }
 
             ReferencedDisposables = null;
+
+            lock (Synchronization)
+                IsDisposed = true;
         }
     }
 }
