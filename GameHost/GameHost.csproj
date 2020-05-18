@@ -12,7 +12,7 @@
     <PackageReference Include="DryIoc" Version="4.1.4" />
     <PackageReference Include="ImGui.NET" Version="*" />
     <PackageReference Include="DefaultEcs" Version="0.14.2" />
-    <PackageReference Include="Revolution.Core" Version="0.0.0" />
+    <PackageReference Include="Revolution.Core" Version="2020.5.18.1816" />
     <PackageReference Include="JetBrains.Annotations" Version="2020.1.0" />
     <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta12" />
     <PackageReference Include="NetFabric.Hyperlinq.Analyzer" Version="1.5.6" />
