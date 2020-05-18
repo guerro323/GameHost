@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Collections.Pooled;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Applications;
@@ -20,15 +21,16 @@ namespace GameHost.HostSerialization
         }
 
         [RestrictToApplication(typeof(GameSimulationThreadingHost))]
-        private class RestrictedHost : AppSystem
+        public class RestrictedHost : AppSystem
         {
             public readonly RevolutionWorld RevolutionWorld;
+            public readonly DefaultEcsImplementation Implementation;
 
             public RestrictedHost(WorldCollection collection) : base(collection)
             {
                 AddDisposable(RevolutionWorld = new RevolutionWorld());
 
-                RevolutionWorld.ImplementDefaultEcs(World.Mgr);
+                Implementation = RevolutionWorld.ImplementDefaultEcs(World.Mgr);
             }
 
             protected override void OnUpdate()
@@ -42,7 +44,7 @@ namespace GameHost.HostSerialization
 
         public PresentationHostWorld(WorldCollection collection) : base(collection)
         {
-            FrameWorlds                 = new ArrayList<RevolutionWorld>();
+            FrameWorlds                 = new PooledList<RevolutionWorld>();
             revolutionWorldOnSimulation = new RevolutionWorld();
 
             DependencyResolver.Add(() => ref scheduler);
@@ -88,7 +90,7 @@ namespace GameHost.HostSerialization
         /// <summary>
         /// Get a list of frame worlds
         /// </summary>
-        public readonly ArrayList<RevolutionWorld> FrameWorlds;
+        public readonly PooledList<RevolutionWorld> FrameWorlds;
 
         /// <summary>
         /// The latest world
@@ -96,11 +98,12 @@ namespace GameHost.HostSerialization
         public RevolutionWorld LastWorld => FrameWorlds.Count > 0 ? FrameWorlds[^1] : null;
 
         private bool areInvalidated;
+
         public ReadOnlySpan<RevolutionWorld> ActiveWorlds
         {
             get
             {
-                return FrameWorlds._items.AsSpan(0, areInvalidated ? 0 : FrameWorlds.Count);
+                return FrameWorlds.Span.Slice(0, areInvalidated ? 0 : FrameWorlds.Count);
             }
         }
 
