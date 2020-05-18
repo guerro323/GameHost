@@ -28,7 +28,7 @@ namespace GameHost.Applications
             while (!window.IsVisible) { }
 
             window.MakeCurrent();
-            window.VSync = VSyncMode.On;
+            window.VSync = VSyncMode.Off;
 
             AddInstance(Context.Container.Resolve<Instance>());
         }
@@ -49,6 +49,10 @@ namespace GameHost.Applications
                 QuitApplication = true;
                 return;
             }
+
+            var vsync = window.VSync;
+            if (vsync != VSyncMode.Off)
+                fixedUpdateCount = 1;
 
             base.OnUpdate(ref fixedUpdateCount, elapsedTime);
         }
