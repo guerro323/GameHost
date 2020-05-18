@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="DefaultEcs" Version="0.14.1" />
+      <PackageReference Include="DefaultEcs" Version="0.14.2" />
     </ItemGroup>
 
 </Project>
