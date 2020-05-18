@@ -9,7 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CSCore" Version="*" />
-    <PackageReference Include="DryIoc" Version="4.1.4" />
+    <PackageReference Include="DryIoc" Version="4.2.0" />
     <PackageReference Include="ImGui.NET" Version="*" />
     <PackageReference Include="DefaultEcs" Version="0.14.2" />
     <PackageReference Include="Revolution.Core" Version="2020.5.18.1816" />
