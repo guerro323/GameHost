@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace GameHost.Input
+﻿namespace GameHost.Input
 {
     public interface IInputProvider
     {

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.IO.Compression;
-using System.Threading;
+﻿using System.Collections.Concurrent;
 using Noesis;
 using OpenToolkit.Windowing.Common;
 using MouseButtonEventArgs = OpenToolkit.Windowing.Common.MouseButtonEventArgs;

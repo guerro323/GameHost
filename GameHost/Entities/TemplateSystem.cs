@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace GameHost.Entities
+﻿namespace GameHost.Entities
 {
     /// <summary>
     /// Template systems provide a way to easily test your logic without making a system type. Ideal for scripting

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using DefaultEcs;
-using DefaultEcs.Serialization;
+using GameHost.Entities;
 using NetFabric.Hyperlinq;
 using RevolutionSnapshot.Core.ECS;
 
@@ -24,6 +24,8 @@ namespace GameHost.HostSerialization
 
             toDispose.Add(DefaultEcsWorld.SubscribeEntityCreated(OnEntityCreated));
             toDispose.Add(DefaultEcsWorld.SubscribeEntityDisposed(OnEntityDisposed));
+            
+            SubscribeComponent<WorldTime>();
         }
 
         private void OnEntityCreated(in Entity entity)
@@ -74,7 +76,7 @@ namespace GameHost.HostSerialization
         private void OnComponentAdded<T>(in Entity entity, in T component)
         {
             if (component is IRevolutionComponent)
-                ((ComponentOperation<T>)operations[typeof(T)]).Set(entity.Get<RevolutionEntity>().Raw, component);
+                ((ComponentOperation<T>)operations[typeof(T)]).Set(entity.Get<RevolutionEntity>().Raw, entity.Get<T>());
         }
 
         private void OnComponentChanged<T>(in Entity entity, in T previous, in T next)

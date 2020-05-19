@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using DryIoc;
 using GameHost.Core.Ecs;
 using GameHost.Core.Threading;
-using GameHost.Entities;
 using GameHost.Injection;
 using OpenToolkit.Windowing.Common;
 using OpenToolkit.Windowing.Common.Input;

@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Threading;
 using DefaultEcs;
 using DefaultEcs.Command;
 using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
-using GameHost.Event;
 
 namespace GameHost.Input
 {

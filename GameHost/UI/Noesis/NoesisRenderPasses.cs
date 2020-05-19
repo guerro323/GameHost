@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Threading;
-using DefaultEcs;
-using GameHost.Core;
 using GameHost.Core.Ecs;
 using GameHost.Core.Graphics;
 using GameHost.Entities;

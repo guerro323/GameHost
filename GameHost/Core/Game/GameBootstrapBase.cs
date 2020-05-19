@@ -2,13 +2,11 @@ using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
-using DefaultEcs;
 using DryIoc;
 using GameHost.Applications;
 using GameHost.Core.IO;
 using GameHost.Injection;
 using GameHost.IO;
-using OpenToolkit.Windowing.Desktop;
 
 namespace GameHost.Core.Game
 {

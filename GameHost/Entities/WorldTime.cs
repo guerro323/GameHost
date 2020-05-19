@@ -1,6 +1,6 @@
 ﻿using System;
 using DefaultEcs;
-using ImTools;
+using RevolutionSnapshot.Core.ECS;
 
 namespace GameHost.Entities
 {
@@ -8,7 +8,7 @@ namespace GameHost.Entities
     {
     }
 
-    public struct WorldTime
+    public struct WorldTime : IRevolutionComponent
     {
         public TimeSpan Total;
         public TimeSpan Delta;

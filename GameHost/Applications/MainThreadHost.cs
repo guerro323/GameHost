@@ -5,7 +5,6 @@ using System.Threading;
 using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Core.Modding;
-using GameHost.Core.Modding.Components;
 using GameHost.Core.Threading;
 using GameHost.Injection;
 

@@ -1,7 +1,6 @@
 ﻿using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
-using GameHost.Core.IO;
 
 namespace GameHost.Core.Inputs
 {

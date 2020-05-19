@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Runtime.CompilerServices;
 using DefaultEcs;
-using DefaultEcs.Resource;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.IO;

@@ -1,5 +1,4 @@
 ﻿using System;
-using DryIoc;
 using GameHost.Core.Threading;
 using GameHost.Injection;
 

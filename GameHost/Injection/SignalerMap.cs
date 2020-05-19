@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using GameHost.Core.Applications;
-using GameHost.Event;
 
 namespace GameHost.Injection
 {

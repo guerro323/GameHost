@@ -1,5 +1,4 @@
 ﻿using System;
-using DryIoc;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Threading;

@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Threading;
 using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using Noesis;
 using NoesisApp;
-using OpenToolkit.Windowing.GraphicsLibraryFramework;
 
 namespace GameHost.UI.Noesis
 {

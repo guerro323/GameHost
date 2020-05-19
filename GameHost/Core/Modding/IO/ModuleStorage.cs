@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Threading.Tasks;
 using GameHost.Core.IO;
-using GameHost.IO;
 
 namespace GameHost.Core.Modding
 {

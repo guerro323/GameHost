@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using DryIoc;
 using GameHost.Core.Applications;
-using GameHost.Event;
 
 namespace GameHost.Injection
 {

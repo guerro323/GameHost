@@ -1,10 +1,6 @@
-﻿using System;
-using GameHost.Applications;
+﻿using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
-using GameHost.Injection;
-using OpenToolkit.Graphics.ES11;
-using OpenToolkit.Windowing.Common;
 
 namespace GameHost.Core.Graphics
 {

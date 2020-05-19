@@ -1,11 +1,4 @@
 ﻿using DefaultEcs;
-using GameHost.Entities;
-using System;
-using System.Collections.Generic;
-using System.Reflection.Metadata;
-using System.Text;
-using DefaultEcs.Resource;
-using GameHost.Core.Ecs;
 using GameHost.Core.IO;
 
 namespace GameHost.IO

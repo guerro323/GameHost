@@ -5,7 +5,6 @@ using GameHost.Core.Ecs;
 using GameHost.Core.IO;
 using GameHost.Core.Modding;
 using GameHost.IO;
-using Noesis;
 
 namespace GameHost.UI
 {

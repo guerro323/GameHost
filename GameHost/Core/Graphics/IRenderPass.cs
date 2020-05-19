@@ -4,8 +4,6 @@ using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Event;
-using GameHost.Injection;
-using JetBrains.Annotations;
 
 namespace GameHost.Core.Graphics
 {
