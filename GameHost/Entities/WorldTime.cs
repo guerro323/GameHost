@@ -8,7 +8,7 @@ namespace GameHost.Entities
     {
     }
 
-    public struct WorldTime : IRevolutionComponent
+    public struct WorldTime
     {
         public TimeSpan Total;
         public TimeSpan Delta;

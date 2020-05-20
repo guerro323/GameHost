@@ -1,5 +1,8 @@
-﻿using System;
+﻿#define ENABLE_SEMAPHORE_DEBUGGING
+
+using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using GameHost.Core.Applications;
@@ -81,10 +84,20 @@ namespace GameHost.Core.Threading
 
         public static ThreadLocker Synchronize<T>()
         {
+            var sw = new Stopwatch();
+            sw.Start();
             var semaphore = GetSemaphore<T>();
             if (semaphore.CanRunSemaphore())
                 semaphore.Impl.Wait();
-
+            sw.Stop();
+            if (sw.Elapsed.TotalMilliseconds > 1) {
+                Console.WriteLine($"elapsed {sw.Elapsed.TotalMilliseconds:F2} on {typeof(T)} from {Thread.CurrentThread.Name}");
+                if (Thread.CurrentThread.Name.Contains("Input"))
+                {
+                    Console.WriteLine(Environment.StackTrace);
+                }
+            }
+                
             return new ThreadLocker(ref semaphore);
         }
 
@@ -196,8 +209,10 @@ namespace GameHost.Core.Threading
 
         public override void Listen()
         {
-            ListenOnThread(new Thread(OnThreadStart));
-            thread.Name = $"{typeof(T).Name}'s thread";
+            ListenOnThread(new Thread(OnThreadStart)
+            {
+                Name = $"{typeof(T).Name}'s thread"
+            });
             scheduler   = new Scheduler(thread);
             thread.Start();
         }

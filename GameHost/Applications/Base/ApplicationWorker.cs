@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using GameHost.Core.Threading;
@@ -111,10 +112,15 @@ namespace GameHost.Applications
 
         public struct FrameMonitor : IDisposable
         {
+            private IFrameListener[] listeners;
+
             public readonly ApplicationWorker worker;
 
             public FrameMonitor(ApplicationWorker worker)
             {
+                listeners = ArrayPool<IFrameListener>.Shared.Rent(worker.FrameListener.Count);
+                worker.FrameListener.CopyTo(listeners, 0);
+
                 this.worker = worker;
                 this.worker.frameDeltaStopwatch.Restart();
             }
@@ -124,8 +130,12 @@ namespace GameHost.Applications
                 this.worker.frameDeltaStopwatch.Stop();
 
                 var wf = new WorkerFrame {CollectionIndex = this.worker.MonitorFrame, Frame = this.worker.Frame, Delta = this.worker.frameDeltaStopwatch.Elapsed};
-                foreach (var listener in this.worker.FrameListener) // it does allocate :(
-                    listener.Add(wf);
+                foreach (var listener in listeners) // it does allocate :(
+                {
+                    listener?.Add(wf);
+                }
+                
+                ArrayPool<IFrameListener>.Shared.Return(listeners);
             }
         }
     }

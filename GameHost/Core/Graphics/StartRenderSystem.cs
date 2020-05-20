@@ -1,4 +1,5 @@
-﻿using GameHost.Applications;
+﻿using System.Threading;
+using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 
@@ -30,6 +31,7 @@ namespace GameHost.Core.Graphics
         {
             base.OnUpdate();
             graphicTool.SwapBuffers();
+            Thread.Sleep(1); // report correct CPU usage
         }
 
         public EndRenderSystem(WorldCollection collection) : base(collection)

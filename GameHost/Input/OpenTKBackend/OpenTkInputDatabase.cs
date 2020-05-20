@@ -11,25 +11,28 @@ namespace GameHost.Input.OpenTKBackend
     public class OpenTkInputBackend : InputBackendBase
     {
         private IScheduler scheduler;
-        
+
         private class KeyState
         {
-            public bool IsDown;
+            public bool IsActive;
+            public bool IsDown, IsUp;
         }
-        
+
         private Dictionary<string, KeyState> keyPresses;
-        private List<string> wantedKeysDown;
-        
+        private List<string>                 wantedKeysDown;
+        private List<string>                 wantedKeysUp;
+
         private IGameWindow window;
 
         private Action resetKeyFunction;
-        
+
         protected override void OnInit()
         {
             base.OnInit();
-            keyPresses = new Dictionary<string, KeyState>((int) Key.NonUSBackSlash);
+            keyPresses     = new Dictionary<string, KeyState>((int)Key.NonUSBackSlash);
             wantedKeysDown = new List<string>(keyPresses.Count);
-            
+            wantedKeysUp   = new List<string>(keyPresses.Count);
+
             foreach (Key key in Enum.GetValues(typeof(Key)))
             {
                 keyPresses[InputManagerNaming.GetKeyId(key)] = new KeyState();
@@ -37,11 +40,26 @@ namespace GameHost.Input.OpenTKBackend
 
             resetKeyFunction = () =>
             {
-                foreach (var kvp in keyPresses) 
+                foreach (var kvp in keyPresses)
+                {
                     kvp.Value.IsDown = false;
+                    kvp.Value.IsUp   = false;
+                }
+
                 for (var i = 0; i != wantedKeysDown.Count; i++)
-                    keyPresses[wantedKeysDown[i]].IsDown = true;
+                {
+                    keyPresses[wantedKeysDown[i]].IsDown   = true;
+                    keyPresses[wantedKeysDown[i]].IsActive = true;
+                }
+
+                for (var i = 0; i != wantedKeysUp.Count; i++)
+                {
+                    keyPresses[wantedKeysUp[i]].IsUp     = true;
+                    keyPresses[wantedKeysUp[i]].IsActive = false;
+                }
+
                 wantedKeysDown.Clear();
+                wantedKeysUp.Clear();
             };
         }
 
@@ -59,8 +77,14 @@ namespace GameHost.Input.OpenTKBackend
         {
             var strategy = new ContextBindingStrategy(Context, resolveInParent: true);
             window = strategy.Resolve<IGameWindow>();
-            
+
             window.KeyDown += OnKeyDown;
+            window.KeyUp   += OnKeyUp;
+        }
+
+        public override InputState GetInputState(string inputName)
+        {
+            return default;
         }
 
         public bool IsKeyDown(Key key)
@@ -68,11 +92,24 @@ namespace GameHost.Input.OpenTKBackend
             return keyPresses[InputManagerNaming.GetKeyId(key)].IsDown;
         }
 
+        public bool IsKeyPressed(Key key)
+        {
+            return keyPresses[InputManagerNaming.GetKeyId(key)].IsActive;
+        }
+
         private void OnKeyDown(KeyboardKeyEventArgs obj)
         {
             scheduler.Add(() =>
             {
                 wantedKeysDown.Add(InputManagerNaming.GetKeyId(obj.Key));
+            });
+        }
+
+        private void OnKeyUp(KeyboardKeyEventArgs obj)
+        {
+            scheduler.Add(() =>
+            {
+                wantedKeysUp.Add(InputManagerNaming.GetKeyId(obj.Key));
             });
         }
 

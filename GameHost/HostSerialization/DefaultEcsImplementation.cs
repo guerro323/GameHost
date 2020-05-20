@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using DefaultEcs;
 using GameHost.Entities;
 using NetFabric.Hyperlinq;
@@ -18,13 +19,13 @@ namespace GameHost.HostSerialization
         {
             this.RevolutionWorld = revolutionWorld;
             this.DefaultEcsWorld = defaultEcsWorld;
-
+            
             foreach (var entity in DefaultEcsWorld)
                 OnEntityCreated(entity);
 
             toDispose.Add(DefaultEcsWorld.SubscribeEntityCreated(OnEntityCreated));
             toDispose.Add(DefaultEcsWorld.SubscribeEntityDisposed(OnEntityDisposed));
-            
+
             SubscribeComponent<WorldTime>();
         }
 
@@ -37,21 +38,9 @@ namespace GameHost.HostSerialization
         {
             RevolutionWorld.RemoveEntity(RevolutionWorld.GetEntityFromIdentifier(entity).Raw);
         }
-
-        private delegate ref T delegateSet<T>(RawEntity entity, in T comp);
-
-        private class ComponentOperation<T>
-        {
-            public delegateSet<T> Set;
-        }
-
-        private Dictionary<Type, object> operations = new Dictionary<Type, object>();
-
+        
         public void SubscribeComponent<T>()
-            where T : IRevolutionComponent
         {
-            operations[typeof(T)] = new ComponentOperation<T> {Set = (delegateSet<T>)typeof(RevolutionWorld).GetMethod("SetComponent").MakeGenericMethod(typeof(T)).CreateDelegate(typeof(delegateSet<T>), RevolutionWorld)};
-
             // if there is any component, add them to the revolution world
             if (DefaultEcsWorld.Get<T>().Any())
             {
@@ -75,20 +64,17 @@ namespace GameHost.HostSerialization
 
         private void OnComponentAdded<T>(in Entity entity, in T component)
         {
-            if (component is IRevolutionComponent)
-                ((ComponentOperation<T>)operations[typeof(T)]).Set(entity.Get<RevolutionEntity>().Raw, entity.Get<T>());
+            RevolutionWorld.SetComponent(entity.Get<RevolutionEntity>().Raw, component);
         }
 
         private void OnComponentChanged<T>(in Entity entity, in T previous, in T next)
         {
-            if (next is IRevolutionComponent)
-                ((ComponentOperation<T>)operations[typeof(T)]).Set(entity.Get<RevolutionEntity>().Raw, next);
+            RevolutionWorld.SetComponent(entity.Get<RevolutionEntity>().Raw, next);
         }
 
         private void OnComponentRemoved<T>(in Entity entity, in T component)
         {
-            if (component is IRevolutionComponent)
-                RevolutionWorld.RemoveComponent(entity.Get<RevolutionEntity>().Raw, component.GetType());
+            RevolutionWorld.RemoveComponent(entity.Get<RevolutionEntity>().Raw, component.GetType());
         }
     }
 

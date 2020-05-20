@@ -74,9 +74,10 @@ namespace GameHost.IO
         public async Task<byte[]> GetContentAsync()
         {
             await using var stream = Assembly.GetManifestResourceStream(ManifestName);
-
-            var mem = new byte[stream.Length - 3];
-            stream.Position += 3;
+            // the -3 +3 is kept for historical reason in comments, since opening .xaml files in visual studio will automatically add a BOM in the beginning of the file...
+            // so each time this will happen, seeing this comment will save me hours of pain
+            var mem = new byte[stream.Length /*- 3*/];
+            //stream.Position += 3;
             await stream.ReadAsync(mem, 0, mem.Length);
             return mem;
         }

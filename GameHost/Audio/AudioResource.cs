@@ -3,8 +3,10 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using DefaultEcs;
 using GameHost.Applications;
+using GameHost.Core.Audio.Loader;
 using GameHost.Core.Ecs;
 using GameHost.Core.IO;
+using GameHost.Core.Threading;
 using GameHost.Injection;
 using GameHost.IO;
 using SoLoud;
@@ -18,10 +20,10 @@ namespace GameHost.Audio
 
     public class LoadAudioResourceSystem : AppSystem
     {
-        private SoloudSystem soloudSystem;
+        private AudioProviderManager providerMgr;
         public LoadAudioResourceSystem(WorldCollection collection) : base(collection)
         {
-            DependencyResolver.Add(() => ref soloudSystem, new ThreadSystemWithInstanceStrategy<GameAudioThreadingHost>(Context));
+            DependencyResolver.Add(() => ref providerMgr, new ThreadSystemWithInstanceStrategy<GameAudioThreadingHost>(Context));
         }
 
         private EntitySet audioToLoad;
@@ -32,6 +34,11 @@ namespace GameHost.Audio
             audioToLoad = World.Mgr.GetEntities()
                                .With<AskLoadResource<AudioResource>>()
                                .AsSet();
+        }
+
+        public override bool CanUpdate()
+        {
+            return base.CanUpdate() && providerMgr.LastProvider != null;
         }
 
         protected override unsafe void OnUpdate()
@@ -45,12 +52,10 @@ namespace GameHost.Audio
                 var loadByFile = entity.Has<LoadResourceViaFile>();
                 if (!loadByFile)
                     continue;
-                Console.WriteLine("-----------------------------------");
 
                 Span<byte> fileData = default;
                 if (loadByFile)
                 {
-                    Console.WriteLine("-----------------------------------");
                     var r     = entity.Get<LoadResourceViaFile>();
                     var files = r.Storage.GetFilesAsync(r.Path).Result;
                     if (!files.Any())
@@ -59,27 +64,14 @@ namespace GameHost.Audio
                         entity.Dispose();
                         continue;
                     }
-                    Console.WriteLine("----------------------------------- 6");
 
                     var file = files.First();
                     fileData = file.GetContentAsync().Result;
-                    Console.WriteLine("----------------------------------- 7");
                 }
 
-                lock (soloudSystem.Synchronization)
-                {
-                    Console.WriteLine("----------------------------------- 8");
-                    var resource = soloudSystem.World.Mgr.CreateEntity();
-                    var wav      = new Wav();
-                    wav.loadMem((IntPtr)Unsafe.AsPointer(ref fileData.GetPinnableReference()), (uint)fileData.Length, aCopy: 1);
-                    resource.Set(wav);
-
-                    soloudSystem.play(wav);
-
-                    entity.Set<AudioResource>(new AudioResource {Source = resource});
-                    entity.Remove<AskLoadResource<AudioResource>>();
-                    Console.WriteLine("-----------------------------------dadakldkamlkmlkamdamkkaokdop 9");
-                }
+                using var treadLocker = ThreadingHost.Synchronize<GameAudioThreadingHost>();
+                entity.Set(new AudioResource {Source = providerMgr.LastProvider.LoadAudioFromData(fileData)});
+                entity.Remove<AskLoadResource<AudioResource>>();
             }
         }
 

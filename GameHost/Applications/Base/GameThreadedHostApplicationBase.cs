@@ -46,6 +46,8 @@ namespace GameHost.Applications
             set => ThreadingHost.Synchronize<GameSimulationThreadingHost, TimeSpan, TimeSpan>(f => frequency = f, value, null, value, cc: CancellationToken);
         }
 
+        protected TimeSpan PreviousWorkDelta;
+
         protected override void OnThreadStart()
         {
             // Automatically add systems when asked to auto resolve them...
@@ -54,7 +56,7 @@ namespace GameHost.Applications
             OnInit();
 
             var elapsedTime = TimeSpan.Zero;
-            var fts         = new FixedTimeStep {TargetFrameTimeMs = Frequency.Milliseconds};
+            var fts         = new FixedTimeStep {TargetFrameTimeMs = frequency.Milliseconds};
             while (!CancellationToken.IsCancellationRequested && !QuitApplication)
             {
                 // We ask for the scheduler to run the tasks it was asked to in the beginning of this frame.
@@ -79,12 +81,17 @@ namespace GameHost.Applications
 
                 elapsedTime = Worker.Elapsed;
 
-                using (Worker.StartMonitoring(Frequency))
+                PreviousWorkDelta = delta;
+
+                // Make sure no one can mess with thread safety here
+                using (SynchronizeThread())
+                using (Worker.StartMonitoring(frequency))
                 {
-                    // Make sure no one can mess with thread safety here
-                    using (SynchronizeThread())
-                        OnUpdate(ref updateCount, elapsedTime);
+                    OnUpdate(ref updateCount, elapsedTime);
                 }
+                
+                /*if (Worker.Delta.TotalMilliseconds > 10)
+                    Console.WriteLine(typeof(T) + ", " + Worker.Delta.TotalMilliseconds.ToString("F3"));*/
 
                 var wait = frequency - Worker.Delta;
                 if (wait > TimeSpan.Zero)

@@ -28,6 +28,8 @@ namespace GameHost.IO
         }
 
         public T Result => handleEntity.Get<T>();
+
+        public Entity Entity => handleEntity;
     }
 
     public struct LoadResourceViaFile

@@ -50,11 +50,14 @@ namespace GameHost.Applications
                 return;
             }
 
-            var vsync = window.VSync;
-            if (vsync != VSyncMode.Off)
-                fixedUpdateCount = 1;
-
+            fixedUpdateCount = Math.Min(fixedUpdateCount, 1);
             base.OnUpdate(ref fixedUpdateCount, elapsedTime);
+        }
+
+        protected override void OnFixedUpdate(int step, TimeSpan delta, TimeSpan elapsedTime)
+        {
+            // replaced delta 'frequency' by PreviousWorkDelta
+            base.OnFixedUpdate(step, PreviousWorkDelta, elapsedTime);
         }
 
         protected override void OnInstanceAdded<TInstance>(in TInstance instance)

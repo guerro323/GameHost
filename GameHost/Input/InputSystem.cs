@@ -29,6 +29,8 @@ namespace GameHost.Input
 
         protected internal abstract void OnDisable();
         protected internal abstract void OnEnable();
+
+        public abstract InputState GetInputState(string inputName);
     }
 
     [RestrictToApplication(typeof(GameInputThreadingHost))]
@@ -63,10 +65,7 @@ namespace GameHost.Input
         
         protected override void OnUpdate()
         {
-            using (client.SynchronizeThread())
-            {
-                client.Listener.WorldCollection.Ctx.SignalApp(new OnInputSynchronizeData());
-            }
+            //client.Listener.WorldCollection.Ctx.SignalApp(new OnInputSynchronizeData());
         }
     }
 }

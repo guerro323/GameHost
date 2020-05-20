@@ -74,11 +74,6 @@ namespace GameHost.UI.Noesis
                 SetSize(wrEvent.Width, wrEvent.Height);
             }
 
-            mouseButtonEvents.Clear();
-            mouseWheelEvents.Clear();
-            mouseMoveEvents.Clear();
-            windowResizeEvents.Clear();
-
             base.Update(time);
         }
 

@@ -1,6 +1,9 @@
-﻿using GameHost.Applications;
+﻿using System;
+using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
+using GameHost.Entities;
+using GameHost.Injection;
 
 namespace SoLoud
 {
@@ -8,6 +11,9 @@ namespace SoLoud
     public class SoloudSystem : AppSystem
     {
         private readonly Soloud soloud;
+
+        [DependencyStrategy]
+        public IManagedWorldTime wt { get; set; }
 
         public SoloudSystem(WorldCollection collection) : base(collection)
         {
@@ -21,9 +27,12 @@ namespace SoLoud
             soloud.deinit();
         }
 
+        private int playCount;
         public void play(Wav wav)
         {
-            soloud.play(wav, 1);
+            var handle = soloud.play(wav, 1, aPaused: 0); 
+            //soloud.setDelaySamples(handle, (uint)(soloud.getSamplerate(handle) * 0.5));
+            soloud.scheduleStop(handle, wav.getLength());
         }
     }
 }
