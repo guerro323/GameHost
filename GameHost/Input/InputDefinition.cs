@@ -2,7 +2,7 @@
 {
     public class InputDefinition
     {
-        public void AddProvider<T>() where T : IInputProvider
+        public void AddProvider<T>() where T : IInputAction
         {
             
         }

@@ -1,6 +1,7 @@
 ﻿using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
+using GameHost.Input.Default;
 
 namespace GameHost.Input
 {
@@ -11,6 +12,8 @@ namespace GameHost.Input
 
         public InputSystem(WorldCollection collection) : base(collection)
         {
+            World.Mgr.CreateEntity().Set(new InputCurrentLayout());
+            
             DependencyResolver.Add(() => ref client);
         }
     }

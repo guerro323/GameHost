@@ -1,6 +1,4 @@
-﻿#define ENABLE_SEMAPHORE_DEBUGGING
-
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading;
@@ -22,6 +20,7 @@ namespace GameHost.Core.Threading
 
         public class CustomSemaphore
         {
+            public int CurrentLockId;
             public Type Origin;
 
             public SemaphoreSlim Impl;
@@ -50,6 +49,23 @@ namespace GameHost.Core.Threading
 #endif
                 Thread = null;
                 Impl.Release();
+            }
+
+            public void Wait()
+            {
+                var spin   = new SpinWait();
+                var target = Thread.CurrentThread.ManagedThreadId;
+                var init   = CurrentLockId;
+                while (true)
+                {
+                    if (Interlocked.CompareExchange(ref CurrentLockId, target, 0) != target
+                    || Interlocked.CompareExchange(ref CurrentLockId, target, init) != target)
+                    {
+                        break;
+                    }
+
+                    spin.SpinOnce();
+                }
             }
         }
 
@@ -84,20 +100,10 @@ namespace GameHost.Core.Threading
 
         public static ThreadLocker Synchronize<T>()
         {
-            var sw = new Stopwatch();
-            sw.Start();
             var semaphore = GetSemaphore<T>();
             if (semaphore.CanRunSemaphore())
                 semaphore.Impl.Wait();
-            sw.Stop();
-            if (sw.Elapsed.TotalMilliseconds > 1) {
-                Console.WriteLine($"elapsed {sw.Elapsed.TotalMilliseconds:F2} on {typeof(T)} from {Thread.CurrentThread.Name}");
-                if (Thread.CurrentThread.Name.Contains("Input"))
-                {
-                    Console.WriteLine(Environment.StackTrace);
-                }
-            }
-                
+
             return new ThreadLocker(ref semaphore);
         }
 

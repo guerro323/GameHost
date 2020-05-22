@@ -43,10 +43,12 @@ namespace GameHost.UI.Noesis
         public void LoadXamlObject(FrameworkElement xamlObject)
         {
             View = GUI.CreateView(xamlObject);
-            View.SetFlags(RenderFlags.PPAA | RenderFlags.LCD);
+            //View.SetFlags(RenderFlags.PPAA);
             
             Renderer = View.Renderer;
-            Renderer.Init(new RenderDeviceGL());
+            var device = new RenderDeviceGL();
+            //device.OffscreenSampleCount = 0;
+            Renderer.Init(device);
         }
 
         public void SetSize(int width, int height)

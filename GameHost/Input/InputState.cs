@@ -7,6 +7,14 @@
         /// </summary>
         public float Real;
 
-        public bool Button;
+        /// <summary>
+        /// How much time was this input pressed or released?
+        /// </summary>
+        public uint Down, Up;
+
+        /// <summary>
+        /// Is  this input currently active?
+        /// </summary>
+        public bool Active;
     }
 }

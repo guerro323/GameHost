@@ -24,17 +24,13 @@ namespace GameHost.UI.Noesis
 
         public override EPassType Type => EPassType.Pre;
 
-        private double time;
-        
         public override void Execute()
         {
             foreach (var renderer in Components)
             {
-                renderer.Update(time);
+                renderer.Update(WorldTime.Total.TotalSeconds);
                 renderer.PrepareRender();
             }
-
-            time += 0.01f;
         }
 
         public NoesisRenderPrePass(WorldCollection worldCollection) : base(worldCollection)

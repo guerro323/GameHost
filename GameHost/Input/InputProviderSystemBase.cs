@@ -1,55 +1,92 @@
 ﻿using System;
+using System.Threading;
 using DefaultEcs;
-using DefaultEcs.Command;
 using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
+using GameHost.Core.Threading;
+using GameHost.Injection;
+using GameHost.Input.Default;
 
 namespace GameHost.Input
 {
     public struct OnInputSynchronizeData : IAppEvent
-    {}
-    
-    [RestrictToApplication(typeof(GameInputThreadingHost))]
-    public abstract class InputProviderSystemBase<T> : AppSystem, IReceiveAppEvent<OnInputSynchronizeData>
-        where T : IInputProvider
     {
-        private InputProviderEndBarrier barrier;
+    }
+    
+    public abstract class InputProviderSystemBase<TSelf, TAction> : AppSystem
+        where TAction : IInputAction
+        where TSelf : InputProviderSystemBase<TSelf, TAction>
+    {
+        private InputBackendManager              inputBackendMgr;
+        private TSelf selfOnInputThread;
+
+        private readonly bool     isInputThread;
+        
+        private SpinLock inputBarrier;
+
+        public ref SpinLock InputSynchronizationBarrier
+        {
+            get => ref (isInputThread ? ref inputBarrier : ref selfOnInputThread.inputBarrier);
+        }
+
+        protected InputBackendBase Backend => inputBackendMgr.Backend;
+
+        protected EntitySet InputSet { get; private set; }
+
+        private EntitySet inputThreadEntitySet;
+        private EntitySet receiveThreadEntitySet;
 
         protected InputProviderSystemBase(WorldCollection collection) : base(collection)
         {
-            DependencyResolver.Add(() => ref barrier);
-        }
-        
-        protected bool DataHasBeenReadThisFrame { get; private set; }
+            inputBarrier = new SpinLock(true);
 
-        protected EntityRecord GetEntityRecord(Entity entity)
+            inputThreadEntitySet = World.Mgr.GetEntities()
+                                        .With<InputActionLayouts>()
+                                        .With<TAction>()
+                                        .With<ThreadInputToCompute>()
+                                        .AsSet();
+            receiveThreadEntitySet = World.Mgr.GetEntities()
+                                          .With<InputActionLayouts>()
+                                          .With<TAction>()
+                                          .With<InputThreadTarget>()
+                                          .AsSet();
+
+            // not elegant to know on which application we are...
+            isInputThread = ThreadingHost.TypeToThread.TryGetValue(typeof(GameInputThreadingHost), out var threadHost)
+                            && threadHost.Thread == Thread.CurrentThread;
+
+            if (isInputThread)
+            {
+                DependencyResolver.Add(() => ref inputBackendMgr);
+            }
+            else
+            {
+                DependencyResolver.Add(() => ref selfOnInputThread, new ThreadSystemWithInstanceStrategy<GameInputThreadingHost>(Context));   
+            }
+        }
+
+        public override bool CanUpdate()
         {
-            if (entity.World == World.Mgr)
-                throw new InvalidOperationException("Create another EntityCommandRecorder for entity inside of this thread world.");
-
-            return barrier.Recorder.Record(entity);
+            if (isInputThread && inputBackendMgr?.Backend == null)
+                return false;
+            return base.CanUpdate();
         }
 
-        protected abstract void OnSync();
-        
-        void IReceiveAppEvent<OnInputSynchronizeData>.OnEvent(OnInputSynchronizeData t)
+        protected override void OnUpdate()
         {
-            if (World == null)
-                return;
-            OnSync();
-        }
-    }
+            if (isInputThread)
+            {
+                InputSet = inputThreadEntitySet;
+                OnInputThreadUpdate();
+            }
 
-    [RestrictToApplication(typeof(GameInputThreadingHost))]
-    public class InputProviderEndBarrier : AppSystem
-    {
-        public readonly EntityCommandRecorder Recorder;
-
-        private GameInputThreadingHost host;
-        
-        public InputProviderEndBarrier(WorldCollection collection) : base(collection)
-        {
+            InputSet = receiveThreadEntitySet;
+            OnReceiverUpdate();
+            InputSet = null;
         }
+
+        protected abstract void OnInputThreadUpdate();
+        protected abstract void OnReceiverUpdate();
     }
 }

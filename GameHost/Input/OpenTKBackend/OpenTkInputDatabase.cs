@@ -29,7 +29,8 @@ namespace GameHost.Input.OpenTKBackend
         protected override void OnInit()
         {
             base.OnInit();
-            keyPresses     = new Dictionary<string, KeyState>((int)Key.NonUSBackSlash);
+            var comparer = StringComparer.InvariantCultureIgnoreCase;
+            keyPresses     = new Dictionary<string, KeyState>((int)Key.NonUSBackSlash, comparer);
             wantedKeysDown = new List<string>(keyPresses.Count);
             wantedKeysUp   = new List<string>(keyPresses.Count);
 
@@ -84,7 +85,8 @@ namespace GameHost.Input.OpenTKBackend
 
         public override InputState GetInputState(string inputName)
         {
-            return default;
+            var p = keyPresses[inputName];
+            return new InputState {Down = p.IsDown ? 1u : 0, Up = p.IsUp ? 1u : 0, Real = p.IsActive ? 1 : 0, Active = p.IsActive};
         }
 
         public bool IsKeyDown(Key key)
