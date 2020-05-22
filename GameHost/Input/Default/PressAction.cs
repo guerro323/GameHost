@@ -19,7 +19,7 @@ namespace GameHost.Input.Default
 
         public uint DownCount, UpCount;
 
-        public bool IsDown => DownCount > 0;
+        public bool HasBeenPressed => DownCount > 0;
 
         public class Provider : InputProviderSystemBase<Provider, PressAction>
         {
@@ -33,7 +33,7 @@ namespace GameHost.Input.Default
             protected override void OnInputThreadUpdate()
             {
                 var currentLayout = World.Mgr.Get<InputCurrentLayout>()[0];
-                using (InputSynchronizationBarrier.SafeTake())
+                lock (InputSynchronizationBarrier)
                 {
                     //Console.WriteLine("--init " + InputSet.Count);
                     foreach (ref readonly var entity in InputSet.GetEntities())
@@ -53,7 +53,7 @@ namespace GameHost.Input.Default
 
             protected override void OnReceiverUpdate()
             {
-                using (InputSynchronizationBarrier.SafeTake())
+                lock (InputSynchronizationBarrier)
                 {
                     foreach (ref readonly var entity in InputSet.GetEntities())
                     {

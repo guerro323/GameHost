@@ -22,13 +22,8 @@ namespace GameHost.Input
         private TSelf selfOnInputThread;
 
         private readonly bool     isInputThread;
-        
-        private SpinLock inputBarrier;
 
-        public ref SpinLock InputSynchronizationBarrier
-        {
-            get => ref (isInputThread ? ref inputBarrier : ref selfOnInputThread.inputBarrier);
-        }
+        public readonly object InputSynchronizationBarrier = new object();
 
         protected InputBackendBase Backend => inputBackendMgr.Backend;
 
@@ -39,8 +34,6 @@ namespace GameHost.Input
 
         protected InputProviderSystemBase(WorldCollection collection) : base(collection)
         {
-            inputBarrier = new SpinLock(true);
-
             inputThreadEntitySet = World.Mgr.GetEntities()
                                         .With<InputActionLayouts>()
                                         .With<TAction>()

@@ -37,7 +37,7 @@ namespace GameHost.Core.Threading
                 WasTaken = false;
 
                 SpinLock = (SpinLock*)Unsafe.AsPointer(ref spinLock);
-                SpinLock->Enter(ref WasTaken);
+                SpinLock->TryEnter(ref WasTaken);
             }
 
             public void Dispose()

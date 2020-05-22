@@ -22,6 +22,19 @@ namespace GameHost.Input.Default
 
     public class InputActionLayouts : Dictionary<string, InputLayoutBase>
     {
+        public InputActionLayouts() {}
+        
+        public InputActionLayouts(InputActionLayouts original) : base(original)
+        {
+            
+        }
+
+        public InputActionLayouts(IEnumerable<InputLayoutBase> layouts)
+        {
+            foreach (var layout in layouts)
+                Add(layout);
+        }
+
         public void Add(InputLayoutBase layout) => Add(layout.Id, layout);
         
         public bool TryGetOrDefault(string currentLayout, out InputLayoutBase layout)

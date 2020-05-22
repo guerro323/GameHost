@@ -49,6 +49,11 @@ namespace GameHost.Input.OpenTKBackend
 
                 for (var i = 0; i != wantedKeysDown.Count; i++)
                 {
+                    // this disable support for when GLFW invoke repeated buttons
+                    // todo: we should have proper support for repeated buttons
+                    if (keyPresses[wantedKeysDown[i]].IsActive)
+                        continue;
+                    
                     keyPresses[wantedKeysDown[i]].IsDown   = true;
                     keyPresses[wantedKeysDown[i]].IsActive = true;
                 }
