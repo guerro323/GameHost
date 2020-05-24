@@ -10,7 +10,7 @@ using GameHost.Injection;
 
 namespace GameHost.Applications
 {
-    public abstract class GameThreadedHostApplicationBase<T> : ThreadingHost<T>
+    public abstract class GameThreadedHostApplicationBase<T> : ThreadingHost<T>, IApplicationGetWorldFromInstance
     {
         private TimeSpan frequency;
 
@@ -216,6 +216,11 @@ namespace GameHost.Applications
                     managed.Update(timeEntity);
                 }
             }
+        }
+
+        public bool TryGetWorldFromInstance(Instance instance, out WorldCollection worldCollection)
+        {
+            return MappedWorldCollection.TryGetValue(instance, out worldCollection);
         }
     }
 }

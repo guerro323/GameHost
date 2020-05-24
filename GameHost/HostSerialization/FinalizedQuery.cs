@@ -142,7 +142,7 @@ namespace GameHost.HostSerialization
             public ChunkEnumerator Inner;
             public RevolutionWorld World;
 
-            public RevolutionEntity Current => new RevolutionEntity(World, Inner.Current.Span[index - 1]);
+            public RevolutionEntity Current => new RevolutionEntity(World.Accessor, Inner.Current.Span[index - 1]);
             
             private int index;
 
@@ -180,7 +180,7 @@ namespace GameHost.HostSerialization
 
             public bool TryGetFirst(out RevolutionEntity entity)
             {
-                if (!First.Raw.Equals(default))
+                if (First.IsAlive)
                 {
                     entity = Current;
                     return true;
@@ -201,14 +201,14 @@ namespace GameHost.HostSerialization
             return new EntityEnumerator {World = world, Inner = QueryChunks(world, finalizedQuery)};
         }
         
-        public static EntityEnumerator QueryRawEntities(this RevolutionWorld world, Span<Type> all, Span<Type> none)
+        public static EntityRawEnumerator QueryRawEntities(this RevolutionWorld world, Span<Type> all, Span<Type> none)
         {
-            return QueryEntities(world, new FinalizedQuery {All = all, None = none});
+            return QueryRawEntities(world, new FinalizedQuery {All = all, None = none});
         }
 
-        public static EntityEnumerator QueryRawEntities(this RevolutionWorld world, FinalizedQuery finalizedQuery)
+        public static EntityRawEnumerator QueryRawEntities(this RevolutionWorld world, FinalizedQuery finalizedQuery)
         {
-            return new EntityEnumerator {Inner = QueryChunks(world, finalizedQuery)};
+            return new EntityRawEnumerator {Inner = QueryChunks(world, finalizedQuery)};
         }
     }
 }

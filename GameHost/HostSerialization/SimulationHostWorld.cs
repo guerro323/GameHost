@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using Collections.Pooled;
+using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
@@ -11,6 +12,28 @@ using RevolutionSnapshot.Core.ECS;
 
 namespace GameHost.HostSerialization
 {
+    public class PresentationWorld
+    {
+        public readonly World World;
+
+        public PresentationWorld(World world)
+        {
+            this.World = world;
+        }
+
+        public static implicit operator World(PresentationWorld t)
+        {
+            return t.World;
+        }
+    }
+    
+    public class PresentationRevolutionWorld : RevolutionWorld
+    {
+        public PresentationRevolutionWorld(int capacity) : base(capacity)
+        {
+        }
+    }
+    
     [RestrictToApplication(typeof(GameRenderThreadingHost))]
     public class PresentationHostWorld : AppSystem
     {
@@ -23,12 +46,14 @@ namespace GameHost.HostSerialization
         {
             public readonly RevolutionWorld RevolutionWorld;
             public readonly DefaultEcsImplementation Implementation;
+            public readonly RevolutionWorldAccessor Accessor;
 
             public RestrictedHost(WorldCollection collection) : base(collection)
             {
-                AddDisposable(RevolutionWorld = new RevolutionWorld());
+                AddDisposable(RevolutionWorld = new PresentationRevolutionWorld(128));
 
                 Implementation = RevolutionWorld.ImplementDefaultEcs(World.Mgr);
+                Accessor       = new DefaultWorldAccessor(RevolutionWorld);
             }
 
             protected override void OnUpdate()
@@ -40,11 +65,16 @@ namespace GameHost.HostSerialization
         private IScheduler     scheduler;
         private RestrictedHost restricted;
 
+        private RevolutionWorldAccessor accessor;
+        private PresentationWorld presentation;
+
         public PresentationHostWorld(WorldCollection collection) : base(collection)
         {
             FrameWorlds                 = new PooledList<RevolutionWorld>();
             revolutionWorldOnSimulation = new RevolutionWorld();
 
+            presentation = new PresentationWorld(new World());
+            
             DependencyResolver.Add(() => ref scheduler);
             DependencyResolver.Add(() => ref restricted, new ThreadSystemWithInstanceStrategy<GameSimulationThreadingHost>(Context));
         }
@@ -56,6 +86,11 @@ namespace GameHost.HostSerialization
 
         protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
         {
+            lock (restricted.Synchronization)
+            {
+                accessor = restricted.Accessor;
+            }
+
             // subscribe is thread safe
             AddDisposable(restricted.World.Mgr.Subscribe((in OnUpdateNotification n) =>
             {
@@ -72,6 +107,8 @@ namespace GameHost.HostSerialization
                 {
                     areInvalidated = false;
                     FrameWorlds.Add(clonedWorld);
+                    
+                    
                 }
 
                 scheduler.AddOnce(invalidateActiveWorlds);
@@ -109,6 +146,11 @@ namespace GameHost.HostSerialization
         {
             base.OnUpdate();
             scheduler.AddOnce(invalidateActiveWorlds);
+        }
+
+        public RevolutionEntity ToNormalized(RawEntity entity)
+        {
+            return new RevolutionEntity(accessor, entity);
         }
     }
 }

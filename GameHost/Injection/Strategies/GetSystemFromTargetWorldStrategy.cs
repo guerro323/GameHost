@@ -1,5 +1,6 @@
 ﻿using System;
 using GameHost.Applications;
+using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Threading;
 
@@ -22,7 +23,7 @@ namespace GameHost.Injection
             return null;
         }
     }
-    
+
     public class GetSystemFromTargetWorldStrategy : IDependencyStrategy
     {
         private readonly Func<WorldCollection> getWorldFunc;
@@ -42,10 +43,10 @@ namespace GameHost.Injection
     }
 
     public class ThreadSystemWithInstanceStrategy<TApplication> : IDependencyStrategy
-        where TApplication : GameThreadedHostApplicationBase<TApplication>
+        where TApplication : ApplicationHostBase, IApplicationGetWorldFromInstance
     {
         private readonly Context context;
-        
+
         private Instance targetInstance;
 
         public ThreadSystemWithInstanceStrategy(Context context)
@@ -64,11 +65,46 @@ namespace GameHost.Injection
 
             if (ThreadingHost.TryGetListener(out TApplication application))
             {
-                using var threadLocker = application.SynchronizeThread();
+                using var threadLocker = ThreadingHost.Synchronize<TApplication>();
 
-                if (application.MappedWorldCollection.TryGetValue(targetInstance, out var worldCollection))
+                if (application.TryGetWorldFromInstance(targetInstance, out var worldCollection))
                 {
                     return worldCollection.GetOrCreate(type);
+                }
+            }
+
+            return null;
+        }
+    }
+
+    public class ThreadWorldWithInstanceStrategy<TApplication> : IDependencyStrategy
+        where TApplication : ApplicationHostBase, IApplicationGetWorldFromInstance
+    {
+        private readonly Context context;
+
+        private Instance targetInstance;
+
+        public ThreadWorldWithInstanceStrategy(Context context)
+        {
+            this.context = context;
+        }
+
+        public ThreadWorldWithInstanceStrategy(Instance givenInstance)
+        {
+            this.targetInstance = givenInstance;
+        }
+
+        public object Resolve(Type type)
+        {
+            targetInstance ??= new ContextBindingStrategy(context, true).Resolve<Instance>();
+
+            if (ThreadingHost.TryGetListener(out TApplication application))
+            {
+                using var threadLocker = ThreadingHost.Synchronize<TApplication>();
+
+                if (application.TryGetWorldFromInstance(targetInstance, out var worldCollection))
+                {
+                    return worldCollection;
                 }
             }
 

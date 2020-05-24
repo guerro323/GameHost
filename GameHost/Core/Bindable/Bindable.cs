@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace GameHost.Core.Bindables
 {
@@ -17,7 +18,7 @@ namespace GameHost.Core.Bindables
 
                 if (EqualityComparer<T>.Default.Equals(this.value, value))
                     return;
-                Console.WriteLine("on update!");
+                Console.WriteLine("on update! " + typeof(T));
                 InvokeOnUpdate(ref value);
             }
         }

@@ -13,7 +13,7 @@ namespace GameHost.Applications
     // mostly used for knowing the main thread object...
     // but.........
     // what can we do with it?......
-    public class MainThreadHost : ThreadingHost<MainThreadHost>
+    public class MainThreadHost : ThreadingHost<MainThreadHost>, IApplicationGetWorldFromInstance
     {
         private Dictionary<string, CModule> loadedModules = new Dictionary<string, CModule>();
         private WorldCollection worldCollection;
@@ -64,6 +64,13 @@ namespace GameHost.Applications
                 worldCollection.DoInitializePass();
                 worldCollection.DoUpdatePass();
             }
+        }
+
+        public bool TryGetWorldFromInstance(Instance instance, out WorldCollection wc)
+        {
+            // should we check for the instance here? there is only one (fake) instance in main thread
+            wc = this.worldCollection;
+            return true;
         }
     }
 
