@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Collections.Pooled;
 using DefaultEcs;
+using DefaultEcs.Command;
 using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
@@ -16,24 +19,44 @@ namespace GameHost.HostSerialization
     {
         public readonly World World;
 
+        internal Dictionary<RawEntity, Entity> entityMapping;
+
         public PresentationWorld(World world)
         {
             this.World = world;
+
+            entityMapping = new Dictionary<RawEntity, Entity>();
         }
 
         public static implicit operator World(PresentationWorld t)
         {
             return t.World;
         }
-    }
-    
-    public class PresentationRevolutionWorld : RevolutionWorld
-    {
-        public PresentationRevolutionWorld(int capacity) : base(capacity)
+
+        public Entity GetEntity(RawEntity revolutionEntity)
         {
+            lock (World)
+            {
+                if (entityMapping.TryGetValue(revolutionEntity, out var defaultEcsEntity))
+                    return defaultEcsEntity;
+            }
+
+            return default(Entity);
+        }
+
+        public Entity CreateEntityWithLink(RawEntity revolutionEntity)
+        {
+            lock (World)
+            {
+                var defaultEcsEntity = World.CreateEntity();
+                defaultEcsEntity.Set(revolutionEntity);
+                entityMapping[revolutionEntity] = defaultEcsEntity;
+
+                return defaultEcsEntity;
+            }
         }
     }
-    
+
     [RestrictToApplication(typeof(GameRenderThreadingHost))]
     public class PresentationHostWorld : AppSystem
     {
@@ -42,15 +65,15 @@ namespace GameHost.HostSerialization
         }
 
         [RestrictToApplication(typeof(GameSimulationThreadingHost))]
-        public class RestrictedHost : AppSystem
+        private class RestrictedHost : AppSystem
         {
-            public readonly RevolutionWorld RevolutionWorld;
+            public readonly RevolutionWorld          RevolutionWorld;
             public readonly DefaultEcsImplementation Implementation;
-            public readonly RevolutionWorldAccessor Accessor;
+            public readonly RevolutionWorldAccessor  Accessor;
 
             public RestrictedHost(WorldCollection collection) : base(collection)
             {
-                AddDisposable(RevolutionWorld = new PresentationRevolutionWorld(128));
+                AddDisposable(RevolutionWorld = new RevolutionWorld());
 
                 Implementation = RevolutionWorld.ImplementDefaultEcs(World.Mgr);
                 Accessor       = new DefaultWorldAccessor(RevolutionWorld);
@@ -65,92 +88,148 @@ namespace GameHost.HostSerialization
         private IScheduler     scheduler;
         private RestrictedHost restricted;
 
-        private RevolutionWorldAccessor accessor;
-        private PresentationWorld presentation;
+        private PresentationWorld                        presentation;
+        private Dictionary<Type, ComponentOperationBase> componentsOperation;
+
+        private EntityCommandRecorder recorder;
 
         public PresentationHostWorld(WorldCollection collection) : base(collection)
         {
-            FrameWorlds                 = new PooledList<RevolutionWorld>();
-            revolutionWorldOnSimulation = new RevolutionWorld();
-
-            presentation = new PresentationWorld(new World());
-            
             DependencyResolver.Add(() => ref scheduler);
             DependencyResolver.Add(() => ref restricted, new ThreadSystemWithInstanceStrategy<GameSimulationThreadingHost>(Context));
-        }
 
-        private void invalidateActiveWorlds()
-        {
-            areInvalidated = true;
+            componentsOperation = new Dictionary<Type, ComponentOperationBase>();
+            
+            recorder = new EntityCommandRecorder();
+            
+            presentation = new PresentationWorld(new World());
+            
+            Context.Bind(presentation);
         }
 
         protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
         {
-            lock (restricted.Synchronization)
-            {
-                accessor = restricted.Accessor;
-            }
-
             // subscribe is thread safe
             AddDisposable(restricted.World.Mgr.Subscribe((in OnUpdateNotification n) =>
             {
-                var clonedWorld = restricted.RevolutionWorld.Clone();
-
-                void clearWorldQueue()
+                lock (Synchronization)
                 {
-                    foreach (var world in FrameWorlds)
-                        world.Dispose();
-                    FrameWorlds.Clear();
+                    foreach (var chunk in restricted.RevolutionWorld.Chunks)
+                    {
+                        // todo: make it parallel?
+                        foreach (ref readonly var entity in chunk.Span)
+                        {
+                            var defaultEcsEntity = presentation.GetEntity(entity);
+                            if (defaultEcsEntity == default)
+                            {
+                                defaultEcsEntity = presentation.CreateEntityWithLink(entity);
+                            }
+
+                            var record = recorder.Record(defaultEcsEntity);
+
+                            var revEnt = new RevolutionEntity(restricted.RevolutionWorld.Accessor, entity);
+                            foreach (var op in componentsOperation.Values)
+                            {
+                                op.UpdateEntity(defaultEcsEntity, ref record, revEnt);
+                            }
+                        }
+                    }
+
+                    foreach (var (raw, defEnt) in presentation.entityMapping)
+                    {
+                        if (restricted.RevolutionWorld.Exists(raw))
+                            continue;
+
+                        recorder.Record(defEnt)
+                                .Dispose();
+                    }
                 }
 
-                void addWorldToQueue()
-                {
-                    areInvalidated = false;
-                    FrameWorlds.Add(clonedWorld);
-                    
-                    
-                }
-
-                scheduler.AddOnce(invalidateActiveWorlds);
-                scheduler.AddOnce(clearWorldQueue);
-                scheduler.Add(addWorldToQueue);
+                scheduler.AddOnce(Playback);
             }));
         }
 
-        /// <summary>
-        /// This revolution world will be used in the simulation application
-        /// </summary>
-        private readonly RevolutionWorld revolutionWorldOnSimulation;
-
-        /// <summary>
-        /// Get a list of frame worlds
-        /// </summary>
-        public readonly PooledList<RevolutionWorld> FrameWorlds;
-
-        /// <summary>
-        /// The latest world
-        /// </summary>
-        public RevolutionWorld LastWorld => FrameWorlds.Count > 0 ? FrameWorlds[^1] : null;
-
-        private bool areInvalidated;
-
-        public ReadOnlySpan<RevolutionWorld> ActiveWorlds
+        private void Playback()
         {
-            get
+            lock (Synchronization)
             {
-                return FrameWorlds.Span.Slice(0, areInvalidated ? 0 : FrameWorlds.Count);
+                recorder.Execute(presentation);
+            }
+            
+            scheduler.AddOnce(Playback);
+        }
+
+        public void Subscribe<TComponent, TOperation>(TOperation operation)
+            where TOperation : ComponentOperationBase<TComponent>
+        {
+            lock (Synchronization)
+            {
+                operation.SetPresentation(presentation);
+                componentsOperation[typeof(TOperation)] = operation;
+            }
+
+            ThreadingHost.GetListener<GameSimulationThreadingHost>()
+                         .GetScheduler()
+                         .Add(() =>
+                         {
+                             restricted.Implementation.SubscribeComponent<TComponent>(); 
+                         });
+        }
+
+        public void Subscribe<TComponent>()
+            where TComponent : unmanaged
+        {
+            Subscribe<TComponent, SimpleComponentOperation<TComponent>>(new SimpleComponentOperation<TComponent>());
+        }
+    }
+
+    public abstract class ComponentOperationBase
+    {
+        protected Entity CurrentEntity { get; set; }
+        protected PresentationWorld World { get; private set; }
+
+        protected internal virtual void SetPresentation(PresentationWorld presentationWorld)
+        {
+            World = presentationWorld;
+        }
+
+        public abstract void UpdateEntity(in Entity defaultEcsEntity, ref EntityRecord record, in RevolutionEntity revolutionEntity);
+        public virtual void OnPlayback() {}
+    }
+
+    public abstract class ComponentOperationBase<T> : ComponentOperationBase
+    {
+        private RevolutionEntity lastEntity;
+
+        public override void UpdateEntity(in Entity defaultEcsEntity, ref EntityRecord record, in RevolutionEntity revEnt)
+        {
+            CurrentEntity = defaultEcsEntity;
+            
+            if (revEnt.Chunk.Components.ContainsKey(typeof(T)))
+            {
+                OnUpdate(ref record, revEnt, revEnt.GetComponent<T>());
+            }
+            else
+            {
+                OnRemoved(ref record, revEnt);
             }
         }
+        
+        protected abstract void OnUpdate(ref EntityRecord record, in RevolutionEntity  revolutionEntity, in T component);
+        protected abstract void OnRemoved(ref EntityRecord record, in RevolutionEntity revolutionEntity);
+    }
 
-        protected override void OnUpdate()
+    public class SimpleComponentOperation<T> : ComponentOperationBase<T>
+        where T : unmanaged
+    {
+        protected override void OnUpdate(ref EntityRecord record, in RevolutionEntity revolutionEntity, in T component)
         {
-            base.OnUpdate();
-            scheduler.AddOnce(invalidateActiveWorlds);
+            record.Set(component);
         }
 
-        public RevolutionEntity ToNormalized(RawEntity entity)
+        protected override void OnRemoved(ref EntityRecord record, in RevolutionEntity revolutionEntity)
         {
-            return new RevolutionEntity(accessor, entity);
+            record.Remove<T>();
         }
     }
 }

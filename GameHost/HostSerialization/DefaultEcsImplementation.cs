@@ -14,7 +14,8 @@ namespace GameHost.HostSerialization
         public readonly World           DefaultEcsWorld;
 
         private List<IDisposable> toDispose = new List<IDisposable>();
-
+        private HashSet<Type> subscribedTypes = new HashSet<Type>();
+        
         public DefaultEcsImplementation(RevolutionWorld revolutionWorld, World defaultEcsWorld)
         {
             this.RevolutionWorld = revolutionWorld;
@@ -38,9 +39,12 @@ namespace GameHost.HostSerialization
         {
             RevolutionWorld.RemoveEntity(RevolutionWorld.GetEntityFromIdentifier(entity).Raw);
         }
-        
+
         public void SubscribeComponent<T>()
         {
+            if (subscribedTypes.Contains(typeof(T)))
+                return;
+
             // if there is any component, add them to the revolution world
             if (DefaultEcsWorld.Get<T>().Any())
             {
@@ -60,6 +64,8 @@ namespace GameHost.HostSerialization
             toDispose.Add(DefaultEcsWorld.SubscribeComponentAdded<T>(OnComponentAdded));
             toDispose.Add(DefaultEcsWorld.SubscribeComponentChanged<T>(OnComponentChanged));
             toDispose.Add(DefaultEcsWorld.SubscribeComponentRemoved<T>(OnComponentRemoved));
+
+            subscribedTypes.Add(typeof(T));
         }
 
         private void OnComponentAdded<T>(in Entity entity, in T component)
