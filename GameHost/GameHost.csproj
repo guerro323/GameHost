@@ -20,7 +20,7 @@
     <PackageReference Include="opentoolkit.redist.glfw" Version="3.3.0-pre20190424184726" />
     <PackageReference Include="Revolution.Core" Version="2020.524.1433" />
     <PackageReference Include="SharpZipLib" Version="1.2.0" />
-    <PackageReference Include="ZLogger" Version="1.2.0" />
+    <PackageReference Include="ZLogger" Version="1.2.1" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="OpenToolkit.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
