@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Collections.Pooled;
 using DefaultEcs;
 using DefaultEcs.Command;
@@ -114,6 +115,8 @@ namespace GameHost.HostSerialization
             {
                 lock (Synchronization)
                 {
+                    var sw = new Stopwatch();
+                    sw.Start();
                     foreach (var chunk in restricted.RevolutionWorld.Chunks)
                     {
                         // todo: make it parallel?
@@ -135,14 +138,16 @@ namespace GameHost.HostSerialization
                         }
                     }
 
-                    foreach (var (raw, defEnt) in presentation.entityMapping)
+                    Parallel.ForEach(presentation.entityMapping, kvp =>
                     {
+                        var (raw, defEnt) = kvp;
                         if (restricted.RevolutionWorld.Exists(raw))
-                            continue;
+                            return;
 
                         recorder.Record(defEnt)
                                 .Dispose();
-                    }
+                    });
+                    sw.Stop();
                 }
 
                 scheduler.AddOnce(Playback);

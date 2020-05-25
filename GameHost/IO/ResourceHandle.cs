@@ -32,10 +32,15 @@ namespace GameHost.IO
         public Entity Entity => handleEntity;
     }
 
-    public struct LoadResourceViaFile
+    public struct LoadResourceViaStorage
     {
         public IStorage Storage;
         public string   Path;
+    }
+
+    public struct LoadResourceViaFile
+    {
+        public IFile File;
     }
 
     public struct AskLoadResource<T>

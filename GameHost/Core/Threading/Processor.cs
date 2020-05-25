@@ -14,8 +14,8 @@ namespace GameHost.Core.Threading
         public static int GetWorkerCount(double parallelismPercentage)
         {
             // right now we can't have parallel operations until we have an intelligent worker counter 
-            return 1;
-            return Math.Clamp((int)(ProcessorCount * parallelismPercentage), 1, ProcessorCount);
+            //return 1;
+            return Math.Clamp((int)(ProcessorCount * parallelismPercentage) - 4, 1, ProcessorCount);
         }
     }
 }

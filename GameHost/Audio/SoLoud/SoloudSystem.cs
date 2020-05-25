@@ -30,7 +30,8 @@ namespace SoLoud
         private int playCount;
         public void play(Wav wav)
         {
-            var handle = soloud.play(wav, 1, aPaused: 0); 
+            var handle = soloud.play(wav, 1, aPaused: 0);
+            Console.WriteLine(wav.getLength());
             //soloud.setDelaySamples(handle, (uint)(soloud.getSamplerate(handle) * 0.5));
             soloud.scheduleStop(handle, wav.getLength());
         }

@@ -69,6 +69,7 @@ namespace GameHost.Audio
         {
             foreach (ref readonly var entity in playAudioSet.GetEntities())
             {
+                Console.WriteLine("play : " + entity);
                 restrictedHost.plays.Enqueue(new SPlay
                 {
                     resource = entity.Get<AudioResource>().Source

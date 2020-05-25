@@ -21,6 +21,7 @@ namespace GameHost.Audio
     public class LoadAudioResourceSystem : AppSystem
     {
         private AudioProviderManager providerMgr;
+
         public LoadAudioResourceSystem(WorldCollection collection) : base(collection)
         {
             DependencyResolver.Add(() => ref providerMgr, new ThreadSystemWithInstanceStrategy<GameAudioThreadingHost>(Context));
@@ -49,14 +50,10 @@ namespace GameHost.Audio
             audioToLoad.GetEntities().CopyTo(entities);
             foreach (ref var entity in entities)
             {
-                var loadByFile = entity.Has<LoadResourceViaFile>();
-                if (!loadByFile)
-                    continue;
-
                 Span<byte> fileData = default;
-                if (loadByFile)
+                if (entity.Has<LoadResourceViaStorage>())
                 {
-                    var r     = entity.Get<LoadResourceViaFile>();
+                    var r     = entity.Get<LoadResourceViaStorage>();
                     var files = r.Storage.GetFilesAsync(r.Path).Result;
                     if (!files.Any())
                     {
@@ -66,11 +63,23 @@ namespace GameHost.Audio
                     }
 
                     var file = files.First();
+                    // todo: async
                     fileData = file.GetContentAsync().Result;
+                }
+                else if (entity.Has<LoadResourceViaFile>())
+                {
+                    // todo: async
+                    fileData = entity.Get<LoadResourceViaFile>().File
+                                     .GetContentAsync().Result;
+                }
+                else
+                {
+                    continue;
                 }
 
                 using var treadLocker = ThreadingHost.Synchronize<GameAudioThreadingHost>();
                 entity.Set(new AudioResource {Source = providerMgr.LastProvider.LoadAudioFromData(fileData)});
+                entity.Set(new IsResourceLoaded<AudioResource>());
                 entity.Remove<AskLoadResource<AudioResource>>();
             }
         }
@@ -79,7 +88,16 @@ namespace GameHost.Audio
         {
             var ent = World.Mgr.CreateEntity();
             ent.Set(new AskLoadResource<AudioResource>());
-            ent.Set(new LoadResourceViaFile {Path = path, Storage = storage});
+            ent.Set(new LoadResourceViaStorage {Path = path, Storage = storage});
+
+            return new ResourceHandle<AudioResource>(ent);
+        }
+
+        public ResourceHandle<AudioResource> Start(IFile file)
+        {
+            var ent = World.Mgr.CreateEntity();
+            ent.Set(new AskLoadResource<AudioResource>());
+            ent.Set(new LoadResourceViaFile {File = file});
 
             return new ResourceHandle<AudioResource>(ent);
         }
