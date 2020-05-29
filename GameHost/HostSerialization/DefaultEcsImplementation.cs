@@ -26,8 +26,6 @@ namespace GameHost.HostSerialization
 
             toDispose.Add(DefaultEcsWorld.SubscribeEntityCreated(OnEntityCreated));
             toDispose.Add(DefaultEcsWorld.SubscribeEntityDisposed(OnEntityDisposed));
-
-            SubscribeComponent<WorldTime>();
         }
 
         private void OnEntityCreated(in Entity entity)
@@ -50,13 +48,16 @@ namespace GameHost.HostSerialization
             {
                 foreach (var chunk in RevolutionWorld.Chunks)
                 {
-                    foreach (ref readonly var revEnt in chunk.Span)
+                    var copy = chunk.Span.ToArray();
+                    foreach (var revEnt in copy)
                     {
                         if (!RevolutionWorld.TryGetIdentifier(revEnt, out Entity defaultEntity))
                             continue;
 
                         if (defaultEntity.Has<T>())
+                        {
                             OnComponentAdded(defaultEntity, defaultEntity.Get<T>());
+                        }
                     }
                 }
             }

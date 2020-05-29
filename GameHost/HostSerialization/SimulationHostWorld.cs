@@ -11,7 +11,9 @@ using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Threading;
+using GameHost.HostSerialization.imp;
 using GameHost.Injection;
+using RevolutionSnapshot.Core;
 using RevolutionSnapshot.Core.ECS;
 
 namespace GameHost.HostSerialization
@@ -21,12 +23,14 @@ namespace GameHost.HostSerialization
         public readonly World World;
 
         internal Dictionary<RawEntity, Entity> entityMapping;
+        internal TwoWayDictionary<Entity, Entity> sourceToConvertedMap;
 
         public PresentationWorld(World world)
         {
             this.World = world;
 
             entityMapping = new Dictionary<RawEntity, Entity>();
+            sourceToConvertedMap = new TwoWayDictionary<Entity, Entity>();
         }
 
         public static implicit operator World(PresentationWorld t)
@@ -45,13 +49,17 @@ namespace GameHost.HostSerialization
             return default(Entity);
         }
 
-        public Entity CreateEntityWithLink(RawEntity revolutionEntity)
+        public Entity CreateEntityWithLink(RevolutionEntity revolutionEntity)
         {
             lock (World)
             {
                 var defaultEcsEntity = World.CreateEntity();
                 defaultEcsEntity.Set(revolutionEntity);
-                entityMapping[revolutionEntity] = defaultEcsEntity;
+                entityMapping[revolutionEntity.Raw] = defaultEcsEntity;
+
+                if (revolutionEntity.Accessor is DefaultWorldAccessor accessor
+                    && accessor.World.TryGetIdentifier(revolutionEntity.Raw, out Entity entityIdentifier))
+                    sourceToConvertedMap.Set(entityIdentifier, defaultEcsEntity);
 
                 return defaultEcsEntity;
             }
@@ -100,11 +108,11 @@ namespace GameHost.HostSerialization
             DependencyResolver.Add(() => ref restricted, new ThreadSystemWithInstanceStrategy<GameSimulationThreadingHost>(Context));
 
             componentsOperation = new Dictionary<Type, ComponentOperationBase>();
-            
+
             recorder = new EntityCommandRecorder();
-            
+
             presentation = new PresentationWorld(new World());
-            
+
             Context.Bind(presentation);
         }
 
@@ -125,7 +133,7 @@ namespace GameHost.HostSerialization
                             var defaultEcsEntity = presentation.GetEntity(entity);
                             if (defaultEcsEntity == default)
                             {
-                                defaultEcsEntity = presentation.CreateEntityWithLink(entity);
+                                defaultEcsEntity = presentation.CreateEntityWithLink(new RevolutionEntity(restricted.RevolutionWorld.Accessor, entity));
                             }
 
                             var record = recorder.Record(defaultEcsEntity);
@@ -159,37 +167,52 @@ namespace GameHost.HostSerialization
             lock (Synchronization)
             {
                 recorder.Execute(presentation);
+                foreach (var op in componentsOperation.Values)
+                    op.OnPlayback();
             }
-            
+
             scheduler.AddOnce(Playback);
         }
 
-        public void Subscribe<TComponent, TOperation>(TOperation operation)
-            where TOperation : ComponentOperationBase<TComponent>
+        public TOperation Subscribe<TOperation>(TOperation operation)
+            where TOperation : ComponentOperationBase
         {
             lock (Synchronization)
             {
                 operation.SetPresentation(presentation);
                 componentsOperation[typeof(TOperation)] = operation;
+
+                operation.ImpAdded += imp =>
+                {
+                    lock (Synchronization)
+                    {
+                        if (imp is IGetEntityMap getEntityMap)
+                            getEntityMap.SourceToConvertedMap = presentation.sourceToConvertedMap;
+                    }
+                };
             }
 
             ThreadingHost.GetListener<GameSimulationThreadingHost>()
                          .GetScheduler()
                          .Add(() =>
                          {
-                             restricted.Implementation.SubscribeComponent<TComponent>(); 
+                             operation.Subscribe(restricted.Implementation);
                          });
+
+            return operation;
         }
 
-        public void Subscribe<TComponent>()
+        public SimpleComponentOperation<TComponent> Subscribe<TComponent>()
             where TComponent : unmanaged
         {
-            Subscribe<TComponent, SimpleComponentOperation<TComponent>>(new SimpleComponentOperation<TComponent>());
+            return Subscribe(new SimpleComponentOperation<TComponent>());
         }
     }
 
     public abstract class ComponentOperationBase
     {
+        public event Action<ImpBase> ImpAdded; 
+        
         protected Entity CurrentEntity { get; set; }
         protected PresentationWorld World { get; private set; }
 
@@ -198,30 +221,52 @@ namespace GameHost.HostSerialization
             World = presentationWorld;
         }
 
+        internal abstract void Subscribe(in DefaultEcsImplementation implementation);
         public abstract void UpdateEntity(in Entity defaultEcsEntity, ref EntityRecord record, in RevolutionEntity revolutionEntity);
         public virtual void OnPlayback() {}
+
+        protected void CallOnImpAdded(ImpBase imp) => ImpAdded?.Invoke(imp);
     }
 
     public abstract class ComponentOperationBase<T> : ComponentOperationBase
     {
         private RevolutionEntity lastEntity;
+        
+        private List<ImpBase<T>> imps = new List<ImpBase<T>>();
 
         public override void UpdateEntity(in Entity defaultEcsEntity, ref EntityRecord record, in RevolutionEntity revEnt)
         {
             CurrentEntity = defaultEcsEntity;
-            
+
             if (revEnt.Chunk.Components.ContainsKey(typeof(T)))
             {
-                OnUpdate(ref record, revEnt, revEnt.GetComponent<T>());
+                var component = revEnt.GetComponent<T>();
+                foreach (var imp in imps)
+                    imp.OnImp(ref component);
+                OnUpdate(ref record, revEnt, component);
             }
             else
             {
                 OnRemoved(ref record, revEnt);
             }
         }
-        
-        protected abstract void OnUpdate(ref EntityRecord record, in RevolutionEntity  revolutionEntity, in T component);
+
+        protected abstract void OnUpdate(ref  EntityRecord record, in RevolutionEntity revolutionEntity, in T component);
         protected abstract void OnRemoved(ref EntityRecord record, in RevolutionEntity revolutionEntity);
+
+        internal override void Subscribe(in DefaultEcsImplementation implementation)
+        {
+            implementation.SubscribeComponent<T>();
+        }
+
+        public virtual ComponentOperationBase<T> AddImp<TImp>(TImp imp)
+            where TImp : ImpBase<T>
+        {
+           CallOnImpAdded(imp);
+
+            imps.Add(imp);
+            return this;
+        }
     }
 
     public class SimpleComponentOperation<T> : ComponentOperationBase<T>

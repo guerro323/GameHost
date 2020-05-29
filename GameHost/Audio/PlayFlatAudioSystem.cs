@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Applications;
+using GameHost.Core.Audio;
 using GameHost.Core.Ecs;
 using GameHost.Entities;
 using GameHost.Injection;
@@ -20,29 +22,58 @@ namespace GameHost.Audio
     {
         private struct SPlay
         {
-            public Entity resource;
-            public float volume;
+            public Entity   resource;
+            public float    volume;
+            public TimeSpan delay;
         }
 
         [RestrictToApplication(typeof(GameAudioThreadingHost))]
         private class RestrictedHost : AppSystem
         {
             private SoloudSystem soloudSystem;
+            private IManagedWorldTime worldTime;
             
             public ConcurrentQueue<SPlay> plays;
+
+            private List<SPlay> delayedPlays;
             
             public RestrictedHost(WorldCollection collection) : base(collection)
             {
                 plays = new ConcurrentQueue<SPlay>();
+                delayedPlays = new List<SPlay>();
                 
                 DependencyResolver.Add(() => ref soloudSystem);
+                DependencyResolver.Add(() => ref worldTime);
             }
 
             protected override void OnUpdate()
             {
                 while (plays.TryDequeue(out var playData))
                 {
-                    soloudSystem.play(playData.resource.Get<Wav>());
+                    if (playData.delay > TimeSpan.Zero)
+                    {
+                        playData.delay = worldTime.Total.Add(playData.delay - worldTime.Delta);
+                        delayedPlays.Add(playData);
+                        continue;
+                    }
+
+                    var audioHandle = soloudSystem.playPausedGetHandle(playData.resource.Get<Wav>());
+                    soloudSystem.soloud.setVolume(audioHandle, 1);
+                    soloudSystem.soloud.setPause(audioHandle, 0);
+                }
+
+                for (var i = 0; i != delayedPlays.Count; i++)
+                {
+                    var curr = delayedPlays[i];
+                    if (curr.delay > worldTime.Total)
+                        continue;
+
+                    var audioHandle = soloudSystem.playPausedGetHandle(curr.resource.Get<Wav>());
+                    soloudSystem.soloud.setVolume(audioHandle, 1);
+                    soloudSystem.soloud.setPause(audioHandle, 0);
+
+                    // swap back
+                    delayedPlays.RemoveAt(i--);
                 }
             }
         }
@@ -69,10 +100,19 @@ namespace GameHost.Audio
         {
             foreach (ref readonly var entity in playAudioSet.GetEntities())
             {
-                Console.WriteLine("play : " + entity);
+                var volume = 1f;
+                if (entity.TryGet(out AudioVolumeComponent volumeComponent))
+                    volume = volumeComponent.Volume;
+
+                var delay = TimeSpan.Zero;
+                if (entity.TryGet(out AudioDelayComponent delayComponent))
+                    delay = delayComponent.Delay;
+                
                 restrictedHost.plays.Enqueue(new SPlay
                 {
-                    resource = entity.Get<AudioResource>().Source
+                    resource = entity.Get<AudioResource>().Source,
+                    volume = volume,
+                    delay = delay
                 });
             }
             

@@ -94,16 +94,6 @@ namespace GameHost.Input.OpenTKBackend
             return new InputState {Down = p.IsDown ? 1u : 0, Up = p.IsUp ? 1u : 0, Real = p.IsActive ? 1 : 0, Active = p.IsActive};
         }
 
-        public bool IsKeyDown(Key key)
-        {
-            return keyPresses[InputManagerNaming.GetKeyId(key)].IsDown;
-        }
-
-        public bool IsKeyPressed(Key key)
-        {
-            return keyPresses[InputManagerNaming.GetKeyId(key)].IsActive;
-        }
-
         private void OnKeyDown(KeyboardKeyEventArgs obj)
         {
             scheduler.Add(() =>

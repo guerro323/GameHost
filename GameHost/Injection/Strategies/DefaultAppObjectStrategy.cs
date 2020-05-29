@@ -4,6 +4,7 @@ using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Modding;
 using GameHost.Core.Modding.Systems;
+using Microsoft.Extensions.Logging;
 using NetFabric.Hyperlinq;
 
 namespace GameHost.Injection
@@ -30,9 +31,17 @@ namespace GameHost.Injection
             if (typeof(CModule).IsAssignableFrom(type))
                 return collection.GetOrCreate(world => new ModuleManager(world)).GetModule(source.GetType().Assembly).Result;
 
+            if (typeof(ILogger).IsAssignableFrom(type))
+            {
+                var factory = new ContextBindingStrategy(collection.Ctx, true).Resolve<ILoggerFactory>();
+                if (factory != null)
+                {
+                    return factory.CreateLogger(source.GetType().FullName);
+                }
+            }
+
             if (typeof(ApplicationClientBase).IsAssignableFrom(type))
             {
-                Console.WriteLine($"create {type}");
                 var instance = (ApplicationClientBase)Activator.CreateInstance(type);
                 instance.Connect();
                 if (source is AppSystem app)

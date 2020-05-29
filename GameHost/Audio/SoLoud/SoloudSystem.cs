@@ -10,7 +10,7 @@ namespace SoLoud
     [RestrictToApplication(typeof(GameAudioThreadingHost))]
     public class SoloudSystem : AppSystem
     {
-        private readonly Soloud soloud;
+        public readonly Soloud soloud;
 
         [DependencyStrategy]
         public IManagedWorldTime wt { get; set; }
@@ -31,9 +31,14 @@ namespace SoLoud
         public void play(Wav wav)
         {
             var handle = soloud.play(wav, 1, aPaused: 0);
-            Console.WriteLine(wav.getLength());
             //soloud.setDelaySamples(handle, (uint)(soloud.getSamplerate(handle) * 0.5));
             soloud.scheduleStop(handle, wav.getLength());
+        }
+        
+        public uint playPausedGetHandle(Wav wav)
+        {
+            var handle = soloud.play(wav, 1, aPaused: 1);
+            return handle;
         }
     }
 }

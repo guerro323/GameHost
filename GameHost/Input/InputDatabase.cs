@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Threading;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Applications;
@@ -42,18 +43,24 @@ namespace GameHost.Input
                     clientEntity.Set(new ThreadInputToCompute {Source = queuedInput.Source});
 
                     queuedInput.SetComponents(clientEntity);
-                    Console.WriteLine(clientEntity + ", yes.");
                 }
             }
         }
 
         private RestrictedHost restrictedHost;
-        private IScheduler     scheduler;
-
+        
+        private readonly IScheduler     scheduler;
         public InputDatabase(WorldCollection collection) : base(collection)
         {
             DependencyResolver.Add(() => ref restrictedHost, new ThreadSystemWithInstanceStrategy<GameInputThreadingHost>(Context));
-            DependencyResolver.Add(() => ref scheduler);
+            
+            scheduler = new Scheduler(Thread.CurrentThread);
+        }
+
+        protected override void OnUpdate()
+        {
+            base.OnUpdate();
+            scheduler.Run();
         }
 
         public void Register(JsonDocument document)
@@ -77,7 +84,10 @@ namespace GameHost.Input
                 SetComponents = e =>
                 {
                     e.Set(new TAction());
-                    scheduler.Add(() => ac.Set(new InputThreadTarget {Target = e}));
+                    scheduler.Add(() =>
+                    {
+                        ac.Set(new InputThreadTarget {Target = e});
+                    });
                 }
             });
 

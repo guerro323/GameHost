@@ -22,8 +22,18 @@ namespace GameHost.Input
         private TSelf selfOnInputThread;
 
         private readonly bool     isInputThread;
-
-        public readonly object InputSynchronizationBarrier = new object();
+        
+        // ReSharper disable StaticMemberInGenericType
+        public object InputSynchronizationBarrier
+        {
+            get
+            {
+                if (selfOnInputThread != null)
+                    return selfOnInputThread.Synchronization;
+                return Synchronization;
+            }
+        }
+        // ReSharper restore StaticMemberInGenericType
 
         protected InputBackendBase Backend => inputBackendMgr.Backend;
 

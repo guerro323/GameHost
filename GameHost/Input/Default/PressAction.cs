@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading;
+using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Core.Threading;
 
@@ -23,19 +24,13 @@ namespace GameHost.Input.Default
 
         public class Provider : InputProviderSystemBase<Provider, PressAction>
         {
-            protected override void OnInit()
-            {
-                base.OnInit();
-
-                Console.WriteLine("??????????????????????????????????????????????????????????");
-            }
-
+            private int frame;
+            
             protected override void OnInputThreadUpdate()
             {
                 var currentLayout = World.Mgr.Get<InputCurrentLayout>()[0];
                 lock (InputSynchronizationBarrier)
                 {
-                    //Console.WriteLine("--init " + InputSet.Count);
                     foreach (ref readonly var entity in InputSet.GetEntities())
                     {
                         var layouts = entity.Get<InputActionLayouts>();
@@ -49,6 +44,8 @@ namespace GameHost.Input.Default
                         }
                     }
                 }
+
+                frame++;
             }
 
             protected override void OnReceiverUpdate()
@@ -59,7 +56,7 @@ namespace GameHost.Input.Default
                     {
                         ref var inputFromThread = ref entity.Get<InputThreadTarget>().Target.Get<PressAction>();
                         ref var selfInput       = ref entity.Get<PressAction>();
-
+                        
                         selfInput.DownCount = inputFromThread.DownCount;
                         inputFromThread     = default;
                     }
