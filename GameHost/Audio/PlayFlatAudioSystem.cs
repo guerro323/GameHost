@@ -13,7 +13,7 @@ using SoLoud;
 
 namespace GameHost.Audio
 {
-    public struct PlayFlatAudioComponent
+    public struct FlatAudioPlayerComponent : IAudioPlayerBackend
     {
         
     }
@@ -92,7 +92,7 @@ namespace GameHost.Audio
             base.OnInit();
             playAudioSet = World.Mgr.GetEntities()
                                 .With<AudioResource>()
-                                .With<PlayFlatAudioComponent>()
+                                .With<FlatAudioPlayerComponent>()
                                 .AsSet();
         }
 

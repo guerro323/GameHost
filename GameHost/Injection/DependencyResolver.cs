@@ -92,7 +92,7 @@ namespace GameHost.Injection
             }
             else
             {
-                var str = Dependencies.Aggregate(source, (current, dep) => current + $"\n{dep}; {dep.IsResolved}");
+                //var str = Dependencies.Aggregate(source, (current, dep) => current + $"\n{dep}; {dep.IsResolved}");
                 //Console.WriteLine(str);
             }
 

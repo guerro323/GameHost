@@ -3,7 +3,7 @@
 namespace GameHost.Core.Audio
 {
     /// <summary>
-    /// Manage the volume of an <see cref="AudioPlayerComponent"/>
+    /// Manage the volume of an <see cref="AudioPlayerUtility"/>
     /// </summary>
     public struct AudioVolumeComponent
     {
