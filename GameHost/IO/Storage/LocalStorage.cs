@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,13 +25,27 @@ namespace GameHost.IO
 
         public Task<IEnumerable<IFile>> GetFilesAsync(string pattern)
         {
-            return Task.FromResult(directory.GetFiles(pattern).Select(f => (IFile) new LocalFile(f)));
+            try
+            {
+                return Task.FromResult(directory.GetFiles(pattern).Select(f => (IFile)new LocalFile(f)));
+            }
+            catch (DirectoryNotFoundException)
+            {
+                // ignored
+            }
+
+            return Task.FromResult((IEnumerable<IFile>)Array.Empty<IFile>());
         }
 
         public Task<IStorage> GetOrCreateDirectoryAsync(string path)
         {
             var target = directory.CreateSubdirectory(path);
             return Task.FromResult((IStorage)new LocalStorage(target));
+        }
+
+        public override string ToString()
+        {
+            return $"LocalStorage(Path={CurrentPath})";
         }
     }
 

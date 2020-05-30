@@ -40,6 +40,11 @@ namespace GameHost.IO
 
             return Task.FromResult((IStorage)new ChildStorage(this, new DllStorage(Assembly) {parentPath = path}));
         }
+
+        public override string ToString()
+        {
+            return $"DllStorage(Path={CurrentPath})";
+        }
     }
 
     public class DllEmbeddedFile : IFile

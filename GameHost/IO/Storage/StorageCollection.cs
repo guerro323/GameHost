@@ -68,5 +68,16 @@ namespace GameHost.IO
         {
             storageList.Add(storage);
         }
+
+        public override string ToString()
+        {
+            var start = "StorageCollection {\n";
+            foreach (var s in storageList)
+            {
+                start += "\t" + s + "\n";
+            }
+            start += "}";
+            return start;
+        }
     }
 }

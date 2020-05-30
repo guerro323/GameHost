@@ -57,7 +57,7 @@ namespace GameHost.Audio
                     var files = r.Storage.GetFilesAsync(r.Path).Result;
                     if (!files.Any())
                     {
-                        Console.WriteLine($"no file found with {r.Path} in storage {r.Storage.CurrentPath}");
+                        Console.WriteLine($"no file found with {r.Path} in storage {r.Storage}");
                         entity.Dispose();
                         continue;
                     }
