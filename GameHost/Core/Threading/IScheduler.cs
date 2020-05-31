@@ -16,6 +16,11 @@ namespace GameHost.Core.Threading
 
     public class Scheduler : IScheduler
     {
+        /// <summary>
+        /// If true, continue the scheduler Run() on exception.
+        /// </summary>
+        public readonly Func<Exception, bool> OnExceptionFound;
+
         private Thread scheduleThread;
 
         private object synchronizationObject;
@@ -24,17 +29,18 @@ namespace GameHost.Core.Threading
         private List<ScheduledValueTask> nextRunningTasks;
 
         private Action debugLastTask;
-        private string debugStacktrace;
 
         private SpinLock spinLock;
-        
-        public Scheduler(Thread targetThread = null)
+
+        public Scheduler(Thread targetThread = null, Func<Exception, bool> onExceptionFound = null)
         {
+            this.OnExceptionFound = onExceptionFound ?? (_ => true);
+
             scheduleThread        = targetThread ?? Thread.CurrentThread;
             synchronizationObject = new object();
             scheduledValueTasks   = new Queue<ScheduledValueTask>();
-            nextRunningTasks = new List<ScheduledValueTask>();
-            
+            nextRunningTasks      = new List<ScheduledValueTask>();
+
             spinLock = new SpinLock(true);
         }
 
@@ -42,6 +48,9 @@ namespace GameHost.Core.Threading
 
         public void Run()
         {
+            if (!IsOnSameThread())
+                throw new InvalidOperationException($"Scheduler should only run on thread '{scheduleThread.Name}({scheduleThread.ManagedThreadId})' but was called on '{Thread.CurrentThread}'({Thread.CurrentThread.ManagedThreadId})");
+            
             var lockTaken = false;
             spinLock.TryEnter(TimeSpan.FromSeconds(1), ref lockTaken);
             if (lockTaken)
@@ -69,7 +78,8 @@ namespace GameHost.Core.Threading
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex);
+                    if (!OnExceptionFound(ex))
+                        return;
                 }
             }
         }
