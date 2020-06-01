@@ -31,7 +31,7 @@ namespace GameHost.HostSerialization
 
         private class Copied
         {
-            public T Value;
+            public T Value = new T();
         }
 
         protected override void OnUpdate(ref EntityRecord record, in RevolutionEntity revolutionEntity, in T component)
