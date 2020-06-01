@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
@@ -32,7 +34,39 @@ namespace GameHost.Graphics.FrameStatistic
     {
         public override void OnLoad()
         {
-            Content = new Button {Content = "hello world"};
+            Grid parentGrid;
+
+            var root = new Grid
+            {
+                ColumnDefinitions = {GridDef.Column("100*"), GridDef.Column("50*"), GridDef.Column("2*")},
+                RowDefinitions    = {GridDef.Row("100*"), GridDef.Row("2*")},
+                Children =
+                {
+                    (parentGrid = new Grid
+                    {
+                        Children =
+                        {
+                            new Viewbox
+                            {
+                                VerticalAlignment   = VerticalAlignment.Bottom,
+                                HorizontalAlignment = HorizontalAlignment.Right,
+                                Child = new ItemsControl
+                                {
+                                    ItemTemplate        = new DataTemplate {VisualTree = new FrameStatistic()},
+                                    Width               = 500,
+                                    VerticalAlignment   = VerticalAlignment.Top,
+                                    HorizontalAlignment = HorizontalAlignment.Right
+                                }
+                            }
+                        }
+                    })
+                }
+            };
+
+            Grid.SetColumn(parentGrid, 1);
+            Grid.SetRow(parentGrid, 0);
+
+            Content = root;
         }
 
         public override void OnUnload()
@@ -42,12 +76,10 @@ namespace GameHost.Graphics.FrameStatistic
 
         public override void Dispose()
         {
-            
         }
 
         public class Context
         {
-            
         }
     }
 }

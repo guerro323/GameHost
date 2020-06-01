@@ -111,7 +111,7 @@ namespace GameHost.HostSerialization
 
             recorder = new EntityCommandRecorder();
 
-            presentation = new PresentationWorld(new World());
+            presentation = new PresentationWorld(World.Mgr);
 
             Context.Bind(presentation);
         }

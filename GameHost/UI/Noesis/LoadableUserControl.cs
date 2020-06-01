@@ -7,10 +7,10 @@ namespace GameHost.UI.Noesis
     public abstract class LoadableUserControl<TDataContext> : UserControl, ILoadableInterface
         where TDataContext : class
     {
-        public TDataContext GenContext => (TDataContext) DataContext;
-        
+        public TDataContext GenContext => (TDataContext)DataContext;
+
         protected virtual TDataContext provideDataContext() => Activator.CreateInstance<TDataContext>();
-        
+
         public LoadableUserControl()
         {
             Initialized += load;
@@ -39,10 +39,10 @@ namespace GameHost.UI.Noesis
 
         public T FindName<T>(string name)
         {
-            return (T) FindName(name);
+            return (T)FindName(name);
         }
     }
-    
+
     public static class NoesisExtension
     {
         public static T FindName<T>(this FrameworkElement element, string name)
@@ -50,11 +50,17 @@ namespace GameHost.UI.Noesis
         {
             return (T)element.FindName(name);
         }
-        
+
         public static T FindName<T>(this FrameworkTemplate element, string name)
             where T : UIElement
         {
             return (T)element.FindName(name);
         }
+    }
+
+    public static class GridDef
+    {
+        public static ColumnDefinition Column(string txt) => new ColumnDefinition {Width = GridLength.Parse(txt)};
+        public static RowDefinition    Row(string    txt) => new RowDefinition {Height   = GridLength.Parse(txt)};
     }
 }
