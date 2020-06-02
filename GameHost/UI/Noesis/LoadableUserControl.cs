@@ -11,16 +11,29 @@ namespace GameHost.UI.Noesis
 
         protected virtual TDataContext provideDataContext() => Activator.CreateInstance<TDataContext>();
 
+        protected virtual bool EnableFrameUpdate() => false;
+
         public LoadableUserControl()
         {
             Initialized += load;
             Unloaded    += unload;
         }
 
+        private void update()
+        {
+            OnUpdate();
+            Dispatcher.BeginInvoke(update);
+        }
+
         private void load(object sender, EventArgs args)
         {
             DataContext = provideDataContext();
             OnLoad();
+
+            if (EnableFrameUpdate())
+            {
+                Dispatcher.BeginInvoke(update);
+            }
         }
 
         private void unload(object sender, RoutedEventArgs args)
@@ -36,6 +49,8 @@ namespace GameHost.UI.Noesis
         public abstract void OnUnload();
 
         public abstract void Dispose();
+        
+        public virtual void OnUpdate() {}
 
         public T FindName<T>(string name)
         {

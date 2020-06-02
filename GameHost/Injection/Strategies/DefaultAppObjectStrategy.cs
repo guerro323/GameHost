@@ -20,10 +20,30 @@ namespace GameHost.Injection
             this.collection = collection;
         }
 
-        public object Resolve(Type type)
+        private object resolving;
+
+        public object ResolveNow(Type type)
         {
+            if (resolving != null)
+            {
+                if (resolving is AppObject appObject
+                    && appObject.DependencyResolver.Dependencies.Count == 0)
+                {
+                    return resolving;
+                }
+
+                return null;
+            }
+
             if (type.GetInterfaces().Contains((typeof(IWorldSystem))))
-                return new ResolveSystemStrategy(collection).Resolve(type);
+                return new ResolveSystemStrategy(collection).ResolveNow(type);
+
+            if (typeof(AppObject).IsAssignableFrom(type)
+                && !typeof(AppSystem).IsAssignableFrom(type))
+            {
+                resolving = Activator.CreateInstance(type, new object[] {collection.Ctx});
+                return null;
+            }
 
             if (type == typeof(Assembly))
                 return source.GetType().Assembly;
@@ -50,6 +70,12 @@ namespace GameHost.Injection
             }
 
             return new ContextBindingStrategy(collection.Ctx, true).Resolve(type);
+        }
+
+        public Func<object> GetResolver(Type type)
+        {
+            var clone = new DefaultAppObjectStrategy(source, collection);
+            return () => clone.ResolveNow(type);
         }
     }
 }

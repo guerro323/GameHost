@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using DryIoc;
+using GameHost.Core.Applications;
 using GameHost.Core.Threading;
 using GameHost.Injection;
 using JetBrains.Annotations;
@@ -41,10 +43,32 @@ namespace GameHost.Core.Ecs
         /// </summary>
         public WorldCollection World { get; private set; }
 
+        public virtual bool CanBeCreated()
+        {
+            ApplicationHostBase currentApplication;
+            try
+            {
+                currentApplication = new ContextBindingStrategy(Context, true).Resolve<ApplicationHostBase>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return true;
+            }
+
+            var attr = GetType().GetCustomAttribute<RestrictToApplicationAttribute>();
+            if (attr == null || attr.IsValid(currentApplication.GetType()))
+                return true;
+            return false;
+        }
+
         public AppSystem(WorldCollection collection) : base(null)
         {
             World   = collection;
             Context = collection.Ctx;
+            
+            if (!CanBeCreated())
+                throw new InvalidOperationException("This system was constructed but shouldn't have been.");
         }
 
         protected override void OnContextSet()

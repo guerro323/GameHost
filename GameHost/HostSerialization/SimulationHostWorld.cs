@@ -111,7 +111,7 @@ namespace GameHost.HostSerialization
 
             recorder = new EntityCommandRecorder();
 
-            presentation = new PresentationWorld(World.Mgr);
+            presentation = new PresentationWorld(new World());
 
             Context.Bind(presentation);
         }
@@ -123,8 +123,6 @@ namespace GameHost.HostSerialization
             {
                 lock (Synchronization)
                 {
-                    var sw = new Stopwatch();
-                    sw.Start();
                     foreach (var chunk in restricted.RevolutionWorld.Chunks)
                     {
                         // todo: make it parallel?
@@ -133,7 +131,8 @@ namespace GameHost.HostSerialization
                             var defaultEcsEntity = presentation.GetEntity(entity);
                             if (defaultEcsEntity == default)
                             {
-                                defaultEcsEntity = presentation.CreateEntityWithLink(new RevolutionEntity(restricted.RevolutionWorld.Accessor, entity));
+                                using (ThreadingHost.Synchronize<GameRenderThreadingHost>())
+                                    defaultEcsEntity = presentation.CreateEntityWithLink(new RevolutionEntity(restricted.RevolutionWorld.Accessor, entity));
                             }
 
                             var record = recorder.Record(defaultEcsEntity);
@@ -155,7 +154,6 @@ namespace GameHost.HostSerialization
                         recorder.Record(defEnt)
                                 .Dispose();
                     });
-                    sw.Stop();
                 }
 
                 scheduler.AddOnce(Playback);

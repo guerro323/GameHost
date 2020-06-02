@@ -15,12 +15,17 @@ namespace GameHost.Injection
             this.getObjectFunc = getObject;
         }
 
-        public object Resolve(Type type)
+        public object ResolveNow(Type type)
         {
             var result = getObjectFunc();
             if (result.GetType() == type)
                 return result;
             return null;
+        }
+
+        public Func<object> GetResolver(Type type)
+        {
+            return () => ResolveNow(type);
         }
     }
 
@@ -33,12 +38,17 @@ namespace GameHost.Injection
             this.getWorldFunc = getWorld;
         }
 
-        public object Resolve(Type type)
+        public object ResolveNow(Type type)
         {
             var world = getWorldFunc();
             return world != null
-                ? new ResolveSystemStrategy(world).Resolve(type)
+                ? new ResolveSystemStrategy(world).ResolveNow(type)
                 : null;
+        }
+
+        public Func<object> GetResolver(Type type)
+        {
+            return () => ResolveNow(type);
         }
     }
 
@@ -59,7 +69,7 @@ namespace GameHost.Injection
             this.targetInstance = givenInstance;
         }
 
-        public object Resolve(Type type)
+        public object ResolveNow(Type type)
         {
             targetInstance ??= new ContextBindingStrategy(context, true).Resolve<Instance>();
 
@@ -74,6 +84,11 @@ namespace GameHost.Injection
             }
 
             return null;
+        }
+
+        public Func<object> GetResolver(Type type)
+        {
+            return () => ResolveNow(type);
         }
     }
 
@@ -94,7 +109,7 @@ namespace GameHost.Injection
             this.targetInstance = givenInstance;
         }
 
-        public object Resolve(Type type)
+        public object ResolveNow(Type type)
         {
             targetInstance ??= new ContextBindingStrategy(context, true).Resolve<Instance>();
 
@@ -109,6 +124,11 @@ namespace GameHost.Injection
             }
 
             return null;
+        }
+        
+        public Func<object> GetResolver(Type type)
+        {
+            return () => GetResolver(type);
         }
     }
 }

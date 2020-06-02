@@ -41,7 +41,7 @@ namespace GameHost.Applications
         {
         }
 
-        public GameRenderThreadingHost(IGameWindow window, Context context) : base(context)
+        public GameRenderThreadingHost(IGameWindow window, Context context, TimeSpan frequency) : base(context, frequency)
         {
             this.window = window;
 

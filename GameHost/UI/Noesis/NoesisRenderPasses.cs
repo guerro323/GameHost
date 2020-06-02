@@ -1,4 +1,5 @@
 ﻿using System;
+using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Core.Graphics;
 using GameHost.Entities;
@@ -10,10 +11,14 @@ namespace GameHost.UI.Noesis
 {
     public abstract class NoesisRenderPassBase : RenderPassBase
     {
-        public Span<NoesisOpenTkRenderer> Components => World.Mgr.Get<NoesisOpenTkRenderer>();
+        private readonly EntitySet componentSet;
+        
+        public Components<NoesisOpenTkRenderer> ComponentRef => World.Mgr.GetComponents<NoesisOpenTkRenderer>();
+        public ReadOnlySpan<Entity> Entities => componentSet.GetEntities();
 
         protected NoesisRenderPassBase(WorldCollection worldCollection) : base(worldCollection)
         {
+            componentSet = worldCollection.Mgr.GetEntities().With<NoesisOpenTkRenderer>().AsSet();
         }
     }
     
@@ -26,8 +31,9 @@ namespace GameHost.UI.Noesis
 
         public override void Execute()
         {
-            foreach (var renderer in Components)
+            foreach (ref readonly var entity in Entities)
             {
+                ref var renderer = ref ComponentRef[entity];
                 renderer.Update(WorldTime.Total.TotalSeconds);
                 renderer.PrepareRender();
             }
@@ -76,8 +82,9 @@ namespace GameHost.UI.Noesis
 
         public override void Execute()
         {
-            foreach (var renderer in Components)
+            foreach (ref readonly var entity in Entities)
             {
+                ref var renderer = ref ComponentRef[entity];
                 renderer.SetSize(Window.Size.X, Window.Size.Y);
                 renderer.Render();
             }

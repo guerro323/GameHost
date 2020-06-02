@@ -86,14 +86,18 @@ namespace GameHost.Audio
         }
 
         private EntitySet playAudioSet;
+        private EntitySet toDisposeSet;
 
         protected override void OnInit()
         {
             base.OnInit();
-            playAudioSet = World.Mgr.GetEntities()
-                                .With<AudioResource>()
-                                .With<FlatAudioPlayerComponent>()
-                                .AsSet();
+
+            var baseSet = World.Mgr.GetEntities()
+                               .With<AudioResource>()
+                               .With<FlatAudioPlayerComponent>()
+                               .With<PlayAudioRequest>();
+            playAudioSet = baseSet.AsSet();
+            toDisposeSet = baseSet.With<AudioFireAndForgetComponent>().AsSet();
         }
 
         protected override void OnUpdate()
@@ -107,16 +111,12 @@ namespace GameHost.Audio
                 var delay = TimeSpan.Zero;
                 if (entity.TryGet(out AudioDelayComponent delayComponent))
                     delay = delayComponent.Delay;
-                
-                restrictedHost.plays.Enqueue(new SPlay
-                {
-                    resource = entity.Get<AudioResource>().Source,
-                    volume = volume,
-                    delay = delay
-                });
+
+                restrictedHost.plays.Enqueue(new SPlay {resource = entity.Get<AudioResource>().Source, volume = volume, delay = delay});
             }
-            
-            playAudioSet.DisposeAllEntities();
+
+            playAudioSet.Remove<PlayAudioRequest>();
+            toDisposeSet.DisposeAllEntities();
         }
     }
 }

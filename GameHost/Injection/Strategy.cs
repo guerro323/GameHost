@@ -9,10 +9,11 @@ namespace GameHost.Injection
 
     public interface IDependencyStrategy : IStrategy
     {
-        object Resolve(Type type);
+        object       ResolveNow(Type  type);
+        Func<object> GetResolver(Type type);
     }
-    
-    public struct ContextBindingStrategy : IDependencyStrategy
+
+    public struct ContextBindingStrategy : IStrategy
     {
         private Context ctx;
         private bool resolveInParent;

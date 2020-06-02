@@ -12,7 +12,7 @@ namespace GameHost.Injection
             this.collection = targetWorldCollection;
         }
 
-        public object Resolve(Type type)
+        public object ResolveNow(Type type)
         {
             // todo: make it more 'functional'
             if (collection.TryGet(type, out var obj))
@@ -28,6 +28,12 @@ namespace GameHost.Injection
 
             // todo: maybe we should have an option to create the system if it does not exist?
             return null;
+        }
+
+        public Func<object> GetResolver(Type type)
+        {
+            var cc = collection;
+            return () => new ResolveSystemStrategy(cc).ResolveNow(type);
         }
     }
 }

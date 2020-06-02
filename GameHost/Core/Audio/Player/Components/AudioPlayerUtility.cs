@@ -13,6 +13,11 @@ namespace GameHost.Core.Audio
             entity.Set(backend);
         }
 
+        public static void SetFireAndForget(Entity entity)
+        {
+            entity.Set(new AudioFireAndForgetComponent());
+        }
+
         public static void SetResource(Entity entity, ResourceHandle<AudioResource> resource)
         {
             entity.Set(resource.Result);

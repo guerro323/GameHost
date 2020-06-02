@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.Loader;
 using System.Threading;
 using DefaultEcs;
+using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Modding;
 using GameHost.Core.Threading;
@@ -34,6 +35,7 @@ namespace GameHost.Applications
             base.ListenOnThread(wantedThread);
             worldCollection.Ctx.Bind<AssemblyLoadContext, ModuleAssemblyLoadContext>(new ModuleAssemblyLoadContext());
             worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
+            worldCollection.Ctx.Bind<ApplicationHostBase>(this);
 
             wantedThread.Name = "MainThread";
             

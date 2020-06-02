@@ -26,5 +26,10 @@ namespace GameHost.IO
         {
             return new ChildStorage(root, await parent.GetOrCreateDirectoryAsync(path));
         }
+
+        public override string ToString()
+        {
+            return $"ChildStorage({parent})";
+        }
     }
 }

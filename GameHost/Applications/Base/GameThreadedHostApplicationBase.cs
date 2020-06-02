@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using DefaultEcs;
+using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Game;
 using GameHost.Core.Threading;
@@ -162,6 +163,7 @@ namespace GameHost.Applications
             worldCollection.Ctx.Bind<Instance>(instance);
             worldCollection.Ctx.Bind<IManagedWorldTime, ManagedWorldTime>(new ManagedWorldTime());
             worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
+            worldCollection.Ctx.Bind<ApplicationHostBase>(this);
 
             foreach (var type in systemTypes)
             {

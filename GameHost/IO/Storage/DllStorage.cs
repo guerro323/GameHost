@@ -23,7 +23,7 @@ namespace GameHost.IO
             Assembly = assembly;
         }
 
-        public string CurrentPath => new string(DllEmbeddedFile.ToDirectoryLike(Assembly.GetName().Name));
+        public string CurrentPath => new string(DllEmbeddedFile.ToDirectoryLike(Assembly.GetName().Name)) + (parentPath ?? string.Empty);
 
         public Task<IEnumerable<IFile>> GetFilesAsync(string pattern)
         {
@@ -38,7 +38,7 @@ namespace GameHost.IO
             if (!success)
                 throw new InvalidOperationException("No such directory in path: " + path);
 
-            return Task.FromResult((IStorage)new ChildStorage(this, new DllStorage(Assembly) {parentPath = path}));
+            return Task.FromResult((IStorage)new ChildStorage(this, new DllStorage(Assembly) {parentPath = "/" + path}));
         }
 
         public override string ToString()

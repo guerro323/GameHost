@@ -127,15 +127,18 @@ namespace GameHost.Injection
         {
             public Type Type;
 
+            private readonly Func<object> resolver;
             public Dependency(IDependencyStrategy strategy, Type type)
             {
                 Strategy = strategy;
                 Type     = type;
+
+                resolver = Strategy.GetResolver(type);
             }
 
             public override void Resolve()
             {
-                IsResolved = (Resolved = Strategy.Resolve(Type)) != null;
+                IsResolved = (Resolved = resolver()) != null;
             }
 
             public object Resolved { get; private set; }
@@ -155,16 +158,19 @@ namespace GameHost.Injection
 
             public object Resolved { get; private set; }
 
+            private readonly Func<object> resolver;
             public ReturnByRefDependency(Type type, ReturnByRef<T> fun, IDependencyStrategy strategy)
             {
                 Type     = type;
                 Function = fun;
                 Strategy = strategy;
+                
+                resolver = strategy.GetResolver(type);
             }
 
             public override void Resolve()
             {
-                Resolved = Strategy.Resolve(Type);
+                Resolved = resolver();
                 if (Resolved != null)
                 {
                     // The ref object will be replaced by the resolved.

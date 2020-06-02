@@ -58,7 +58,7 @@ namespace GameHost.IO
 
         public async Task<byte[]> GetContentAsync()
         {
-            await using var stream = File.Open(FullName, FileMode.Open);
+            await using var stream = File.Open(FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             var mem = new byte[stream.Length];
             await stream.ReadAsync(mem, 0, mem.Length);

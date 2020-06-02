@@ -4,6 +4,7 @@ using System.Linq;
 using GameHost.Applications;
 using GameHost.Core.Applications;
 using GameHost.Core.Ecs;
+using GameHost.Core.Threading;
 using GameHost.UI.Noesis;
 using Noesis;
 using OpenToolkit.Windowing.Common;
@@ -32,9 +33,25 @@ namespace GameHost.Graphics.FrameStatistic
 
     public class FrameStatisticControl : LoadableUserControl<FrameStatisticControl.Context>
     {
+        private void addContext<T>(ref List<FrameStatistic.Context> contexts)
+            where T : GameThreadedHostApplicationBase<T>
+        {
+            if (ThreadingHost.TryGetListener(out T host))
+            {
+                using var synchronizer = host.SynchronizeThread();
+                contexts.Add(new FrameStatistic.Context {RenderName = typeof(T).Name, Worker = host.Worker});
+            }
+        }
+
         public override void OnLoad()
         {
             Grid parentGrid;
+            
+            var contexts = new List<FrameStatistic.Context>();
+            addContext<GameSimulationThreadingHost>(ref contexts);
+            addContext<GameInputThreadingHost>(ref contexts);
+            addContext<GameRenderThreadingHost>(ref contexts);
+            addContext<GameAudioThreadingHost>(ref contexts);
 
             var root = new Grid
             {
@@ -52,6 +69,7 @@ namespace GameHost.Graphics.FrameStatistic
                                 HorizontalAlignment = HorizontalAlignment.Right,
                                 Child = new ItemsControl
                                 {
+                                    ItemsSource = contexts,
                                     ItemTemplate        = new DataTemplate {VisualTree = new FrameStatistic()},
                                     Width               = 500,
                                     VerticalAlignment   = VerticalAlignment.Top,

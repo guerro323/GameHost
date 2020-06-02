@@ -14,6 +14,7 @@ namespace GameHost.Input
     {
     }
     
+    [RestrictToApplication(typeof(GameInputThreadingHost), typeof(GameSimulationThreadingHost), typeof(GameRenderThreadingHost))]
     public abstract class InputProviderSystemBase<TSelf, TAction> : AppSystem
         where TAction : IInputAction
         where TSelf : InputProviderSystemBase<TSelf, TAction>
