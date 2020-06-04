@@ -55,6 +55,7 @@ namespace GameHost.Graphics.FrameStatistic
 
             var root = new Grid
             {
+                Opacity = 0.75f,
                 ColumnDefinitions = {GridDef.Column("100*"), GridDef.Column("50*"), GridDef.Column("2*")},
                 RowDefinitions    = {GridDef.Row("100*"), GridDef.Row("2*")},
                 Children =
@@ -79,6 +80,21 @@ namespace GameHost.Graphics.FrameStatistic
                         }
                     })
                 }
+            };
+
+            root.MouseEnter += (_0, _1) =>
+            {
+                var animation = new DoubleAnimation {Duration = new Duration(TimeSpan.FromSeconds(0.2)), To = 0.25f};
+                Storyboard.SetTargetProperty(animation, new PropertyPath(OpacityProperty));
+                
+                root.BeginAnimation(OpacityProperty, animation);
+            };
+            root.MouseLeave += (_0, _1) =>
+            {
+                var animation = new DoubleAnimation {Duration = new Duration(TimeSpan.FromSeconds(0.2)), To = 0.75f};
+                Storyboard.SetTargetProperty(animation, new PropertyPath(OpacityProperty));
+                
+                root.BeginAnimation(OpacityProperty, animation);
             };
 
             Grid.SetColumn(parentGrid, 1);

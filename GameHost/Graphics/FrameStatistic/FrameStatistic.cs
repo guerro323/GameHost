@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using GameHost.Applications;
 using GameHost.Core.Threading;
 using GameHost.UI.Noesis;
@@ -68,22 +69,42 @@ namespace GameHost.Graphics.FrameStatistic
         private FrameListener listener;
         private Label fpsLabel;
         private Label loadLabel;
+        private ItemsControl graphControl;
+        private ObservableCollection<GGPerformance> performances;
 
-        private void ac()
+        protected override bool EnableFrameUpdate()
         {
-            if (!IsEnabled)
-                return;
-
-            listener.DequeueAll();
-
-            fpsLabel.Content = (int)(1 / listener.Delta);
-            loadLabel.Content = listener.Workload.ToString("000%");
-            
-            Dispatcher.BeginInvoke(ac);
+            return true;
         }
-        
+
+        public override void OnUpdate()
+        {
+            var frames = listener.DequeueAll();
+
+            const bool debugAllFrames = false;
+            if (debugAllFrames)
+            {
+                foreach (var frame in frames)
+                {
+                    performances.Add(new GGPerformance {Performance = (float)(frame.Delta.TotalSeconds / listener.TargetFramerate.TotalSeconds)});
+                }
+            }
+            else if (frames.Count > 0)
+            {
+                performances.Add(new GGPerformance {Performance = (float) listener.Workload});
+            }
+
+            while (performances.Count > 100)
+                performances.RemoveAt(0);
+
+            fpsLabel.Content  = (int)(1 / listener.Delta);
+            loadLabel.Content = listener.Workload.ToString("000%");
+        }
+
         public override void OnLoad()
         {
+            PPAAMode = PPAAMode.Disabled;
+            
             if (!GenContext.Worker.FrameListener.TryAdd(listener = new FrameListener()))
             {
                 throw new InvalidOperationException();
@@ -100,10 +121,14 @@ namespace GameHost.Graphics.FrameStatistic
             var appLabel         = new Label
             {
                 Content = "App1",
-                Margin = new Thickness(5, 0, 0, 0)
+                Margin = new Thickness(5, 0, 0, 0),
+                Effect = new DropShadowEffect
+                {
+                    BlurRadius = 1,
+                    Color = Colors.Black,
+                    ShadowDepth = 2
+                }
             };
-            
-            Dispatcher.BeginInvoke(ac);
 
             appLabel.SetBinding(ContentProperty, "RenderName");
             fpsLabel.SetBinding(ContentProperty, "Worker.Performance");
@@ -115,11 +140,53 @@ namespace GameHost.Graphics.FrameStatistic
             };
             border.Child = appLabel;
 
+            performances = new ObservableCollection<GGPerformance>();
+            for (var i = 0; i != 100; i++)
+                performances.Add(new GGPerformance {Performance = i * 0.02f});
+
+            var graphControlTemplateRectangle = new Rectangle
+            {
+                Width = 3,
+                Fill  = new SolidColorBrush(Colors.White),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Bottom
+            };
+            graphControl = new ItemsControl
+            {
+                ItemsSource = performances,
+                ItemsPanel = new ItemsPanelTemplate
+                {
+                  VisualTree  = new StackPanel
+                  {
+                      Orientation = Orientation.Horizontal,
+                      HorizontalAlignment = HorizontalAlignment.Right,
+                      VerticalAlignment = VerticalAlignment.Bottom
+                  }
+                },
+                HorizontalContentAlignment = HorizontalAlignment.Right,
+                VerticalContentAlignment   = VerticalAlignment.Center,
+                ItemTemplate = new DataTemplate
+                {
+                    VisualTree = new Grid
+                    {
+                        Children =
+                        {
+                            graphControlTemplateRectangle
+                        },
+                        MaxHeight = 10
+                    }
+                },
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+
+            graphControlTemplateRectangle.SetBinding(HeightProperty, "ScaledPerformance");
+            
             Content = new Grid 
             {
                 ColumnDefinitions = {GridDef.Column("100*"), GridDef.Column("3*"), GridDef.Column("10*"), GridDef.Column("15*")},
                 Children =
                 {
+                    graphControl,
                     border, 
                     loadLabel,
                     fpsLabel,
@@ -130,6 +197,8 @@ namespace GameHost.Graphics.FrameStatistic
             Grid.SetColumn(appLabel, 0);
             Grid.SetColumn(loadLabel, 2);
             Grid.SetColumn(fpsLabel, 3);
+
+            Height = 40;
         }
 
         public override void OnUnload()
@@ -140,6 +209,26 @@ namespace GameHost.Graphics.FrameStatistic
         public override void Dispose()
         {
                 
+        }
+
+        public class GGPerformance : NotifyPropertyChangedBase
+        {
+            public float ScaledPerformance
+            {
+                get => Math.Clamp(Performance, 0, 100);
+            }
+
+            private float performance;
+            public float Performance
+            {
+                get => performance;
+                set
+                {
+                    performance = value;
+                    OnPropertyChanged(nameof(ScaledPerformance));
+                    OnPropertyChanged(nameof(Performance));
+                }
+            }
         }
     }
 }

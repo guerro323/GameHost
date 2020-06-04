@@ -58,7 +58,8 @@ namespace GameHost.Core.Bindables
 
         protected virtual void InvokeOnUpdate(ref T value)
         {
-            foreach (var listener in (List<ValueChanged<T>>)SubscribedListeners)
+            var currentList = new List<ValueChanged<T>>((List<ValueChanged<T>>) SubscribedListeners);
+            foreach (var listener in currentList)
             {
                 listener(this.value, value);
             }

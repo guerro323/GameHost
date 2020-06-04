@@ -43,7 +43,7 @@ namespace GameHost.UI.Noesis
         public void LoadXamlObject(FrameworkElement xamlObject)
         {
             View = GUI.CreateView(xamlObject);
-            //View.SetFlags(RenderFlags.PPAA);
+            View.SetFlags(RenderFlags.PPAA);
             
             Renderer = View.Renderer;
             var device = new RenderDeviceGL();

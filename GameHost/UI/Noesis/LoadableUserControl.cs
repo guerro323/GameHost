@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using Noesis;
 using EventArgs = Noesis.EventArgs;
 
@@ -13,6 +14,19 @@ namespace GameHost.UI.Noesis
 
         protected virtual bool EnableFrameUpdate() => false;
 
+        private TimeSpan delta;
+        private Stopwatch deltaSw;
+        protected TimeSpan Delta
+        {
+            get
+            {
+                if (!EnableFrameUpdate())
+                    throw new InvalidOperationException("!EnableFrameUpdate");
+
+                return delta;
+            }
+        }
+
         public LoadableUserControl()
         {
             Initialized += load;
@@ -20,9 +34,28 @@ namespace GameHost.UI.Noesis
         }
 
         private void update()
-        {
-            OnUpdate();
-            Dispatcher.BeginInvoke(update);
+        {            
+            if (deltaSw == null)
+            {
+                deltaSw = new Stopwatch();
+                deltaSw.Start();
+            }
+            else
+            {
+                deltaSw.Stop();
+                delta = deltaSw.Elapsed;
+                deltaSw.Restart();
+            }
+
+            try
+            {
+                OnUpdate();
+                Dispatcher.BeginInvoke(update);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
         }
 
         private void load(object sender, EventArgs args)
