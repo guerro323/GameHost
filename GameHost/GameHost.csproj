@@ -14,7 +14,7 @@
     <PackageReference Include="ImGui.NET" Version="*" />
     <PackageReference Include="DefaultEcs" Version="0.14.2" />
     <PackageReference Include="JetBrains.Annotations" Version="2020.1.0" />
-    <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta12" />
+    <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta14" />
     <PackageReference Include="NetFabric.Hyperlinq.Analyzer" Version="2.0.1" />
     <PackageReference Include="Noesis.App" Version="3.0.0-beta6" />
     <PackageReference Include="opentoolkit.redist.glfw" Version="3.3.0-pre20190424184726" />
