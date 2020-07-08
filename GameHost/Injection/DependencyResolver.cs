@@ -71,7 +71,7 @@ namespace GameHost.Injection
                 catch (Exception ex)
                 {
                     dep.ResolveException = ex;
-                    Console.WriteLine(ex);
+                    Console.WriteLine($"Resolving on item '{dep}' for '{source}' dependencies has failed!\n{ex}");
                 }
 
                 if (!dep.IsResolved)

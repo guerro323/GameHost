@@ -37,14 +37,25 @@ namespace GameHost.Applications
             worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
             worldCollection.Ctx.Bind<ApplicationHostBase>(this);
 
-            wantedThread.Name = "MainThread";
-            
+            if (string.IsNullOrEmpty(wantedThread.Name))
+                wantedThread.Name = "MainThread";
+
             AppSystemResolver.ResolveFor<MainThreadHost>(queuedSystemTypes);
         }
 
         protected override void OnThreadStart()
         {
-            throw new InvalidOperationException();
+            worldCollection.Ctx.Bind<AssemblyLoadContext, ModuleAssemblyLoadContext>(new ModuleAssemblyLoadContext());
+            worldCollection.Ctx.Bind<IScheduler, Scheduler>(GetScheduler());
+            worldCollection.Ctx.Bind<ApplicationHostBase>(this);
+
+            AppSystemResolver.ResolveFor<MainThreadHost>(queuedSystemTypes);
+
+            while (!CancellationToken.IsCancellationRequested)
+            {
+                Update();
+                Thread.Sleep(1);
+            }
         }
 
         public void Update()

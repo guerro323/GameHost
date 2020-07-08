@@ -84,8 +84,11 @@ namespace GameHost.Input.OpenTKBackend
             var strategy = new ContextBindingStrategy(Context, resolveInParent: true);
             window = strategy.Resolve<IGameWindow>();
 
-            window.KeyDown += OnKeyDown;
-            window.KeyUp   += OnKeyUp;
+            if (window != null)
+            {
+                window.KeyDown += OnKeyDown;
+                window.KeyUp   += OnKeyUp;
+            }
         }
 
         public override InputState GetInputState(string inputName)
