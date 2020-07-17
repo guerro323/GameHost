@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameHost.Transports", "Game
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameHost.Transports.Tests", "GameHost.Transports.Tests\GameHost.Transports.Tests.csproj", "{44231B8C-AA25-41AF-BCE4-A80CFF7D6917}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameHost.Audio", "GameHost.Audio\GameHost.Audio.csproj", "{42057BB6-51D9-41EE-9688-0CA57F2C09D9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,9 @@ Global
 		{44231B8C-AA25-41AF-BCE4-A80CFF7D6917}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{44231B8C-AA25-41AF-BCE4-A80CFF7D6917}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{44231B8C-AA25-41AF-BCE4-A80CFF7D6917}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42057BB6-51D9-41EE-9688-0CA57F2C09D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42057BB6-51D9-41EE-9688-0CA57F2C09D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42057BB6-51D9-41EE-9688-0CA57F2C09D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42057BB6-51D9-41EE-9688-0CA57F2C09D9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
