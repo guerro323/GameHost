@@ -1,58 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Collections.Pooled" Version="2.0.0-preview.27" />
-    <PackageReference Include="CSCore" Version="*" />
-    <PackageReference Include="DryIoc" Version="4.2.0" />
-    <PackageReference Include="DefaultEcs" Version="0.14.2" />
-    <PackageReference Include="JetBrains.Annotations" Version="2020.1.0" />
-    <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta12" />
-    <PackageReference Include="NetFabric.Hyperlinq.Analyzer" Version="2.0.1" />
-    <PackageReference Include="Noesis.App" Version="3.0.0-beta6" />
-    <PackageReference Include="opentoolkit.redist.glfw" Version="3.3.0-pre20190424184726" />
-    <PackageReference Include="Revolution.Core" Version="2020.524.1433" />
-    <PackageReference Include="SharpZipLib" Version="1.2.0" />
-    <PackageReference Include="ZLogger" Version="1.2.1" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="OpenToolkit.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Core\bin\Release\netstandard2.0\OpenToolkit.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenToolkit.Graphics, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Graphics\bin\Release\netstandard2.0\OpenToolkit.Graphics.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenToolkit.Input, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Input\bin\Release\netstandard2.0\OpenToolkit.Input.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenToolkit.Mathematics, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Graphics\bin\Release\netstandard2.0\OpenToolkit.Mathematics.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenToolkit.Windowing.Common, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Windowing.Desktop\bin\Release\netcoreapp3.0\OpenToolkit.Windowing.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenToolkit.Windowing.Desktop, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Windowing.Desktop\bin\Release\netcoreapp3.0\OpenToolkit.Windowing.Desktop.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenToolkit.Windowing.GraphicsLibraryFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\OpenTK\opentk\src\OpenToolkit.Windowing.Desktop\bin\Release\netcoreapp3.0\OpenToolkit.Windowing.GraphicsLibraryFramework.dll</HintPath>
-    </Reference>
-    <Reference Include="RevolutionSnapshot.Core, Version=0.0.2.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\PublishedOnGithub\Revolution\RevolutionSnapshot.Core\bin\Release\netcoreapp3.0\RevolutionSnapshot.Core.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="soloud_x86.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="soloud_x64.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\GameHost.Revolution\GameHost.Revolution.csproj" />
-  </ItemGroup>
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="DefaultEcs" Version="0.14.3" />
+      <PackageReference Include="DryIoc" Version="4.2.3" />
+      <PackageReference Include="JetBrains.Annotations" Version="2020.2.0-eap" />
+      <PackageReference Include="SharpZipLib" Version="1.2.0" />
+      <PackageReference Include="ZLogger" Version="1.2.1" />
+    </ItemGroup>
+
 </Project>

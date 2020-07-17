@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using DryIoc;
-using GameHost.Core.Applications;
+using GameHost.Core.Ecs.Passes;
 using GameHost.Core.Threading;
 using GameHost.Injection;
 using JetBrains.Annotations;
@@ -31,7 +31,7 @@ namespace GameHost.Core.Ecs
     /// Represent an application system that will automatically be injected in worlds.
     /// </summary>
     [InjectSystemToWorld]
-    public abstract class AppSystem : AppObject, IDisposable, IInitSystem, IUpdateSystem
+    public abstract class AppSystem : AppObject, IDisposable, IInitializePass, IUpdatePass
     {
         /// <summary>
         /// Is this <see cref="AppSystem"/> enabled?
@@ -45,28 +45,14 @@ namespace GameHost.Core.Ecs
 
         public virtual bool CanBeCreated()
         {
-            ApplicationHostBase currentApplication;
-            try
-            {
-                currentApplication = new ContextBindingStrategy(Context, true).Resolve<ApplicationHostBase>();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-                return true;
-            }
-
-            var attr = GetType().GetCustomAttribute<RestrictToApplicationAttribute>();
-            if (attr == null || attr.IsValid(currentApplication.GetType()))
-                return true;
-            return false;
+            return true;
         }
 
         public AppSystem(WorldCollection collection) : base(null)
         {
             World   = collection;
             Context = collection.Ctx;
-            
+
             if (!CanBeCreated())
                 throw new InvalidOperationException("This system was constructed but shouldn't have been.");
         }
@@ -76,11 +62,11 @@ namespace GameHost.Core.Ecs
             List<DependencyResolver.DependencyBase> inheritedDependencies = null;
             if (DependencyResolver?.Dependencies.Count > 0)
                 inheritedDependencies = DependencyResolver.Dependencies;
-            
+
             DependencyResolver                 = new DependencyResolver(Context.Container.Resolve<IScheduler>(), Context, $"Thread({Thread.CurrentThread.Name}) System[{GetType().Name}]");
             DependencyResolver.DefaultStrategy = new DefaultAppObjectStrategy(this, World);
             DependencyResolver.OnComplete(OnDependenciesResolved);
-            
+
             if (inheritedDependencies != null)
                 DependencyResolver.Dependencies.AddRange(inheritedDependencies);
         }
@@ -118,12 +104,12 @@ namespace GameHost.Core.Ecs
         // Interfaces implementation
         // .........................
 
-        void IInitSystem.OnInit()
+        void IInitializePass.OnInit()
         {
             OnInit();
         }
 
-        void IUpdateSystem.OnUpdate()
+        void IUpdatePass.OnUpdate()
         {
             OnUpdate();
         }

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using DefaultEcs;
 using DryIoc;
-using GameHost.Event;
+using GameHost.Core.Ecs.Passes;
 using GameHost.Injection;
 
 namespace GameHost.Core.Ecs
@@ -16,55 +16,50 @@ namespace GameHost.Core.Ecs
 
         public IReadOnlyCollection<object> SystemList
         {
-            get
-            {
-                return systemList.Elements;
-            }
+            get { return systemList.Elements; }
         }
 
-        public IReadOnlyCollection<IUpdateSystem> UpdateLoop
+        public IReadOnlyCollection<IUpdatePass> UpdateLoop
         {
-            get
-            {
-                return updateLoop;
-            }
+            get { return updatePassRegister.GetObjects(); }
         }
 
-        private OrderedList<object> systemList;
+        private OrderedList<object>      systemList;
         private Dictionary<Type, object> systemMap;
 
-        private List<IUpdateSystem> updateLoop;
-        private bool isUpdateLoopDirty;
-        
-        private List<IInitSystem>   leftInitSystem;
-        private bool isLeftInitSystemDirty;
+        private InitializePassRegister initializePassRegister;
+        private UpdatePassRegister     updatePassRegister;
+
+        private List<PassRegisterBase> availablePasses;
 
         public WorldCollection(Context parentContext, World mgr)
         {
             Mgr = mgr;
 
-            systemList     = new OrderedList<object>();
-            systemMap      = new Dictionary<Type, object>(64);
-            updateLoop     = new List<IUpdateSystem>(64);
-            leftInitSystem = new List<IInitSystem>(64);
+            systemList             = new OrderedList<object>();
+            systemMap              = new Dictionary<Type, object>(64);
+            initializePassRegister = new InitializePassRegister();
+            updatePassRegister     = new UpdatePassRegister();
+
+            availablePasses = new List<PassRegisterBase> {initializePassRegister, updatePassRegister};
 
             Ctx = new Context(parentContext, Rules.Default.With(SelectPropertiesAndFieldsWithImportAttribute));
-            Ctx.Bind<WorldCollection, WorldCollection>(this);
-            Ctx.Bind<World, World>(mgr);
+            Ctx.BindExisting<WorldCollection, WorldCollection>(this);
+            Ctx.BindExisting<World, World>(mgr);
 
             systemList.OnDirty += () =>
             {
-                isUpdateLoopDirty     = true;
-                isLeftInitSystemDirty = true;
+                foreach (var register in availablePasses)
+                    register.RegisterCollectionAndFilter(systemList);
             };
         }
-        
+
         public static readonly PropertiesAndFieldsSelector SelectPropertiesAndFieldsWithImportAttribute =
             PropertiesAndFields.All(serviceInfo: GetImportedPropertiesAndFields);
-        
+
         private static PropertyOrFieldServiceInfo GetImportedPropertiesAndFields(MemberInfo m, Request req)
         {
-            var import = (DependencyStrategyAttribute)m.GetAttributes(typeof(DependencyStrategyAttribute)).FirstOrDefault();
+            var import = (DependencyStrategyAttribute) m.GetAttributes(typeof(DependencyStrategyAttribute)).FirstOrDefault();
             return import == null ? null : PropertyOrFieldServiceInfo.Of(m).WithDetails(ServiceDetails.IfUnresolvedReturnDefaultIfNotRegistered);
         }
 
@@ -73,7 +68,7 @@ namespace GameHost.Core.Ecs
         {
             if (!isDirty)
                 return;
-            
+
             var systemToReorder = new List<object>(originalList);
             originalList.Clear();
 
@@ -81,28 +76,10 @@ namespace GameHost.Core.Ecs
             foreach (var obj in systemList.Elements)
             {
                 if (systemToReorder.Contains(obj))
-                    originalList.Add((T)obj);
+                    originalList.Add((T) obj);
             }
 
             isDirty = false;
-        }
-
-        public void DoUpdatePass()
-        {
-            RemakeLoop(ref updateLoop, ref isUpdateLoopDirty);
-
-            foreach (var system in updateLoop)
-            {
-                //try
-               // {
-                    if (system.CanUpdate())
-                        system.OnUpdate();
-               // }
-                /*catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                }*/
-            }
         }
 
         public bool TryGet(Type type, out object obj)
@@ -113,7 +90,7 @@ namespace GameHost.Core.Ecs
         public bool TryGet<T>(out T obj)
         {
             var success = TryGet(typeof(T), out var nonGenObj);
-            obj = (T)nonGenObj;
+            obj = (T) nonGenObj;
             return success;
         }
 
@@ -126,8 +103,8 @@ namespace GameHost.Core.Ecs
             where T : class, IWorldSystem
         {
             if (systemMap.TryGetValue(typeof(T), out var obj))
-                return (T)obj;
-            
+                return (T) obj;
+
             obj = createFunction(this);
             new InjectPropertyStrategy(Ctx, true).Inject(obj);
             Add(obj, updateBefore, updateAfter);
@@ -157,44 +134,12 @@ namespace GameHost.Core.Ecs
             systemMap[obj.GetType()] = obj;
             systemList.Set(obj, updateAfter, updateBefore);
             Ctx.Register(obj);
-            
-            switch (obj)
-            {
-                case IInitSystem init:
-                    leftInitSystem.Add(init);
-                    break;
-                case IUpdateSystem update:
-                    updateLoop.Add(update);
-                    break;
-            }
-            
-            Ctx.SignalApp(new OnWorldSystemAdded {Source = this, System = obj});
         }
 
-        /// <summary>
-        /// Systems based on <see cref="IInitSystem"/> need <see cref="IInitSystem.OnInit"/> to be called.
-        /// This function will automatically call the non-initialized systems.
-        /// <remarks>
-        /// This is mostly useful to setup dependencies between systems.
-        /// </remarks>
-        /// </summary>
-        public void DoInitializePass()
+        public void LoopPasses()
         {
-            RemakeLoop(ref leftInitSystem, ref isLeftInitSystemDirty);
-
-            if (leftInitSystem.Count == 0)
-                return;
-            
-            // todo: bad.
-            var currentList = new Span<IInitSystem>(leftInitSystem.ToArray());
-            foreach (var sys in currentList)
-            {
-                sys.OnInit();
-                if (sys is IUpdateSystem update)
-                    updateLoop.Add(update);
-            }
-
-            leftInitSystem.Clear();
+            foreach (var register in availablePasses)
+                register.Trigger();
         }
 
         public void Dispose()
@@ -215,16 +160,5 @@ namespace GameHost.Core.Ecs
     public interface IWorldSystem
     {
         WorldCollection WorldCollection { get; }
-    }
-
-    public interface IUpdateSystem : IWorldSystem
-    {
-        bool CanUpdate();
-        void OnUpdate();
-    }
-
-    public interface IInitSystem : IWorldSystem
-    {
-        void OnInit();
     }
 }
