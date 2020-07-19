@@ -4,6 +4,8 @@
         <TargetFramework>netcoreapp3.1</TargetFramework>
 
         <IsPackable>false</IsPackable>
+
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,6 +16,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\GameHost.Simulation\GameHost.Simulation.csproj" />
+      <ProjectReference Include="..\GameHost.Transports\GameHost.Transports.csproj" />
     </ItemGroup>
 
 </Project>

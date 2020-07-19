@@ -41,6 +41,11 @@ using System.Runtime.InteropServices;
 			 return MemoryMarshal.Cast<byte, T>(column.data);
 		 }
 
+		 public Span<byte> ReadRaw(uint row)
+		 {
+			 return column.data.AsSpan((int) row * Size, Size);
+		 }
+
 		 public ref T Read<T>(uint row)
 			 where T : struct
 		 {

@@ -17,6 +17,7 @@ namespace GameHost.Simulation.Tests.Application
 		public GlobalWorld Global;
 
 		public virtual List<Type> RequiredExecutiveSystems { get; }
+		public virtual List<Type> RequiredSimulationSystems { get; }
 
 		public SimulationApplication RetrieveApplication()
 		{
@@ -47,10 +48,22 @@ namespace GameHost.Simulation.Tests.Application
 
 			var listenerCollection = Global.World.CreateEntity();
 			listenerCollection.Set<ListenerCollectionBase>(new ListenerCollection());
+			
+			systems.Clear();
+			systems = RequiredSimulationSystems;
+			if (systems == null)
+			{
+				systems = new List<Type>();
+				
+				AppSystemResolver.ResolveFor<SimulationApplication>(systems);
+			}
 
 			var simulationAppEntity = Global.World.CreateEntity();
 			simulationAppEntity.Set<IListener>(new SimulationApplication(Global, null));
 			simulationAppEntity.Set(new PushToListenerCollection(listenerCollection));
+
+			foreach (var type in systems)
+				RetrieveApplication().Data.Collection.GetOrCreate(type);
 
 			if (RetrieveApplication().Scheduler is Scheduler scheduler)
 			{
