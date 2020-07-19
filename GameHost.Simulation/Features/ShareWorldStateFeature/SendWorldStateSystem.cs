@@ -36,6 +36,8 @@ namespace GameHost.Simulation.Features.ShareWorldState
 					feature.Transport.Broadcast(default, new ReadOnlySpan<byte>((void*) data.GetSafePtr(), data.Length));
 				}
 			}
+
+			//Console.WriteLine(data.Length);
 		}
 
 		public void SetComponentSerializer(ComponentType componentType, IShareComponentSerializer serializer)
@@ -93,6 +95,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 								var componentData = singleComponentBoard.ReadRaw(link.Id);
 								buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentData.GetPinnableReference()), componentBoard.Size, default);
+								break;
 							}
 
 							if (recursionLeft == 0)
@@ -124,7 +127,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				var componentBuffers = new DataBufferWriter[componentTypeSpan.Length];
 				Parallel.ForEach(componentTypeSpan.ToArray(), (componentType, loop, i) =>
 				{
-					var buffer   = componentBuffers[i] = new DataBufferWriter(0);
+					var buffer   = componentBuffers[i] = new DataBufferWriter(128);
 					var entities = world.Boards.Entity.Alive;
 
 					var row = componentType.Id;
@@ -135,13 +138,16 @@ namespace GameHost.Simulation.Features.ShareWorldState
 					var serializer = world.Boards.ComponentType.GetColumn(row, ref custom_column.serializer);
 
 					var componentBoard = world.Boards.ComponentType.ComponentBoardColumns[(int) row];
+					buffer.Capacity += componentBoard.Size * entities.Length;
+					
 					if (serializer != null && serializer.CanSerialize(world, entities, componentBoard))
 					{
 						serializer.SerializeBoard(ref buffer, world, entities, componentBoard);
 					}
 					else if (componentBoard is SingleComponentBoard singleComponentBoard)
 					{
-						for (var ent = 0; ent != entities.Length; ent++)
+						var linkColumnSpan = world.Boards.Entity.GetComponentColumn(row);
+						for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
 						{
 							// Recursive support for shared components.
 
@@ -149,7 +155,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 							var entity        = entities[ent];
 							while (recursionLeft-- > 0)
 							{
-								var link = world.Boards.Entity.GetComponentColumn(row)[(int) entity.Id];
+								var link = linkColumnSpan[(int) entity.Id];
 								if (link.IsShared)
 								{
 									entity = new GameEntity(link.Entity);
@@ -158,6 +164,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 								var componentData = singleComponentBoard.ReadRaw(link.Id);
 								buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentData.GetPinnableReference()), componentBoard.Size, default);
+								break;
 							}
 
 							if (recursionLeft == 0)
@@ -167,7 +174,9 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				});
 
 				foreach (var buffer in componentBuffers)
+				{
 					dataBuffer.WriteBuffer(buffer);
+				}
 			}
 
 			return dataBuffer;
