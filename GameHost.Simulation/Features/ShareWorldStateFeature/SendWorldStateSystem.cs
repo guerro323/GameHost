@@ -65,43 +65,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentTypeSpan.GetPinnableReference()), sizeof(ComponentType), default);
 				for (var t = 0; t != componentTypeSpan.Length; t++)
 				{
-					var row = componentTypeSpan[t].Id;
-					buffer.WriteValue(world.Boards.ComponentType.SizeColumns[(int) row]);
-					buffer.WriteStaticString(world.Boards.ComponentType.NameColumns[(int) row]);
-
-					var serializer = world.Boards.ComponentType.GetColumn(row, ref custom_column.serializer);
-
-					var componentBoard = world.Boards.ComponentType.ComponentBoardColumns[(int) row];
-					if (serializer != null && serializer.CanSerialize(world, entities, componentBoard))
-					{
-						serializer.SerializeBoard(ref buffer, world, entities, componentBoard);
-					}
-					else if (componentBoard is SingleComponentBoard singleComponentBoard)
-					{
-						for (var ent = 0; ent != entities.Length; ent++)
-						{
-							// Recursive support for shared components.
-
-							var recursionLeft = GameWorld.RecursionLimit;
-							var entity        = entities[ent];
-							while (recursionLeft-- > 0)
-							{
-								var link = world.Boards.Entity.GetComponentColumn(row)[(int) entity.Id];
-								if (link.IsShared)
-								{
-									entity = new GameEntity(link.Entity);
-									continue;
-								}
-
-								var componentData = singleComponentBoard.ReadRaw(link.Id);
-								buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentData.GetPinnableReference()), componentBoard.Size, default);
-								break;
-							}
-
-							if (recursionLeft == 0)
-								throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{entities[ent]}' and component (backing: {row})");
-						}
-					}
+					Inner(ref buffer, world, componentTypeSpan[t].Id, entities);
 				}
 			}
 
@@ -129,48 +93,8 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				{
 					var buffer   = componentBuffers[i] = new DataBufferWriter(128);
 					var entities = world.Boards.Entity.Alive;
-
-					var row = componentType.Id;
-
-					buffer.WriteValue(world.Boards.ComponentType.SizeColumns[(int) row]);
-					buffer.WriteStaticString(world.Boards.ComponentType.NameColumns[(int) row]);
-
-					var serializer = world.Boards.ComponentType.GetColumn(row, ref custom_column.serializer);
-
-					var componentBoard = world.Boards.ComponentType.ComponentBoardColumns[(int) row];
-					buffer.Capacity += componentBoard.Size * entities.Length;
 					
-					if (serializer != null && serializer.CanSerialize(world, entities, componentBoard))
-					{
-						serializer.SerializeBoard(ref buffer, world, entities, componentBoard);
-					}
-					else if (componentBoard is SingleComponentBoard singleComponentBoard)
-					{
-						var linkColumnSpan = world.Boards.Entity.GetComponentColumn(row);
-						for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
-						{
-							// Recursive support for shared components.
-
-							var recursionLeft = GameWorld.RecursionLimit;
-							var entity        = entities[ent];
-							while (recursionLeft-- > 0)
-							{
-								var link = linkColumnSpan[(int) entity.Id];
-								if (link.IsShared)
-								{
-									entity = new GameEntity(link.Entity);
-									continue;
-								}
-
-								var componentData = singleComponentBoard.ReadRaw(link.Id);
-								buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentData.GetPinnableReference()), componentBoard.Size, default);
-								break;
-							}
-
-							if (recursionLeft == 0)
-								throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{entities[ent]}' and component (backing: {row})");
-						}
-					}
+					Inner(ref buffer, world, componentType.Id, entities);
 				});
 
 				foreach (var buffer in componentBuffers)
@@ -180,6 +104,49 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			}
 
 			return dataBuffer;
+		}
+		
+		private unsafe void Inner(ref DataBufferWriter buffer, GameWorld world, uint row, Span<GameEntity> entities)
+		{
+			buffer.WriteValue(world.Boards.ComponentType.SizeColumns[(int) row]);
+			buffer.WriteStaticString(world.Boards.ComponentType.NameColumns[(int) row]);
+
+			var serializer = world.Boards.ComponentType.GetColumn(row, ref custom_column.serializer);
+
+			var componentBoard = world.Boards.ComponentType.ComponentBoardColumns[(int) row];
+			buffer.Capacity += componentBoard.Size * entities.Length;
+					
+			if (serializer != null && serializer.CanSerialize(world, entities, componentBoard))
+			{
+				serializer.SerializeBoard(ref buffer, world, entities, componentBoard);
+			}
+			else if (componentBoard is SingleComponentBoard singleComponentBoard)
+			{
+				var linkColumnSpan = world.Boards.Entity.GetComponentColumn(row);
+				for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
+				{
+					// Recursive support for shared components.
+
+					var recursionLeft = GameWorld.RecursionLimit;
+					var entity        = entities[ent];
+					while (recursionLeft-- > 0)
+					{
+						var link = linkColumnSpan[(int) entity.Id];
+						if (link.IsShared)
+						{
+							entity = new GameEntity(link.Entity);
+							continue;
+						}
+
+						var componentData = singleComponentBoard.ReadRaw(link.Id);
+						buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentData.GetPinnableReference()), componentBoard.Size, default);
+						break;
+					}
+
+					if (recursionLeft == 0)
+						throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{entities[ent]}' and component (backing: {row})");
+				}
+			}			
 		}
 	}
 }
