@@ -1,7 +1,5 @@
 ﻿using System;
-using DefaultEcs;
 using GameHost.Applications;
-using GameHost.Core.Ecs;
 using GameHost.Core.Threading;
 using GameHost.Injection;
 using GameHost.Worlds;

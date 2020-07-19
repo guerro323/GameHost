@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace GameHost.Core.Ecs.Passes
+﻿namespace GameHost.Core.Ecs.Passes
 {
 	public class InitializePassRegister : PassRegisterBase<IInitializePass>
 	{

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Text;
@@ -88,6 +88,10 @@ namespace GameHost.Game
 			{
 				Global.Context.BindExisting(GameEntity.Get<GameLogger>().Value);
 				Global.Context.BindExisting(GameEntity.Get<GameLoggerFactory>().Value);
+				Global.Context.BindExisting(new AssemblyLoadContext("DefaultContext"));
+				
+				if (GameEntity.TryGet(out GameUserStorage userStorage))
+					Global.Context.BindExisting(userStorage.Value);
 			}
 
 			void AddExecutiveSystems()

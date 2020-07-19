@@ -19,6 +19,7 @@ namespace GameHost.Worlds
 			Scheduler = new Scheduler();
 			
 			Context.BindExisting(Scheduler);
+			Context.BindExisting(this);
 		}
 
 		public void Loop()

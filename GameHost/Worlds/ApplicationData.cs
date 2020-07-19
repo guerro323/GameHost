@@ -1,6 +1,5 @@
 ﻿using DefaultEcs;
 using GameHost.Core.Ecs;
-using GameHost.Core.Threading;
 using GameHost.Injection;
 
 namespace GameHost.Worlds

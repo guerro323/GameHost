@@ -32,6 +32,11 @@ namespace GameHost.Transports
 
 		private int m_PipelineCount;
 
+		static ENetTransportDriver()
+		{
+			Library.Initialize();
+		}
+
 		public ENetTransportDriver(uint maxConnections)
 		{
 			MaxConnections = maxConnections;

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;

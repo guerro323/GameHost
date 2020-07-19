@@ -1,6 +1,4 @@
-﻿using GameHost.Worlds;
-
-namespace GameHost.Applications
+﻿namespace GameHost.Applications
 {
 	/// <summary>
 	/// A feature represent a group of systems and resources. They can be limited to a selection of application.
