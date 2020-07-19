@@ -147,7 +147,7 @@ namespace GameHost.Transports
 			}
 		}
 
-		public override int Send(TransportChannel chan, TransportConnection con, Span<byte> data)
+		public override unsafe int Send(TransportChannel chan, TransportConnection con, ReadOnlySpan<byte> data)
 		{
 			lock (m_Connections)
 			{
@@ -157,6 +157,8 @@ namespace GameHost.Transports
 				var otherSource = connection.Peer.Source;
 				var dataPtr     = Marshal.AllocHGlobal(data.Length);
 				var dataLength  = data.Length;
+				
+				data.CopyTo(new Span<byte>((void*) dataPtr, dataLength));
 
 				otherSource.scheduler.Schedule(sd =>
 					{
@@ -168,6 +170,20 @@ namespace GameHost.Transports
 
 				return 0;
 			}
+		}
+
+		public override int Broadcast(TransportChannel chan, ReadOnlySpan<byte> data)
+		{
+			lock (m_Connections)
+			{
+				foreach (var con in m_Connections.Values)
+				{
+					if (Send(chan, new TransportConnection {Id = con.Id, Version = 1}, data) < 0)
+						return -1;
+				}
+			}
+
+			return 0;
 		}
 
 		public override TransportEvent PopEvent()

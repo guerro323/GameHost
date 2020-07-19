@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using ENet;
 using GameHost.Core.IO;
+using ICSharpCode.SharpZipLib.Zip;
 
 namespace GameHost.Transports
 {
@@ -251,29 +253,43 @@ namespace GameHost.Transports
 			return new TransportChannel {Id = m_PipelineCount - 1};
 		}
 
-		public override int Send(TransportChannel chan, TransportConnection con, Span<byte> data)
+		public override int Send(TransportChannel chan, TransportConnection con, ReadOnlySpan<byte> data)
 		{
 			if (!m_Connections.TryGetValue(con.Id, out var connection))
 				return -2;
 
 			var packet = new Packet();
 			{
+				var dataPtr = stackalloc byte[data.Length];
+				data.CopyTo(new Span<byte>(dataPtr, data.Length));
+				
 				if (m_PipelineReliableIds.Contains(chan.Id))
 				{
-					packet.Create((IntPtr) Unsafe.AsPointer(ref data.GetPinnableReference()), data.Length, PacketFlags.Reliable);
+					packet.Create((IntPtr) dataPtr, data.Length, PacketFlags.Reliable);
 					m_PacketsToSend.Add(new SendPacket {Packet = packet, Peer = connection.Peer, Channel = (byte) chan.Channel});
 					return 0;
 				}
 
 				if (chan.Id == default || m_PipelineUnreliableIds.Contains(chan.Id))
 				{
-					packet.Create((IntPtr) Unsafe.AsPointer(ref data.GetPinnableReference()), data.Length, PacketFlags.None);
+					packet.Create((IntPtr) dataPtr, data.Length, PacketFlags.None);
 					m_PacketsToSend.Add(new SendPacket {Packet = packet, Peer = connection.Peer, Channel = (byte) chan.Channel});
 					return 0;
 				}
 			}
 
 			return -1;
+		}
+
+		public override int Broadcast(TransportChannel chan, ReadOnlySpan<byte> data)
+		{
+			foreach (var con in m_Connections.Values)
+			{
+				if (Send(chan, new TransportConnection {Id = con.Id, Version = 1}, data) < 0)
+					return -1;
+			}
+
+			return 0;
 		}
 
 		public override TransportEvent PopEvent()

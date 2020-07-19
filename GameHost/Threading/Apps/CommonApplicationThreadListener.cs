@@ -8,7 +8,7 @@ using GameHost.Worlds;
 
 namespace GameHost.Threading.Apps
 {
-	public abstract class CommonApplicationThreadListener : IListener, IApplication, IScheduler
+	public class CommonApplicationThreadListener : IListener, IApplication, IScheduler
 	{
 		public virtual bool                   UniqueToOneUpdater => true;
 		public         ListenerCollectionBase LastUpdater        { get; protected set; }
@@ -21,6 +21,7 @@ namespace GameHost.Threading.Apps
 			Scheduler = new Scheduler();
 			Global    = source;
 			Data      = new ApplicationData(overrideContext ?? new Context(source.Context));
+			Data.Context.BindExisting<IScheduler>(Scheduler);
 		}
 
 		public virtual void OnAttachedToUpdater(ListenerCollectionBase updater)

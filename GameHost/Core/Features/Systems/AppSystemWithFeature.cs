@@ -23,6 +23,11 @@ namespace GameHost.Core.Features.Systems
 		{
 		}
 
+		public override bool CanUpdate()
+		{
+			return Features.Count > 0 && base.CanUpdate();
+		}
+
 		protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
 		{
 			base.OnDependenciesResolved(dependencies);

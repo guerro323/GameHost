@@ -3,14 +3,16 @@ using GameHost.Core.IO;
 
 namespace GameHost.Audio
 {
-	public struct SoLoudBackendFeature : IAudioBackendFeature
+	public class SoLoudBackendFeature : IAudioBackendFeature
 	{
+		public TransportDriver  Driver           { get; }
 		public TransportAddress TransportAddress { get; }
 		public bool             IsLocalized      => true;
 
-		public SoLoudBackendFeature(TransportAddress address)
+		public SoLoudBackendFeature(TransportDriver driver)
 		{
-			TransportAddress = address;
+			Driver           = driver;
+			TransportAddress = driver.TransportAddress;
 		}
 	}
 }

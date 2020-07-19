@@ -95,7 +95,16 @@ namespace GameHost.Core.IO
 		/// <param name="con"></param>
 		/// <param name="data"></param>
 		/// <returns></returns>
-		public abstract int Send(TransportChannel chan, TransportConnection con, Span<byte> data);
+		public abstract int Send(TransportChannel chan, TransportConnection con, ReadOnlySpan<byte> data);
+		
+		/// <summary>
+		/// Broadcast to all connections
+		/// </summary>
+		/// <param name="chan"></param>
+		/// <param name="con"></param>
+		/// <param name="data"></param>
+		/// <returns></returns>
+		public abstract int Broadcast(TransportChannel chan, ReadOnlySpan<byte> data);
 
 		/// <summary>
 		/// Dispose driver's resources.

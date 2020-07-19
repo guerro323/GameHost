@@ -1,4 +1,5 @@
-﻿using GameHost.Applications;
+﻿using System;
+using GameHost.Applications;
 using GameHost.Core.IO;
 
 namespace GameHost.Audio.Features
@@ -8,6 +9,7 @@ namespace GameHost.Audio.Features
 	/// </summary>
 	public interface IAudioBackendFeature : IFeature
 	{
+		public TransportDriver  Driver           { get; }
 		public TransportAddress TransportAddress { get; }
 		public bool             IsLocalized      { get; }
 	}
@@ -15,15 +17,19 @@ namespace GameHost.Audio.Features
 	/// <summary>
 	/// A feature that send data to <see cref="IAudioBackendFeature"/>
 	/// </summary>
-	public interface IClientAudioFeature : IFeature
+	public class ClientAudioFeature : IFeature
 	{
-		TransportDriver Driver { get; }
+		public TransportDriver  Driver           { get; }
+		public TransportChannel PreferredChannel { get; }
 
-		/// <summary>
-		/// Request to a driver
-		/// </summary>
-		/// <param name="data"></param>
-		/// <typeparam name="T"></typeparam>
-		void Request<T>(T data);
+		public ClientAudioFeature(TransportDriver driver, TransportChannel channel)
+		{
+			Driver = driver;
+			PreferredChannel = channel;
+		}
+
+		public readonly struct SendRequest
+		{
+		}
 	}
 }

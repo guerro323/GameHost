@@ -1,42 +1,23 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using DefaultEcs;
+using GameHost.Audio.Features;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
 using GameHost.Core.IO;
-using Microsoft.Extensions.Logging;
-using ZLogger;
+using RevolutionSnapshot.Core.Buffers;
 
 namespace GameHost.Audio
 {
-	public class SoLoudLoaderSystem : AppSystemWithFeature<SoLoudBackendFeature>
+	public class UpdateAudioBackendDriverSystem : AppSystemWithFeature<IAudioBackendFeature>
 	{
-		private Soloud  soloud;
-		private ILogger logger;
-
-		public SoLoudLoaderSystem(WorldCollection collection) : base(collection)
+		private TransportableData transportableData;
+		
+		public UpdateAudioBackendDriverSystem(WorldCollection collection) : base(collection)
 		{
-			DependencyResolver.Add(() => ref logger);
-		}
-
-		protected override void OnFeatureAdded(SoLoudBackendFeature feature)
-		{
-			base.OnFeatureAdded(feature);
-
-			if (soloud != null)
-			{
-				logger.ZLogCritical("A SoLoud object already exist!");
-				return;
-			}
-			
-			soloud = new Soloud();
-			soloud.init();
-		}
-
-		protected override void OnFeatureRemoved(SoLoudBackendFeature feature)
-		{
-			base.OnFeatureRemoved(feature);
-
-			soloud.deinit();
-			soloud = null;
+			DependencyResolver.Add(() => ref transportableData);
 		}
 
 		protected override void OnUpdate()
@@ -45,8 +26,11 @@ namespace GameHost.Audio
 
 			foreach (var feature in Features)
 			{
+				feature.Driver.Update();
+
 				while (feature.Driver.Accept().IsCreated)
-				{}
+				{
+				}
 
 				TransportEvent ev;
 				while ((ev = feature.Driver.PopEvent()).Type != TransportEvent.EType.None)
@@ -64,6 +48,9 @@ namespace GameHost.Audio
 							break;
 						case TransportEvent.EType.Data:
 							Console.WriteLine("data!");
+							var reader = new DataBufferReader(ev.Data);
+							transportableData.Deserialize(ref reader);
+							
 							break;
 						default:
 							throw new ArgumentOutOfRangeException();
