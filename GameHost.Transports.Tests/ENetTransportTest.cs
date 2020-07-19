@@ -6,7 +6,7 @@ using NUnit.Framework;
 
 namespace GameHost.Transports.Tests
 {
-	public class ENetTransportTest
+	public class ENetTransportTest : TransportTestBase
 	{
 		[Test]
 		public void TestCanListen()
@@ -35,65 +35,7 @@ namespace GameHost.Transports.Tests
 				var client_servercon = client.Connect(server_addr);
 				Assert.IsTrue(client_servercon.IsCreated);
 
-				var server_event_receivedConnect = false;
-				var server_event_receivedData    = false;
-
-				var client_event_receivedConnect = false;
-				var client_event_receivedData    = false;
-
-				var ccs = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-				while (!ccs.IsCancellationRequested
-				       && (!server_event_receivedConnect || !server_event_receivedData)
-				       && (!client_event_receivedConnect || !client_event_receivedData))
-				{
-					server.Update();
-					client.Update();
-
-					TransportEvent ev;
-					while (server.Accept().IsCreated)
-					{
-					}
-
-					while ((ev = server.PopEvent()).Type != TransportEvent.EType.None)
-					{
-						switch (ev.Type)
-						{
-							case TransportEvent.EType.Connect:
-								Console.WriteLine("Server - Received Connect");
-								server_event_receivedConnect = true;
-
-								server.Send(default, ev.Connection, new byte[] {42});
-
-								break;
-							case TransportEvent.EType.Data:
-								Console.WriteLine("Server - Received Data");
-								server_event_receivedData = true;
-								break;
-						}
-					}
-
-					while (client.Accept().IsCreated)
-					{
-					}
-
-					while ((ev = client.PopEvent()).Type != TransportEvent.EType.None)
-					{
-						switch (ev.Type)
-						{
-							case TransportEvent.EType.Connect:
-								Console.WriteLine("Client - Received Connect");
-
-								client.Send(default, ev.Connection, new byte[] {42});
-
-								client_event_receivedConnect = true;
-								break;
-							case TransportEvent.EType.Data:
-								Console.WriteLine("Client - Received Data");
-								client_event_receivedData = true;
-								break;
-						}
-					}
-				}
+				Assert.IsTrue(DoServerClientTest(server, client));
 			}
 		}
 	}

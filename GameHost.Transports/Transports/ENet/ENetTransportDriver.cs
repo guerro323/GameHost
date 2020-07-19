@@ -8,12 +8,12 @@ using GameHost.Core.IO;
 
 namespace GameHost.Transports
 {
-	public unsafe class ENetTransportDriver : TransportDriver
+	public unsafe partial class ENetTransportDriver : TransportDriver
 	{
 		/// <summary>
 		///     The bind address
 		/// </summary>
-		private Address m_Address;
+		public Address BindingAddress { get; private set; }
 
 		private readonly Dictionary<uint, Connection> m_Connections;
 
@@ -36,7 +36,7 @@ namespace GameHost.Transports
 		{
 			MaxConnections = maxConnections;
 
-			m_Address               = default;
+			BindingAddress          = default;
 			m_Host                  = new Host();
 			m_PacketsToSend         = new List<SendPacket>();
 			m_ConnectionVersions    = new int[maxConnections];
@@ -64,8 +64,8 @@ namespace GameHost.Transports
 		{
 			if (IsCreated)
 			{
-				foreach (var connection in m_Connections.Values) connection.Dispose();
-
+				foreach (var connection in m_Connections.Values)
+					connection.Dispose();
 
 				m_Host.Flush();
 			}
@@ -73,7 +73,7 @@ namespace GameHost.Transports
 			m_Host.Dispose(true);
 		}
 
-		public void Update()
+		public override void Update()
 		{
 			// CLEAN
 			foreach (var connection in m_Connections.Values)
@@ -97,10 +97,10 @@ namespace GameHost.Transports
 
 			m_PacketsToSend.Clear();
 
-			Event netEvent;
 			var   polled = false;
 			while (!polled)
 			{
+				Event netEvent;
 				if (m_Host.CheckEvents(out netEvent) <= 0)
 				{
 					if (m_Host.Service(0, out netEvent) <= 0)
@@ -144,8 +144,8 @@ namespace GameHost.Transports
 
 		public int Bind(Address address)
 		{
-			m_Address = address;
-			m_DidBind = m_Host.Create(address, (int) MaxConnections, 32);
+			BindingAddress = address;
+			m_DidBind      = m_Host.Create(address, (int) MaxConnections, 32);
 			if (m_DidBind)
 				return 0;
 			return -1;
@@ -162,7 +162,7 @@ namespace GameHost.Transports
 			return 0;
 		}
 
-		public TransportConnection Accept()
+		public override TransportConnection Accept()
 		{
 			if (!m_QueuedConnections.TryDequeue(out var id))
 				return default;
@@ -205,24 +205,27 @@ namespace GameHost.Transports
 
 		public override TransportConnection.State GetConnectionState(TransportConnection con)
 		{
-			if (m_Connections.TryGetValue(con.Id, out var connection))
-				switch (connection.Peer.State)
-				{
-					case PeerState.Disconnecting:
-					case PeerState.Disconnected:
-						return TransportConnection.State.Disconnected;
+			if (!m_Connections.TryGetValue(con.Id, out var connection))
+				return TransportConnection.State.Disconnected;
 
-					case PeerState.ConnectionPending:
-						return TransportConnection.State.PendingApproval;
+			switch (connection.Peer.State)
+			{
+				case PeerState.Disconnecting:
+				case PeerState.Disconnected:
+					return TransportConnection.State.Disconnected;
 
-					case PeerState.Connecting:
-						return TransportConnection.State.Connecting;
+				case PeerState.ConnectionPending:
+					return TransportConnection.State.PendingApproval;
 
-					case PeerState.Connected:
-						return TransportConnection.State.Connected;
-				}
+				case PeerState.Connecting:
+					return TransportConnection.State.Connecting;
 
-			return TransportConnection.State.Disconnected;
+				case PeerState.Connected:
+					return TransportConnection.State.Connected;
+
+				default:
+					return TransportConnection.State.Disconnected;
+			}
 		}
 
 		public TransportChannel CreateChannel(params Type[] stages)
@@ -290,7 +293,7 @@ namespace GameHost.Transports
 
 		private Connection AddConnection(Peer peer)
 		{
-			var con = Connection.Create(peer);
+			var con = new Connection(peer);
 			m_Connections.TryAdd(peer.ID, con);
 			return con;
 		}
@@ -299,95 +302,6 @@ namespace GameHost.Transports
 		{
 			m_Connections[connectionId].Dispose();
 			m_Connections.Remove(connectionId);
-		}
-
-		private struct DriverEvent
-		{
-			public TransportEvent.EType Type;
-			public int                  StreamOffset;
-			public int                  Length;
-		}
-
-		private struct Connection : IDisposable
-		{
-			private IntPtr m_PeerPtr;
-
-			public Peer Peer
-			{
-				get => new Peer(m_PeerPtr);
-				set
-				{
-					if (value.ID != Id)
-						throw new InvalidOperationException("Can't set a peer with a different 'Id'");
-					m_PeerPtr = value.NativeData;
-				}
-			}
-
-			public uint Id;
-			public bool QueuedForDisconnection;
-
-			private PooledQueue<DriverEvent> m_IncomingEvents;
-			private PooledList<byte>         m_DataStream;
-
-			public int IncomingEventCount => m_IncomingEvents.Count;
-
-			public static Connection Create(Peer peer)
-			{
-				Connection connection;
-				connection.m_PeerPtr              = peer.NativeData;
-				connection.Id                     = peer.ID;
-				connection.m_DataStream           = new PooledList<byte>();
-				connection.m_IncomingEvents       = new PooledQueue<DriverEvent>();
-				connection.QueuedForDisconnection = false;
-				return connection;
-			}
-
-			public void ResetDataStream()
-			{
-				m_DataStream.Clear();
-			}
-
-			public void AddEvent(TransportEvent.EType type)
-			{
-				m_IncomingEvents.Enqueue(new DriverEvent {Type = type});
-			}
-
-			public void AddMessage(IntPtr data, int length)
-			{
-				if (data == IntPtr.Zero)
-					throw new NullReferenceException();
-				if (length < 0)
-					throw new IndexOutOfRangeException(nameof(length) + " < 0");
-
-				var prevLen = m_DataStream.Count;
-				m_DataStream.AddRange(new ReadOnlySpan<byte>(data.ToPointer(), length));
-				m_IncomingEvents.Enqueue(new DriverEvent {Type = TransportEvent.EType.Data, StreamOffset = prevLen, Length = length});
-			}
-
-			public TransportEvent.EType PopEvent(out Span<byte> bs)
-			{
-				bs = default;
-				if (m_IncomingEvents.Count == 0)
-					return TransportEvent.EType.None;
-
-				var ev                                       = m_IncomingEvents.Dequeue();
-				if (ev.Type == TransportEvent.EType.Data) bs = m_DataStream.Span.Slice(ev.StreamOffset, ev.Length);
-
-				return ev.Type;
-			}
-
-			public void Dispose()
-			{
-				m_IncomingEvents.Dispose();
-				m_DataStream.Dispose();
-			}
-		}
-
-		private struct SendPacket
-		{
-			public Packet Packet;
-			public Peer   Peer;
-			public byte   Channel;
 		}
 	}
 }

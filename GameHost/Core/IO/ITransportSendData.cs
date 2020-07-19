@@ -22,10 +22,10 @@ namespace GameHost.Core.IO
 	{
 		public enum State : byte
 		{
-			Disconnected       = 0,
-			Connecting = 5,
-			PendingApproval    = 10,
-			Connected  = 15
+			Disconnected    = 0,
+			Connecting      = 5,
+			PendingApproval = 10,
+			Connected       = 15
 		}
 
 		public uint Id;
@@ -42,6 +42,8 @@ namespace GameHost.Core.IO
 
 	public abstract class TransportDriver : IDisposable
 	{
+		public abstract TransportConnection       Accept();
+		public abstract void                      Update();
 		public abstract TransportEvent            PopEvent();
 		public abstract TransportConnection.State GetConnectionState(TransportConnection con);
 
