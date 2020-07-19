@@ -13,6 +13,10 @@ namespace GameHost.Transports
 	/// </summary>
 	public partial class ThreadTransportDriver : TransportDriver
 	{
+		private TransportAddress m_TransportAddress;
+
+		public override TransportAddress TransportAddress => m_TransportAddress;
+
 		private static int MContinuousId = 1;
 
 		private readonly Dictionary<uint, Connection> m_Connections;
@@ -51,7 +55,9 @@ namespace GameHost.Transports
 		/// <returns>Return an address used for the client to connect to.</returns>
 		public ListenerAddress Listen()
 		{
-			return new ListenerAddress(this);
+			BindAddress        = new ListenerAddress(this);
+			m_TransportAddress = new ThreadTransportAddress(BindAddress);
+			return BindAddress;
 		}
 
 		private void AddClient(ThreadTransportDriver other)

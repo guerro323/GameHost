@@ -15,23 +15,23 @@ namespace GameHost.Audio
 			DependencyResolver.Add(() => ref logger);
 		}
 
-		protected override void OnFeatureAdded(SoLoudBackendFeature obj)
+		protected override void OnFeatureAdded(SoLoudBackendFeature feature)
 		{
-			base.OnFeatureAdded(obj);
+			base.OnFeatureAdded(feature);
 
 			if (soloud != null)
 			{
 				logger.ZLogCritical("A SoLoud object already exist!");
 				return;
 			}
-
+			
 			soloud = new Soloud();
 			soloud.init();
 		}
 
-		protected override void OnFeatureRemoved(SoLoudBackendFeature obj)
+		protected override void OnFeatureRemoved(SoLoudBackendFeature feature)
 		{
-			base.OnFeatureRemoved(obj);
+			base.OnFeatureRemoved(feature);
 
 			soloud.deinit();
 			soloud = null;

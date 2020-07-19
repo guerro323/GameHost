@@ -8,6 +8,10 @@ namespace GameHost.Transports
 {
 	public unsafe partial class ENetTransportDriver : TransportDriver
 	{
+		private TransportAddress m_TransportAddress;
+		
+		public override TransportAddress TransportAddress => m_TransportAddress;
+
 		private readonly Dictionary<uint, Connection> m_Connections;
 
 		private readonly int[] m_ConnectionVersions;
@@ -156,6 +160,8 @@ namespace GameHost.Transports
 				throw new InvalidOperationException("Driver did not bind.");
 			if (Listening)
 				throw new InvalidOperationException("This driver is already listening.");
+
+			m_TransportAddress = new ENetTransportAddress(BindingAddress);
 
 			Listening = true;
 			return 0;

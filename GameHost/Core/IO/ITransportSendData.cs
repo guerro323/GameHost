@@ -50,10 +50,20 @@ namespace GameHost.Core.IO
 	}
 
 	/// <summary>
+	/// A transport address is a way to connect to other transports without knowing what type to instantiate.
+	/// </summary>
+	public abstract class TransportAddress
+	{
+		public abstract TransportDriver Connect();
+	}
+
+	/// <summary>
 	/// A transport driver is an interface for sending data between connections.
 	/// </summary>
 	public abstract class TransportDriver : IDisposable
 	{
+		public abstract TransportAddress TransportAddress { get; }
+
 		/// <summary>
 		/// Accept incoming connections
 		/// </summary>
