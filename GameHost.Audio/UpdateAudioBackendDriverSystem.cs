@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using DefaultEcs;
+using DefaultEcs.Serialization;
 using GameHost.Audio.Features;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
@@ -13,11 +15,11 @@ namespace GameHost.Audio
 {
 	public class UpdateAudioBackendDriverSystem : AppSystemWithFeature<IAudioBackendFeature>
 	{
-		private TransportableData transportableData;
-		
+		private BinarySerializer serializer;
+
 		public UpdateAudioBackendDriverSystem(WorldCollection collection) : base(collection)
 		{
-			DependencyResolver.Add(() => ref transportableData);
+			serializer = new BinarySerializer();
 		}
 
 		protected override void OnUpdate()
@@ -47,10 +49,9 @@ namespace GameHost.Audio
 						case TransportEvent.EType.Disconnect:
 							break;
 						case TransportEvent.EType.Data:
-							Console.WriteLine("data!");
-							var reader = new DataBufferReader(ev.Data);
-							transportableData.Deserialize(ref reader);
-							
+							using (var stream = new MemoryStream(ev.Data.ToArray()))
+								serializer.Deserialize(stream, World.Mgr);
+
 							break;
 						default:
 							throw new ArgumentOutOfRangeException();

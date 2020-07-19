@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Buffers;
+using System.Runtime.InteropServices;
 using DefaultEcs;
+using DefaultEcs.Serialization;
 using GameHost.Audio.Features;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
@@ -16,7 +18,6 @@ namespace GameHost.Audio
 		public UpdateClientAudioDriver(WorldCollection collection) : base(collection)
 		{
 			requestSet = collection.Mgr.GetEntities()
-			                       .With<DataBufferWriter>()
 			                       .With<ClientAudioFeature.SendRequest>()
 			                       .AsSet();
 		}
@@ -41,19 +42,24 @@ namespace GameHost.Audio
 			// Send data...
 			foreach (ref readonly var entity in requestSet.GetEntities())
 			{
-				var data = entity.Get<DataBufferWriter>();
+				var serializer = new BinarySerializer();
+				var buffer     = new DataBufferWriter(0);
+				using (var stream = new DataStreamWriter(buffer))
+				{
+					serializer.Serialize(stream, entity);
+				}
 
 				foreach (var feature in Features)
 				{
 					unsafe
 					{
-						feature.Driver.Broadcast(feature.PreferredChannel, new ReadOnlySpan<byte>((void*) data.GetSafePtr(), data.Length));
+						feature.Driver.Broadcast(feature.PreferredChannel, new ReadOnlySpan<byte>((void*) buffer.GetSafePtr(), buffer.Length));
 					}
 				}
 
-				data.Dispose();
+				buffer.Dispose();
 			}
-			
+
 			requestSet.DisposeAllEntities();
 		}
 	}

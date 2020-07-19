@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using GameHost.Applications;
 using GameHost.Audio.Features;
 using GameHost.Core.IO;
@@ -18,7 +19,6 @@ namespace GameHost.Audio.Tests
 				var list = base.RequiredAudioSystems ?? new List<Type>();
 				list.Add(typeof(UpdateClientAudioDriver));
 				list.Add(typeof(UpdateAudioBackendDriverSystem));
-				list.Add(typeof(TransportableData));
 				return list;
 			}
 		}
@@ -32,38 +32,21 @@ namespace GameHost.Audio.Tests
 			Server.Data.World.CreateEntity().Set<IFeature>(new SoLoudBackendFeature(serverDriver));
 			Client.Data.World.CreateEntity().Set<IFeature>(new ClientAudioFeature(serverDriver.TransportAddress.Connect(), default));
 
-			var transportableData = Client.Data.Collection.GetOrCreate(c => new TransportableData(c));
-			
 			var request = Client.Data.World.CreateEntity();
+			var str = "Hello World!";
+			request.Set(new Request {Value = str});
 			request.Set<ClientAudioFeature.SendRequest>();
+
+			Global.Loop();
+			Global.Loop();
+
 			
-			transportableData.Serialize(request, new Request {Value = "hello world!"});
-
-			Global.Loop();
-			Global.Loop();
-			Global.Loop();
-
-			Console.WriteLine(Server.Data.World.Get<Request>()[0].Value);
+			Assert.AreEqual(str, Server.Data.World.Get<Request>()[0].Value);
 		}
-		
-		public struct Request : ITransportableData
+
+		public struct Request
 		{
 			public string Value;
-
-			public int GetCapacity()
-			{
-				return Value.Length;
-			}
-
-			public void Serialize(ref DataBufferWriter writer)
-			{
-				writer.WriteStaticString(Value);
-			}
-
-			public void Deserialize(ref DataBufferReader reader)
-			{
-				Value = reader.ReadString();
-			}
 		}
 	}
 }
