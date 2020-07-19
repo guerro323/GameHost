@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using GameHost.Core.IO;
@@ -9,18 +8,12 @@ using GameHost.Core.Threading;
 namespace GameHost.Transports
 {
 	/// <summary>
-	/// A threaded driver that transport data.
-	/// A server will listen and return a <see cref="ListenerAddress"/> that clients can use to connect to.
+	///     A threaded driver that transport data.
+	///     A server will listen and return a <see cref="ListenerAddress" /> that clients can use to connect to.
 	/// </summary>
 	public partial class ThreadTransportDriver : TransportDriver
 	{
 		private static int MContinuousId = 1;
-
-		private IScheduler scheduler;
-
-		public uint            SelfId      { get; }
-		public ListenerAddress BindAddress { get; private set; }
-		public bool            Listening   { get; private set; }
 
 		private readonly Dictionary<uint, Connection> m_Connections;
 
@@ -28,6 +21,8 @@ namespace GameHost.Transports
 
 		private readonly List<SendPacket> m_PacketsToSend;
 		private readonly Queue<uint>      m_QueuedConnections;
+
+		private readonly IScheduler scheduler;
 
 		public ThreadTransportDriver(uint maxConnections)
 		{
@@ -46,8 +41,12 @@ namespace GameHost.Transports
 			Listening = false;
 		}
 
+		public uint            SelfId      { get; }
+		public ListenerAddress BindAddress { get; private set; }
+		public bool            Listening   { get; }
+
 		/// <summary>
-		/// Listen to clients.
+		///     Listen to clients.
 		/// </summary>
 		/// <returns>Return an address used for the client to connect to.</returns>
 		public ListenerAddress Listen()
@@ -87,7 +86,6 @@ namespace GameHost.Transports
 						while ((ev = connection.PopEvent(out _)) != TransportEvent.EType.None)
 							Console.WriteLine(ev);
 						throw new InvalidOperationException("A connection still had events in queue!");
-
 					}
 
 					while (connection.PopEvent(out _) != TransportEvent.EType.None)
@@ -143,19 +141,7 @@ namespace GameHost.Transports
 			}
 		}
 
-		struct SendData : IDisposable
-		{
-			public Connection Connection;
-			public IntPtr Data;
-			public int Length;
-
-			public void Dispose()
-			{
-				Marshal.FreeHGlobal(Data);
-			}
-		}
-
-		public override unsafe int Send(TransportChannel chan, TransportConnection con, Span<byte> data)
+		public override int Send(TransportChannel chan, TransportConnection con, Span<byte> data)
 		{
 			lock (m_Connections)
 			{
@@ -223,7 +209,18 @@ namespace GameHost.Transports
 
 		public override void Dispose()
 		{
+		}
 
+		private struct SendData : IDisposable
+		{
+			public Connection Connection;
+			public IntPtr     Data;
+			public int        Length;
+
+			public void Dispose()
+			{
+				Marshal.FreeHGlobal(Data);
+			}
 		}
 	}
 }

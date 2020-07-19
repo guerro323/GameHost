@@ -13,7 +13,7 @@ namespace GameHost.Transports
 				Source = source;
 			}
 		}
-		
+
 		private struct DriverEvent
 		{
 			public TransportEvent.EType Type;
@@ -26,13 +26,6 @@ namespace GameHost.Transports
 			public byte[]       Packet;
 			public ThreadedPeer Peer;
 			public byte         Channel;
-		}
-
-		public enum ThreadEvent
-		{
-			Connection,
-			Data,
-			Disconnection
 		}
 	}
 }

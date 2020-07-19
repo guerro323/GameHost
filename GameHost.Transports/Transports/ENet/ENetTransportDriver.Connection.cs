@@ -9,7 +9,21 @@ namespace GameHost.Transports
 	{
 		private class Connection : IDisposable
 		{
-			private IntPtr m_PeerPtr;
+			public readonly  uint             Id;
+			private readonly PooledList<byte> m_DataStream;
+
+			private readonly PooledQueue<DriverEvent> m_IncomingEvents;
+			private          IntPtr                   m_PeerPtr;
+			public           bool                     QueuedForDisconnection;
+
+			public Connection(in Peer peer)
+			{
+				m_PeerPtr              = peer.NativeData;
+				Id                     = peer.ID;
+				m_DataStream           = new PooledList<byte>();
+				m_IncomingEvents       = new PooledQueue<DriverEvent>();
+				QueuedForDisconnection = false;
+			}
 
 			public Peer Peer
 			{
@@ -22,21 +36,12 @@ namespace GameHost.Transports
 				}
 			}
 
-			public uint Id;
-			public bool QueuedForDisconnection;
-
-			private PooledQueue<DriverEvent> m_IncomingEvents;
-			private PooledList<byte>         m_DataStream;
-
 			public int IncomingEventCount => m_IncomingEvents.Count;
 
-			public Connection(in Peer peer)
+			public void Dispose()
 			{
-				m_PeerPtr              = peer.NativeData;
-				Id                     = peer.ID;
-				m_DataStream           = new PooledList<byte>();
-				m_IncomingEvents       = new PooledQueue<DriverEvent>();
-				QueuedForDisconnection = false;
+				m_IncomingEvents.Dispose();
+				m_DataStream.Dispose();
 			}
 
 			public void ResetDataStream()
@@ -71,12 +76,6 @@ namespace GameHost.Transports
 				if (ev.Type == TransportEvent.EType.Data) bs = m_DataStream.Span.Slice(ev.StreamOffset, ev.Length);
 
 				return ev.Type;
-			}
-
-			public void Dispose()
-			{
-				m_IncomingEvents.Dispose();
-				m_DataStream.Dispose();
 			}
 		}
 	}

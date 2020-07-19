@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Runtime.CompilerServices;
-using Collections.Pooled;
 using ENet;
 using GameHost.Core.IO;
 
@@ -10,14 +8,14 @@ namespace GameHost.Transports
 {
 	public unsafe partial class ENetTransportDriver : TransportDriver
 	{
-		/// <summary>
-		///     The bind address
-		/// </summary>
-		public Address BindingAddress { get; private set; }
-
 		private readonly Dictionary<uint, Connection> m_Connections;
 
 		private readonly int[] m_ConnectionVersions;
+
+		private readonly List<SendPacket> m_PacketsToSend;
+		private readonly List<int>        m_PipelineReliableIds;
+		private readonly List<int>        m_PipelineUnreliableIds;
+		private readonly Queue<uint>      m_QueuedConnections;
 
 		private bool m_DidBind;
 
@@ -26,11 +24,7 @@ namespace GameHost.Transports
 		/// </summary>
 		private Host m_Host;
 
-		private readonly List<SendPacket> m_PacketsToSend;
-		private          int              m_PipelineCount;
-		private readonly List<int>        m_PipelineReliableIds;
-		private readonly List<int>        m_PipelineUnreliableIds;
-		private readonly Queue<uint>      m_QueuedConnections;
+		private int m_PipelineCount;
 
 		public ENetTransportDriver(uint maxConnections)
 		{
@@ -52,6 +46,11 @@ namespace GameHost.Transports
 			Listening = false;
 			m_DidBind = false;
 		}
+
+		/// <summary>
+		///     The bind address
+		/// </summary>
+		public Address BindingAddress { get; private set; }
 
 		public Host Host           => m_Host;
 		public uint MaxConnections { get; }
@@ -97,7 +96,7 @@ namespace GameHost.Transports
 
 			m_PacketsToSend.Clear();
 
-			var   polled = false;
+			var polled = false;
 			while (!polled)
 			{
 				Event netEvent;
