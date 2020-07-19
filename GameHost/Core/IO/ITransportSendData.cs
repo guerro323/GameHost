@@ -2,6 +2,9 @@
 
 namespace GameHost.Core.IO
 {
+	/// <summary>
+	/// Event data
+	/// </summary>
 	public ref struct TransportEvent
 	{
 		public enum EType : byte
@@ -18,6 +21,9 @@ namespace GameHost.Core.IO
 		public Span<byte>          Data;
 	}
 
+	/// <summary>
+	/// Contain data about a connection
+	/// </summary>
 	public struct TransportConnection
 	{
 		public enum State : byte
@@ -34,21 +40,56 @@ namespace GameHost.Core.IO
 		public bool IsCreated => Version > 0;
 	}
 
+	/// <summary>
+	/// A transport channel indicate how a data should be sent.
+	/// </summary>
 	public struct TransportChannel
 	{
 		public int Id;
 		public int Channel;
 	}
 
+	/// <summary>
+	/// A transport driver is an interface for sending data between connections.
+	/// </summary>
 	public abstract class TransportDriver : IDisposable
 	{
-		public abstract TransportConnection       Accept();
-		public abstract void                      Update();
-		public abstract TransportEvent            PopEvent();
+		/// <summary>
+		/// Accept incoming connections
+		/// </summary>
+		/// <returns>Return an accepted connection</returns>
+		public abstract TransportConnection Accept();
+
+		/// <summary>
+		/// Update the driver.
+		/// </summary>
+		public abstract void Update();
+
+		/// <summary>
+		/// Pop a driver event from a connection
+		/// </summary>
+		/// <returns></returns>
+		public abstract TransportEvent PopEvent();
+
+		/// <summary>
+		/// Get the connection state of a connection
+		/// </summary>
+		/// <param name="con"></param>
+		/// <returns></returns>
 		public abstract TransportConnection.State GetConnectionState(TransportConnection con);
 
+		/// <summary>
+		/// Send data to a connection
+		/// </summary>
+		/// <param name="chan"></param>
+		/// <param name="con"></param>
+		/// <param name="data"></param>
+		/// <returns></returns>
 		public abstract int Send(TransportChannel chan, TransportConnection con, Span<byte> data);
 
+		/// <summary>
+		/// Dispose driver's resources.
+		/// </summary>
 		public abstract void Dispose();
 	}
 }
