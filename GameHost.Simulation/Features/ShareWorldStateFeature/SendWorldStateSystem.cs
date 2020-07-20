@@ -148,7 +148,8 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				return (byte*) Unsafe.AsPointer(ref span.GetPinnableReference());
 			}
 
-			var skipMarker = buffer.WriteInt(0);
+			var skipMarker     = buffer.WriteInt(0);
+			var previousLength = buffer.Length;
 
 			var serializer = world.Boards.ComponentType.GetColumn(row, ref custom_column.serializer);
 
@@ -208,7 +209,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 					}
 				}
 
-			buffer.WriteInt(buffer.Length, skipMarker);
+			buffer.WriteInt(buffer.Length - previousLength, skipMarker);
 		}
 	}
 }
