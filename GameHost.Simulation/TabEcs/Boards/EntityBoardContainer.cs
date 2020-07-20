@@ -91,7 +91,7 @@ using System.Collections.Generic;
 			 }
 		 }
 
-		 public ReadOnlySpan<ComponentMetadata> GetComponentColumn(uint type) => getComponentColumn(type);
+		 public Span<ComponentMetadata> GetComponentColumn(uint type) => getComponentColumn(type);
 
 		 private ref ComponentMetadata[] getComponentColumn(uint type)
 		 {

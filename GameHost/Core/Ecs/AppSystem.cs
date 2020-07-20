@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using DryIoc;
+using GameHost.Applications;
 using GameHost.Core.Ecs.Passes;
 using GameHost.Core.Threading;
 using GameHost.Injection;
@@ -62,7 +63,19 @@ namespace GameHost.Core.Ecs
             if (DependencyResolver?.Dependencies.Count > 0)
                 inheritedDependencies = DependencyResolver.Dependencies;
 
-            DependencyResolver                 = new DependencyResolver(Context.Container.Resolve<IScheduler>(), Context, $"Thread({Thread.CurrentThread.Name}) System[{GetType().Name}]");
+            IApplication currentApp;
+
+            var category = string.Empty;
+            if ((currentApp = new ContextBindingStrategy(Context, false).Resolve<IApplication>()) != null)
+            {
+                category = $"App({currentApp.GetType().Name})";
+            }
+            else
+            {
+                category = $"Thread({Thread.CurrentThread.Name})";
+            }
+
+            DependencyResolver                 = new DependencyResolver(Context.Container.Resolve<IScheduler>(), Context, $"{category} System[{GetType().Name}]");
             DependencyResolver.DefaultStrategy = new DefaultAppObjectStrategy(this, World);
             DependencyResolver.OnComplete(OnDependenciesResolved);
 

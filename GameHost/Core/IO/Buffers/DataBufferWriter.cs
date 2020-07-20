@@ -414,6 +414,8 @@ namespace RevolutionSnapshot.Core.Buffers
 
         public void WriteStaticString(char* val, int strLength, Encoding encoding = null)
         {
+            var previousLength = Length;
+            
             // If we have a null encoding, let's get the most used one (UTF8)
             encoding = encoding ?? Encoding.UTF8;
 

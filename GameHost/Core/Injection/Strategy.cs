@@ -31,7 +31,7 @@ namespace GameHost.Injection
 
         public object Resolve(Type type)
         {
-            var result = ctx.Container.Resolve(type, resolveInParent ? IfUnresolved.ReturnDefault : IfUnresolved.Throw);
+            var result = ctx.Container.Resolve(type, IfUnresolved.ReturnDefault);
             if (!resolveInParent || result != null)
                 return result;
 

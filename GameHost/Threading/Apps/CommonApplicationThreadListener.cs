@@ -1,4 +1,5 @@
 ﻿using System;
+using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Threading;
 using GameHost.Injection;
@@ -20,6 +21,7 @@ namespace GameHost.Threading.Apps
 			Global    = source;
 			Data      = new ApplicationData(overrideContext ?? new Context(source.Context));
 			Data.Context.BindExisting<IScheduler>(Scheduler);
+			Data.Context.BindExisting<IApplication>(this);
 		}
 
 		public virtual void OnAttachedToUpdater(ListenerCollectionBase updater)

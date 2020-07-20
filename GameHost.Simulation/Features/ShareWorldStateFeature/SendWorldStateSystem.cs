@@ -37,6 +37,8 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				}
 			}
 
+			data.Dispose();
+
 			//Console.WriteLine(data.Length);
 		}
 
@@ -74,26 +76,33 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 		private unsafe DataBufferWriter GetDataParallel(GameWorld world)
 		{
+			byte* ptr<T>(Span<T> span)
+			{
+				return (byte*) Unsafe.AsPointer(ref span.GetPinnableReference());
+			}
+
 			var dataBuffer = new DataBufferWriter(world.Boards.Entity.Alive.Length * sizeof(long));
 
 			var entities = world.Boards.Entity.Alive;
 
 			dataBuffer.WriteInt(entities.Length);
 			if (entities.Length > 0)
-				dataBuffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref entities.GetPinnableReference()), sizeof(GameEntity), default);
+			{
+				dataBuffer.WriteDataSafe(ptr(entities), entities.Length * sizeof(GameEntity), default);
+			}
 
 			var componentTypeSpan = world.Boards.ComponentType.Registered;
 			dataBuffer.WriteInt(componentTypeSpan.Length);
 			if (componentTypeSpan.Length > 0)
 			{
-				dataBuffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentTypeSpan.GetPinnableReference()), sizeof(ComponentType), default);
+				dataBuffer.WriteDataSafe(ptr(componentTypeSpan), componentTypeSpan.Length * sizeof(ComponentType), default);
 
 				var componentBuffers = new DataBufferWriter[componentTypeSpan.Length];
 				Parallel.ForEach(componentTypeSpan.ToArray(), (componentType, loop, i) =>
 				{
 					var buffer   = componentBuffers[i] = new DataBufferWriter(128);
 					var entities = world.Boards.Entity.Alive;
-					
+
 					Inner(ref buffer, world, componentType.Id, entities);
 				});
 
@@ -105,17 +114,22 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 			return dataBuffer;
 		}
-		
+
 		private unsafe void Inner(ref DataBufferWriter buffer, GameWorld world, uint row, Span<GameEntity> entities)
 		{
-			buffer.WriteValue(world.Boards.ComponentType.SizeColumns[(int) row]);
-			buffer.WriteStaticString(world.Boards.ComponentType.NameColumns[(int) row]);
+			byte* ptr<T>(Span<T> span)
+			{
+				return (byte*) Unsafe.AsPointer(ref span.GetPinnableReference());
+			}
+
+			buffer.WriteInt(world.Boards.ComponentType.SizeColumns[(int) row]);
+			buffer.WriteString(world.Boards.ComponentType.NameColumns[(int) row]);
 
 			var serializer = world.Boards.ComponentType.GetColumn(row, ref custom_column.serializer);
 
 			var componentBoard = world.Boards.ComponentType.ComponentBoardColumns[(int) row];
 			buffer.Capacity += componentBoard.Size * entities.Length;
-					
+
 			if (serializer != null && serializer.CanSerialize(world, entities, componentBoard))
 			{
 				serializer.SerializeBoard(ref buffer, world, entities, componentBoard);
@@ -123,12 +137,18 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			else if (componentBoard is SingleComponentBoard singleComponentBoard)
 			{
 				var linkColumnSpan = world.Boards.Entity.GetComponentColumn(row);
+
+				buffer.WriteInt(linkColumnSpan.Length);
+				buffer.WriteDataSafe(ptr(linkColumnSpan), linkColumnSpan.Length * sizeof(EntityBoardContainer.ComponentMetadata), default);
 				for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
 				{
+					var entity = entities[ent];
+					if (linkColumnSpan[(int) entity.Id].Null)
+						continue;
+					
 					// Recursive support for shared components.
 
 					var recursionLeft = GameWorld.RecursionLimit;
-					var entity        = entities[ent];
 					while (recursionLeft-- > 0)
 					{
 						var link = linkColumnSpan[(int) entity.Id];
@@ -146,7 +166,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 					if (recursionLeft == 0)
 						throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{entities[ent]}' and component (backing: {row})");
 				}
-			}			
+			}
 		}
 	}
 }
