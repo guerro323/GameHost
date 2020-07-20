@@ -135,6 +135,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			foreach (var buffer in componentBuffers)
 			{
 				dataBuffer.WriteBuffer(buffer);
+				buffer.Dispose();
 			}
 
 			return dataBuffer;
