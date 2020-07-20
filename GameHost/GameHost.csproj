@@ -10,7 +10,7 @@
       <PackageReference Include="DefaultEcs" Version="0.14.3" />
       <PackageReference Include="DryIoc" Version="4.2.3" />
       <PackageReference Include="JetBrains.Annotations" Version="2020.2.0-eap" />
-      <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta18" />
+      <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta19" />
       <PackageReference Include="SharpZipLib" Version="1.2.0" />
       <PackageReference Include="ZLogger" Version="1.2.1" />
     </ItemGroup>
