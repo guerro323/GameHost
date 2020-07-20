@@ -48,31 +48,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			custom_column.serializer[(int) componentType.Id] = serializer;
 		}
 
-		private unsafe DataBufferWriter GetData(GameWorld world)
-		{
-			var buffer = new DataBufferWriter(world.Boards.Entity.Alive.Length * sizeof(long));
-
-			var entities = world.Boards.Entity.Alive;
-
-			buffer.WriteInt(entities.Length);
-			if (entities.Length > 0)
-				buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref entities.GetPinnableReference()), sizeof(GameEntity), default);
-
-			var componentTypeSpan = world.Boards.ComponentType.Registered;
-			buffer.WriteInt(componentTypeSpan.Length);
-			if (componentTypeSpan.Length > 0)
-			{
-				buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentTypeSpan.GetPinnableReference()), sizeof(ComponentType), default);
-				for (var t = 0; t != componentTypeSpan.Length; t++)
-				{
-					Inner(ref buffer, world, componentTypeSpan[t].Id, entities);
-				}
-			}
-
-			return buffer;
-		}
-
-		private unsafe DataBufferWriter GetDataParallel(GameWorld world)
+		private unsafe DataBufferWriter GetDataParallel(GameWorld world, bool forceSingleThread = false)
 		{
 			byte* ptr<T>(Span<T> span)
 			{
@@ -81,21 +57,68 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 			var dataBuffer = new DataBufferWriter(world.Boards.Entity.Alive.Length * sizeof(long));
 
-			var entities = world.Boards.Entity.Alive;
-
-			dataBuffer.WriteInt(entities.Length);
-			if (entities.Length > 0)
-			{
-				dataBuffer.WriteDataSafe(ptr(entities), entities.Length * sizeof(GameEntity), default);
-			}
-
+			// 1. Write Component types
 			var componentTypeSpan = world.Boards.ComponentType.Registered;
 			dataBuffer.WriteInt(componentTypeSpan.Length);
 			if (componentTypeSpan.Length > 0)
 			{
 				dataBuffer.WriteDataSafe(ptr(componentTypeSpan), componentTypeSpan.Length * sizeof(ComponentType), default);
 
-				var componentBuffers = new DataBufferWriter[componentTypeSpan.Length];
+				// 2.5 Write description of component type
+				foreach (var componentType in componentTypeSpan)
+				{
+					dataBuffer.WriteInt(world.Boards.ComponentType.SizeColumns[(int) componentType.Id]);
+					dataBuffer.WriteString(world.Boards.ComponentType.NameColumns[(int) componentType.Id]);
+				}
+			}
+
+			// 2. Write entities
+			var entities = world.Boards.Entity.Alive;
+			dataBuffer.WriteInt(entities.Length);
+			if (entities.Length > 0)
+			{
+				// 2.1
+				dataBuffer.WriteDataSafe(ptr(entities), entities.Length * sizeof(GameEntity), default);
+				// 2.2 archetypes
+				dataBuffer.WriteDataSafe(ptr(world.Boards.Entity.ArchetypeColumn), entities.Length * sizeof(GameEntity), default);
+			}
+			else
+			{
+				return dataBuffer;
+			}
+
+			// 3. Write archetypes
+			var archetypes = world.Boards.Archetype.Registered;
+			if (archetypes.Length > 0)
+			{
+				dataBuffer.WriteDataSafe(ptr(archetypes), archetypes.Length * sizeof(EntityArchetype), default);
+
+				// 3.1 write registered components of each archetype
+				for (var i = 0; i != archetypes.Length; i++)
+				{
+					var row               = archetypes[i].Id;
+					var archetypeTypeSpan = world.Boards.Archetype.GetComponentTypes(row);
+					dataBuffer.WriteInt(archetypeTypeSpan.Length);
+					dataBuffer.WriteDataSafe(ptr(archetypeTypeSpan), archetypeTypeSpan.Length * sizeof(uint), default);
+				}
+			}
+			else
+			{
+				return dataBuffer;
+			}
+
+			// 4. Write components
+			var componentBuffers = new DataBufferWriter[componentTypeSpan.Length];
+			if (forceSingleThread)
+			{
+				for (var i = 0; i != componentTypeSpan.Length; i++)
+				{
+					var buffer = componentBuffers[i] = new DataBufferWriter(128);
+					Inner(ref buffer, world, componentTypeSpan[i].Id, entities);
+				}
+			}
+			else
+			{
 				Parallel.ForEach(componentTypeSpan.ToArray(), (componentType, loop, i) =>
 				{
 					var buffer   = componentBuffers[i] = new DataBufferWriter(128);
@@ -103,11 +126,11 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 					Inner(ref buffer, world, componentType.Id, entities);
 				});
+			}
 
-				foreach (var buffer in componentBuffers)
-				{
-					dataBuffer.WriteBuffer(buffer);
-				}
+			foreach (var buffer in componentBuffers)
+			{
+				dataBuffer.WriteBuffer(buffer);
 			}
 
 			return dataBuffer;
@@ -121,8 +144,6 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			}
 
 			var skipMarker = buffer.WriteInt(0);
-			buffer.WriteInt(world.Boards.ComponentType.SizeColumns[(int) row]);
-			buffer.WriteString(world.Boards.ComponentType.NameColumns[(int) row]);
 
 			var serializer = world.Boards.ComponentType.GetColumn(row, ref custom_column.serializer);
 

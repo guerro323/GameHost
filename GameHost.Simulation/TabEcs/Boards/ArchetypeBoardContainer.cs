@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 
 namespace GameHost.Simulation.TabEcs
 {
@@ -17,6 +18,32 @@ namespace GameHost.Simulation.TabEcs
 		{
 			column.componentTypes = new uint[0][];
 			column.sum = new uint[0];
+		}
+
+		public override void CreateRowBulk(Span<uint> rows)
+		{
+			base.CreateRowBulk(rows);
+			if (board.MaxId >= column.componentTypes.Length)
+				OnResize();
+		}
+
+		public override uint CreateRow()
+		{
+			var row = base.CreateRow();
+			if (board.MaxId >= column.componentTypes.Length)
+				OnResize();
+
+			return row;
+		}
+		
+		protected virtual void OnResize()
+		{
+			var previousLength = column.componentTypes.Length;
+			Array.Resize(ref column.componentTypes, (int) ((board.MaxId + 1) * 2));
+			for (var i = previousLength; i < column.componentTypes.Length; i++)
+			{
+				column.componentTypes[i] = Array.Empty<uint>();
+			}
 		}
 
 		public uint GetOrCreateRow(Span<uint> componentTypes, bool isOrdered)
@@ -65,13 +92,13 @@ namespace GameHost.Simulation.TabEcs
 
 			var row = CreateRow();
 			GetColumn(row, ref column.sum)            = sum;
-
-			var prevLength = column.componentTypes.Length;
 			GetColumn(row, ref column.componentTypes) = componentTypes.ToArray();
-			if (prevLength != column.componentTypes.Length)
-				Array.Fill(column.componentTypes, Array.Empty<uint>(), prevLength, column.componentTypes.Length - prevLength);
-			
+
 			return row;
 		}
+
+		public Span<uint> GetComponentTypes(uint row) => column.componentTypes[row];
+		
+		public Span<EntityArchetype> Registered => MemoryMarshal.Cast<uint, EntityArchetype>(board.UsedRows);
 	}
 }
