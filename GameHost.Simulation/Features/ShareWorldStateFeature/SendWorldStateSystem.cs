@@ -31,6 +31,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			base.OnUpdate();
 
 			GetDataParallel(gameWorld);
+			
 			foreach (var feature in Features)
 			{
 				unsafe

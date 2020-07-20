@@ -53,7 +53,7 @@ namespace GameHost.Audio
 				{
 					unsafe
 					{
-						feature.Driver.Broadcast(feature.PreferredChannel, new ReadOnlySpan<byte>((void*) buffer.GetSafePtr(), buffer.Length));
+						feature.Driver.Broadcast(feature.PreferredChannel, new Span<byte>((void*) buffer.GetSafePtr(), buffer.Length));
 					}
 				}
 
