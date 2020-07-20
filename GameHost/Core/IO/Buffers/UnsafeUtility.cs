@@ -9,7 +9,10 @@ namespace RevolutionSnapshot.Core.Buffers
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void* Malloc(int size)
 		{
-			return (void*) Marshal.AllocHGlobal(size);
+			var ptr = (void*) Marshal.AllocHGlobal(size);
+			if (ptr == lastFreedAddress)
+				lastFreedAddress = null;
+			return ptr;
 		}
 
 		[ThreadStatic]

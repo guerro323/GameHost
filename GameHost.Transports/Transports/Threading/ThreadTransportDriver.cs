@@ -147,7 +147,7 @@ namespace GameHost.Transports
 			}
 		}
 
-		public override unsafe int Send(TransportChannel chan, TransportConnection con, ReadOnlySpan<byte> data)
+		public override unsafe int Send(TransportChannel chan, TransportConnection con, Span<byte> data)
 		{
 			lock (m_Connections)
 			{
@@ -172,7 +172,7 @@ namespace GameHost.Transports
 			}
 		}
 
-		public override int Broadcast(TransportChannel chan, ReadOnlySpan<byte> data)
+		public override int Broadcast(TransportChannel chan, Span<byte> data)
 		{
 			lock (m_Connections)
 			{

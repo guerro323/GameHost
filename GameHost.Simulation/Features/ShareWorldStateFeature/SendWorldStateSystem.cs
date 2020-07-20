@@ -16,28 +16,35 @@ namespace GameHost.Simulation.Features.ShareWorldState
 		private GameWorld gameWorld;
 
 		private (IShareComponentSerializer[] serializer, byte h) custom_column;
+		private DataBufferWriter dataBuffer;
 
 		public SendWorldStateSystem(WorldCollection collection) : base(collection)
 		{
 			DependencyResolver.Add(() => ref gameWorld);
 
 			custom_column.serializer = new IShareComponentSerializer[0];
+			dataBuffer = new DataBufferWriter(0);
 		}
 
 		protected override void OnUpdate()
 		{
 			base.OnUpdate();
 
-			var data = GetDataParallel(gameWorld);
+			GetDataParallel(gameWorld);
 			foreach (var feature in Features)
 			{
 				unsafe
 				{
-					feature.Transport.Broadcast(default, new ReadOnlySpan<byte>((void*) data.GetSafePtr(), data.Length));
+					feature.Transport.Broadcast(default, new Span<byte>((void*) dataBuffer.GetSafePtr(), dataBuffer.Length));
 				}
 			}
+		}
 
-			data.Dispose();
+		public override void Dispose()
+		{
+			base.Dispose();
+			
+			dataBuffer.Dispose();
 		}
 
 		public void SetComponentSerializer(ComponentType componentType, IShareComponentSerializer serializer)
@@ -50,8 +57,8 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 		private unsafe DataBufferWriter GetDataParallel(GameWorld world, bool forceSingleThread = false)
 		{
-			var dataBuffer = new DataBufferWriter(world.Boards.Entity.Alive.Length * sizeof(long));
-
+			dataBuffer.Length = 0;
+			
 			// 1. Write Component types
 			var componentTypeSpan = world.Boards.ComponentType.Registered;
 			dataBuffer.WriteInt(componentTypeSpan.Length);
@@ -66,7 +73,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 					dataBuffer.WriteStaticString(world.Boards.ComponentType.NameColumns[(int) componentType.Id]);
 				}
 			}
-			
+
 			// 2. Write archetypes
 			var archetypes = world.Boards.Archetype.Registered;
 			dataBuffer.WriteInt(archetypes.Length);
@@ -105,7 +112,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			}
 
 			// 4. Write components
-			/*var componentBuffers = new DataBufferWriter[componentTypeSpan.Length];
+			var componentBuffers = new DataBufferWriter[componentTypeSpan.Length];
 			if (forceSingleThread)
 			{
 				for (var i = 0; i != componentTypeSpan.Length; i++)
@@ -128,7 +135,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			foreach (var buffer in componentBuffers)
 			{
 				dataBuffer.WriteBuffer(buffer);
-			}*/
+			}
 
 			return dataBuffer;
 		}
