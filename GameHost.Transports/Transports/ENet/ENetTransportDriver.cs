@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using ENet;
 using GameHost.Core.IO;
 using ICSharpCode.SharpZipLib.Zip;
+using RevolutionSnapshot.Core.Buffers;
 
 namespace GameHost.Transports
 {
@@ -107,47 +108,51 @@ namespace GameHost.Transports
 
 			m_PacketsToSend.Clear();
 
-			var polled = false;
-			while (!polled)
+			const int maxEventPerFrame = 32;
+			for (var i = 0; i != maxEventPerFrame; i++)
 			{
-				Event netEvent;
-				if (m_Host.CheckEvents(out netEvent) <= 0)
+				var polled = false;
+				while (!polled)
 				{
-					if (m_Host.Service(0, out netEvent) <= 0)
-						break;
-
-					polled = true;
-				}
-
-				var peerId                                                                       = (int) netEvent.Peer.ID;
-				if (!m_Connections.TryGetValue(netEvent.Peer.ID, out var connection)) connection = AddConnection(netEvent.Peer);
-
-				switch (netEvent.Type)
-				{
-					case NetEventType.None:
-						break;
-					case NetEventType.Connect:
-						m_QueuedConnections.Enqueue(netEvent.Peer.ID);
-						break;
-					case NetEventType.Receive:
-						connection.AddMessage(netEvent.Packet.Data, netEvent.Packet.Length);
-						netEvent.Packet.Dispose();
-						break;
-					case NetEventType.Disconnect:
-					case NetEventType.Timeout:
+					Event netEvent;
+					if (m_Host.CheckEvents(out netEvent) <= 0)
 					{
-						connection.AddEvent(TransportEvent.EType.Disconnect);
-						connection.QueuedForDisconnection = true;
+						if (m_Host.Service(0, out netEvent) <= 0)
+							break;
 
-						// increment version
-						var ver = m_ConnectionVersions[peerId];
-						ver++;
-						m_ConnectionVersions[peerId] = ver;
-						break;
+						polled = true;
 					}
 
-					default:
-						throw new ArgumentOutOfRangeException();
+					var peerId                                                                       = (int) netEvent.Peer.ID;
+					if (!m_Connections.TryGetValue(netEvent.Peer.ID, out var connection)) connection = AddConnection(netEvent.Peer);
+
+					switch (netEvent.Type)
+					{
+						case NetEventType.None:
+							break;
+						case NetEventType.Connect:
+							m_QueuedConnections.Enqueue(netEvent.Peer.ID);
+							break;
+						case NetEventType.Receive:
+							connection.AddMessage(netEvent.Packet.Data, netEvent.Packet.Length);
+							netEvent.Packet.Dispose();
+							break;
+						case NetEventType.Disconnect:
+						case NetEventType.Timeout:
+						{
+							connection.AddEvent(TransportEvent.EType.Disconnect);
+							connection.QueuedForDisconnection = true;
+
+							// increment version
+							var ver = m_ConnectionVersions[peerId];
+							ver++;
+							m_ConnectionVersions[peerId] = ver;
+							break;
+						}
+
+						default:
+							throw new ArgumentOutOfRangeException();
+					}
 				}
 			}
 		}
@@ -265,12 +270,13 @@ namespace GameHost.Transports
 
 			var packet = new Packet();
 			{
-				var dataPtr = stackalloc byte[data.Length];
+				var dataPtr = UnsafeUtility.Malloc(data.Length);
 				data.CopyTo(new Span<byte>(dataPtr, data.Length));
 				
 				if (m_PipelineReliableIds.Contains(chan.Id))
 				{
 					packet.Create((IntPtr) dataPtr, data.Length, PacketFlags.Reliable);
+					UnsafeUtility.Free(dataPtr);
 					m_PacketsToSend.Add(new SendPacket {Packet = packet, Peer = connection.Peer, Channel = (byte) chan.Channel});
 					return 0;
 				}
@@ -278,6 +284,7 @@ namespace GameHost.Transports
 				if (chan.Id == default || m_PipelineUnreliableIds.Contains(chan.Id))
 				{
 					packet.Create((IntPtr) dataPtr, data.Length, PacketFlags.None);
+					UnsafeUtility.Free(dataPtr);
 					m_PacketsToSend.Add(new SendPacket {Packet = packet, Peer = connection.Peer, Channel = (byte) chan.Channel});
 					return 0;
 				}

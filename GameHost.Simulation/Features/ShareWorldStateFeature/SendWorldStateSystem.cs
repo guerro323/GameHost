@@ -38,8 +38,6 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			}
 
 			data.Dispose();
-
-			//Console.WriteLine(data.Length);
 		}
 
 		public void SetComponentSerializer(ComponentType componentType, IShareComponentSerializer serializer)
@@ -122,6 +120,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				return (byte*) Unsafe.AsPointer(ref span.GetPinnableReference());
 			}
 
+			var skipMarker = buffer.WriteInt(0);
 			buffer.WriteInt(world.Boards.ComponentType.SizeColumns[(int) row]);
 			buffer.WriteString(world.Boards.ComponentType.NameColumns[(int) row]);
 
@@ -145,7 +144,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 					var entity = entities[ent];
 					if (linkColumnSpan[(int) entity.Id].Null)
 						continue;
-					
+
 					// Recursive support for shared components.
 
 					var recursionLeft = GameWorld.RecursionLimit;
@@ -167,6 +166,8 @@ namespace GameHost.Simulation.Features.ShareWorldState
 						throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{entities[ent]}' and component (backing: {row})");
 				}
 			}
+
+			buffer.WriteInt(buffer.Length, skipMarker);
 		}
 	}
 }
