@@ -50,11 +50,6 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 		private unsafe DataBufferWriter GetDataParallel(GameWorld world, bool forceSingleThread = false)
 		{
-			byte* ptr<T>(Span<T> span)
-			{
-				return (byte*) Unsafe.AsPointer(ref span.GetPinnableReference());
-			}
-
 			var dataBuffer = new DataBufferWriter(world.Boards.Entity.Alive.Length * sizeof(long));
 
 			// 1. Write Component types
@@ -62,45 +57,47 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			dataBuffer.WriteInt(componentTypeSpan.Length);
 			if (componentTypeSpan.Length > 0)
 			{
-				dataBuffer.WriteDataSafe(ptr(componentTypeSpan), componentTypeSpan.Length * sizeof(ComponentType), default);
+				dataBuffer.WriteSpan(componentTypeSpan);
 
-				// 2.5 Write description of component type
+				// 1.5 Write description of component type
 				foreach (var componentType in componentTypeSpan)
 				{
 					dataBuffer.WriteInt(world.Boards.ComponentType.SizeColumns[(int) componentType.Id]);
-					dataBuffer.WriteString(world.Boards.ComponentType.NameColumns[(int) componentType.Id]);
+					dataBuffer.WriteStaticString(world.Boards.ComponentType.NameColumns[(int) componentType.Id]);
 				}
 			}
-
-			// 2. Write entities
-			var entities = world.Boards.Entity.Alive;
-			dataBuffer.WriteInt(entities.Length);
-			if (entities.Length > 0)
+			
+			// 2. Write archetypes
+			var archetypes = world.Boards.Archetype.Registered;
+			dataBuffer.WriteInt(archetypes.Length);
+			if (archetypes.Length > 0)
 			{
-				// 2.1
-				dataBuffer.WriteDataSafe(ptr(entities), entities.Length * sizeof(GameEntity), default);
-				// 2.2 archetypes
-				dataBuffer.WriteDataSafe(ptr(world.Boards.Entity.ArchetypeColumn), entities.Length * sizeof(GameEntity), default);
+				dataBuffer.WriteSpan(archetypes);
+
+				// 2.1 write registered components of each archetype
+				for (var i = 0; i != archetypes.Length; i++)
+				{
+					var row               = archetypes[i].Id;
+					var archetypeTypeSpan = world.Boards.Archetype.GetComponentTypes(row);
+					dataBuffer.WriteInt(archetypeTypeSpan.Length);
+					dataBuffer.WriteSpan(archetypeTypeSpan);
+				}
 			}
 			else
 			{
 				return dataBuffer;
 			}
 
-			// 3. Write archetypes
-			var archetypes = world.Boards.Archetype.Registered;
-			if (archetypes.Length > 0)
+			// 3. Write entities
+			var entities = world.Boards.Entity.Alive;
+			dataBuffer.WriteInt(entities.Length);
+			if (entities.Length > 0)
 			{
-				dataBuffer.WriteDataSafe(ptr(archetypes), archetypes.Length * sizeof(EntityArchetype), default);
-
-				// 3.1 write registered components of each archetype
-				for (var i = 0; i != archetypes.Length; i++)
-				{
-					var row               = archetypes[i].Id;
-					var archetypeTypeSpan = world.Boards.Archetype.GetComponentTypes(row);
-					dataBuffer.WriteInt(archetypeTypeSpan.Length);
-					dataBuffer.WriteDataSafe(ptr(archetypeTypeSpan), archetypeTypeSpan.Length * sizeof(uint), default);
-				}
+				// 3.1
+				dataBuffer.WriteSpan(entities);
+				// 3.2 archetypes
+				dataBuffer.WriteInt(world.Boards.Entity.ArchetypeColumn.Length); // the length of the column is important since it can be bigger than the alive entities.
+				dataBuffer.WriteSpan(world.Boards.Entity.ArchetypeColumn);
 			}
 			else
 			{
@@ -108,7 +105,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			}
 
 			// 4. Write components
-			var componentBuffers = new DataBufferWriter[componentTypeSpan.Length];
+			/*var componentBuffers = new DataBufferWriter[componentTypeSpan.Length];
 			if (forceSingleThread)
 			{
 				for (var i = 0; i != componentTypeSpan.Length; i++)
@@ -131,7 +128,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			foreach (var buffer in componentBuffers)
 			{
 				dataBuffer.WriteBuffer(buffer);
-			}
+			}*/
 
 			return dataBuffer;
 		}

@@ -110,7 +110,7 @@ namespace RevolutionSnapshot.Core.Buffers
             var predictedLength = writeIndex + writeSize;
 
             // Copy from TryResize()
-            if (m_Data->capacity < predictedLength)
+            if (m_Data->capacity <= predictedLength)
             {
                 Capacity  = predictedLength * 2;
             }
@@ -125,6 +125,12 @@ namespace RevolutionSnapshot.Core.Buffers
             rm.Index = writeIndex;
 
             return rm;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public DataBufferMarker WriteSpan<T>(Span<T> span, DataBufferMarker marker = default)
+        {
+            return WriteDataSafe((byte*) Unsafe.AsPointer(ref span.GetPinnableReference()), Unsafe.SizeOf<T>() * span.Length, marker);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -198,6 +204,8 @@ namespace RevolutionSnapshot.Core.Buffers
 
         public DataBufferMarker WriteString(char* val, int strLength, Encoding encoding = null, DataBufferMarker marker = default(DataBufferMarker))
         {
+            throw new NotImplementedException("crash");
+            
             // If we have a null encoding, let's get the default one (UTF8)
             encoding = encoding ?? Encoding.UTF8;
 
@@ -441,8 +449,6 @@ namespace RevolutionSnapshot.Core.Buffers
                 // Re-write the end integer from end marker
                 var l = Length;
                 WriteInt(Length, endMarker);
-                
-                UnsafeUtility.Free(tempCpyPtr);
             }
             catch (Exception ex)
             {

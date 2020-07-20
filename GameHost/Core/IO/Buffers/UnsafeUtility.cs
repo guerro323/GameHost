@@ -12,16 +12,23 @@ namespace RevolutionSnapshot.Core.Buffers
 			return (void*) Marshal.AllocHGlobal(size);
 		}
 
+		[ThreadStatic]
+		private static void* lastFreedAddress;
+		
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Free(void* addr)
+		{
+			if (lastFreedAddress == addr)
+				throw new InvalidOperationException("You are freeing on the previous freed address!");
+
+			lastFreedAddress = addr;
+			Marshal.FreeHGlobal((IntPtr) addr);
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void MemCpy(byte* addr1, byte* addr2, int size)
 		{
 			Unsafe.CopyBlock(addr1, addr2, (uint) size);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Free(void* addr)
-		{
-			Marshal.FreeHGlobal((IntPtr) addr);
 		}
 		
 		const int Threshold = 128;

@@ -69,6 +69,7 @@ using System.Collections.Generic;
 			 // Check whether or not the max id has been updated, and if it does, resize our component link columns
 			 if (board.MaxId > maxId)
 			 {
+				 GetColumn(board.MaxId, ref column.archetype);
 				 foreach (var componentColumn in assignedComponentMap.Values)
 				 {
 					 GetColumn(board.MaxId, ref componentColumn.reference);
@@ -86,6 +87,7 @@ using System.Collections.Generic;
 			 // Check whether or not the max id has been updated, and if it does, resize our component link columns
 			 if (board.MaxId > maxId)
 			 {
+				 GetColumn(board.MaxId, ref column.archetype);
 				 foreach (var componentColumn in assignedComponentMap.Values)
 				 {
 					 GetColumn(board.MaxId, ref componentColumn.reference);
