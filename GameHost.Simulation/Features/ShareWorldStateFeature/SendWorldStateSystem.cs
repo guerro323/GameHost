@@ -139,6 +139,9 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 				buffer.WriteInt(linkColumnSpan.Length);
 				buffer.WriteDataSafe(ptr(linkColumnSpan), linkColumnSpan.Length * sizeof(EntityBoardContainer.ComponentMetadata), default);
+
+				var countMarker = buffer.WriteInt(0);
+				var count = 0;
 				for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
 				{
 					var entity = entities[ent];
@@ -157,6 +160,8 @@ namespace GameHost.Simulation.Features.ShareWorldState
 							continue;
 						}
 
+						count++;
+
 						var componentData = singleComponentBoard.ReadRaw(link.Id);
 						buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentData.GetPinnableReference()), componentBoard.Size, default);
 						break;
@@ -165,6 +170,8 @@ namespace GameHost.Simulation.Features.ShareWorldState
 					if (recursionLeft == 0)
 						throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{entities[ent]}' and component (backing: {row})");
 				}
+
+				buffer.WriteInt(count, countMarker);
 			}
 
 			buffer.WriteInt(buffer.Length, skipMarker);

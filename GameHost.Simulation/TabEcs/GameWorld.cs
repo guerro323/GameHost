@@ -14,6 +14,7 @@ namespace GameHost.Simulation.TabEcs
 		public struct __Boards
 		{
 			public EntityBoardContainer        Entity;
+			public ArchetypeBoardContainer     Archetype;
 			public ComponentTypeBoardContainer ComponentType;
 		}
 
@@ -26,6 +27,7 @@ namespace GameHost.Simulation.TabEcs
 			Boards = new __Boards
 			{
 				Entity        = new EntityBoardContainer(0),
+				Archetype     = new ArchetypeBoardContainer(0),
 				ComponentType = new ComponentTypeBoardContainer(0)
 			};
 		}

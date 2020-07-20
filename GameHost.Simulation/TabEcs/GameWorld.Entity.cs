@@ -22,5 +22,10 @@ namespace GameHost.Simulation.TabEcs
 
 			Boards.Entity.DeleteRow(entity.Id);
 		}
+
+		public EntityArchetype GetArchetype(GameEntity entity)
+		{
+			return Boards.Entity.ArchetypeColumn[(int) entity.Id];
+		}
 	}
 }

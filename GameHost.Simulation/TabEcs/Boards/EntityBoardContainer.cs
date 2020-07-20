@@ -53,10 +53,12 @@ using System.Collections.Generic;
 		 }
 
 		 private Dictionary<uint, AssignedComponent> assignedComponentMap;
+		 private (uint[] archetype, byte h) column;
 
 		 public EntityBoardContainer(int capacity) : base(capacity)
 		 {
 			 assignedComponentMap = new Dictionary<uint, AssignedComponent>();
+			 column.archetype     = new uint[0];
 		 }
 
 		 public override uint CreateRow()
@@ -133,7 +135,17 @@ using System.Collections.Generic;
 			 current = ComponentMetadata.Shared(linkedRow);
 			 return previous.Id;
 		 }
-		 
+
+		 public uint AssignArchetype(uint row, uint archetype)
+		 {
+			 ref var current  = ref GetColumn(row, ref column.archetype);
+			 var     previous = current;
+
+			 current = archetype;
+			 return previous;
+		 }
+
 		 public Span<GameEntity> Alive => MemoryMarshal.Cast<uint, GameEntity>(board.UsedRows);
+		 public Span<EntityArchetype> ArchetypeColumn => MemoryMarshal.Cast<uint, EntityArchetype>(column.archetype);
 	 }
  }

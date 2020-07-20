@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace GameHost.Simulation.TabEcs.LLAPI
 {
@@ -54,6 +55,29 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 			}
 
 			return false;
+		}
+
+		public static uint UpdateArchetype(ArchetypeBoardContainer archetypeBoard, ComponentTypeBoardContainer componentTypeBoard, EntityBoardContainer entityBoard, GameEntity entity)
+		{
+			var typeSpan   = componentTypeBoard.Registered;
+			var foundIndex = 0;
+
+			Span<uint> founds = stackalloc uint[typeSpan.Length];
+
+			for (var i = 0; i != typeSpan.Length; i++)
+			{
+				var metadataSpan = entityBoard.GetComponentColumn(typeSpan[i].Id);
+				if (metadataSpan.Length <= entity.Id)
+					continue;
+				
+				var metadata     = metadataSpan[(int) entity.Id];
+				if (metadata.Valid)
+					founds[foundIndex++] = typeSpan[i].Id;
+			}
+
+			var archetype = archetypeBoard.GetOrCreateRow(founds.Slice(0, foundIndex), true);
+			entityBoard.AssignArchetype(entity.Id, archetype);
+			return archetype;
 		}
 	}
 }

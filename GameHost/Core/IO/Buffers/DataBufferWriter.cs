@@ -254,6 +254,8 @@ namespace RevolutionSnapshot.Core.Buffers
                 WriteDataSafe((byte*) tempCpyPtr, cpyLength - sizeDiff, returnMarker.GetOffset(sizeof(int) * 3));
                 // Re-write the end integer from end marker
                 WriteInt(endIndex < 0 ? Length : endIndex, endMarker);
+                
+                UnsafeUtility.Free(tempCpyPtr);
             }
             catch (Exception ex)
             {
@@ -439,6 +441,8 @@ namespace RevolutionSnapshot.Core.Buffers
                 // Re-write the end integer from end marker
                 var l = Length;
                 WriteInt(Length, endMarker);
+                
+                UnsafeUtility.Free(tempCpyPtr);
             }
             catch (Exception ex)
             {
