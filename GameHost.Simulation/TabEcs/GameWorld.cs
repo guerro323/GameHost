@@ -48,7 +48,16 @@ namespace GameHost.Simulation.TabEcs
 
 			ComponentBoardBase board = null;
 			if (typeof(IComponentData).IsAssignableFrom(typeof(T)))
-				board = new SingleComponentBoard(Unsafe.SizeOf<T>(), 0);
+			{
+				if (ComponentTypeUtility.IsZeroSizeStruct(typeof(T)))
+				{
+					board = new TagComponentBoard(0);
+				}
+				else
+				{
+					board = new SingleComponentBoard(Unsafe.SizeOf<T>(), 0);
+				}
+			}
 			else if (typeof(IComponentBuffer).IsAssignableFrom(typeof(T)))
 				board = new BufferComponentBoard(Unsafe.SizeOf<T>(), 0);
 			else

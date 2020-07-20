@@ -84,7 +84,11 @@ namespace GameHost.Simulation.TabEcs
 			where T : struct, IComponentData
 		{
 			var componentType = GetComponentType<T>().Id;
-			if (!(Boards.ComponentType.ComponentBoardColumns[(int) componentType] is SingleComponentBoard componentColumn))
+			var board = Boards.ComponentType.ComponentBoardColumns[(int) componentType];
+			if (board is TagComponentBoard)
+				return ref TagComponentBoard.Default<T>.V;
+			
+			if (!(board is SingleComponentBoard componentColumn))
 				throw new InvalidOperationException($"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
 
 			var recursionLeft  = RecursionLimit;

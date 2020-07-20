@@ -16,14 +16,14 @@ namespace GameHost.Simulation.Features.ShareWorldState
 		private GameWorld gameWorld;
 
 		private (IShareComponentSerializer[] serializer, byte h) custom_column;
-		private DataBufferWriter dataBuffer;
+		private DataBufferWriter                                 dataBuffer;
 
 		public SendWorldStateSystem(WorldCollection collection) : base(collection)
 		{
 			DependencyResolver.Add(() => ref gameWorld);
 
 			custom_column.serializer = new IShareComponentSerializer[0];
-			dataBuffer = new DataBufferWriter(0);
+			dataBuffer               = new DataBufferWriter(0);
 		}
 
 		protected override void OnUpdate()
@@ -43,7 +43,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 		public override void Dispose()
 		{
 			base.Dispose();
-			
+
 			dataBuffer.Dispose();
 		}
 
@@ -58,7 +58,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 		private unsafe DataBufferWriter GetDataParallel(GameWorld world, bool forceSingleThread = false)
 		{
 			dataBuffer.Length = 0;
-			
+
 			// 1. Write Component types
 			var componentTypeSpan = world.Boards.ComponentType.Registered;
 			dataBuffer.WriteInt(componentTypeSpan.Length);
@@ -159,46 +159,54 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			{
 				serializer.SerializeBoard(ref buffer, world, entities, componentBoard);
 			}
-			else if (componentBoard is SingleComponentBoard singleComponentBoard)
-			{
-				var linkColumnSpan = world.Boards.Entity.GetComponentColumn(row);
-
-				buffer.WriteInt(linkColumnSpan.Length);
-				buffer.WriteDataSafe(ptr(linkColumnSpan), linkColumnSpan.Length * sizeof(EntityBoardContainer.ComponentMetadata), default);
-
-				var countMarker = buffer.WriteInt(0);
-				var count = 0;
-				for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
+			else
+				switch (componentBoard)
 				{
-					var entity = entities[ent];
-					if (linkColumnSpan[(int) entity.Id].Null)
-						continue;
-
-					// Recursive support for shared components.
-
-					var recursionLeft = GameWorld.RecursionLimit;
-					while (recursionLeft-- > 0)
+					case TagComponentBoard tagComponentBoard:
+						// yep. nothing.
+						break;
+					case SingleComponentBoard singleComponentBoard:
 					{
-						var link = linkColumnSpan[(int) entity.Id];
-						if (link.IsShared)
+						var linkColumnSpan = world.Boards.Entity.GetComponentColumn(row);
+
+						buffer.WriteInt(linkColumnSpan.Length);
+						buffer.WriteDataSafe(ptr(linkColumnSpan), linkColumnSpan.Length * sizeof(EntityBoardContainer.ComponentMetadata), default);
+
+						var countMarker = buffer.WriteInt(0);
+						var count       = 0;
+						for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
 						{
-							entity = new GameEntity(link.Entity);
-							continue;
+							var entity = entities[ent];
+							if (linkColumnSpan[(int) entity.Id].Null)
+								continue;
+
+							// Recursive support for shared components.
+
+							var recursionLeft = GameWorld.RecursionLimit;
+							while (recursionLeft-- > 0)
+							{
+								var link = linkColumnSpan[(int) entity.Id];
+								if (link.IsShared)
+								{
+									entity = new GameEntity(link.Entity);
+									continue;
+								}
+
+								count++;
+
+								var componentData = singleComponentBoard.ReadRaw(link.Id);
+								buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentData.GetPinnableReference()), componentBoard.Size, default);
+								break;
+							}
+
+							if (recursionLeft == 0)
+								throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{entities[ent]}' and component (backing: {row})");
 						}
 
-						count++;
-
-						var componentData = singleComponentBoard.ReadRaw(link.Id);
-						buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentData.GetPinnableReference()), componentBoard.Size, default);
+						buffer.WriteInt(count, countMarker);
 						break;
 					}
-
-					if (recursionLeft == 0)
-						throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{entities[ent]}' and component (backing: {row})");
 				}
-
-				buffer.WriteInt(count, countMarker);
-			}
 
 			buffer.WriteInt(buffer.Length, skipMarker);
 		}
