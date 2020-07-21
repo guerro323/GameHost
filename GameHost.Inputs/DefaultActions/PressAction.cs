@@ -35,5 +35,17 @@ namespace GameHost.Inputs.DefaultActions
         public uint DownCount, UpCount;
 
         public bool HasBeenPressed => DownCount > 0;
+        
+        public void Serialize(ref DataBufferWriter buffer)
+        {
+            buffer.WriteValue(DownCount);
+            buffer.WriteValue(UpCount);
+        }
+
+        public void Deserialize(ref DataBufferReader buffer)
+        {
+            DownCount = buffer.ReadValue<uint>();
+            UpCount   = buffer.ReadValue<uint>();
+        }
     }
 }

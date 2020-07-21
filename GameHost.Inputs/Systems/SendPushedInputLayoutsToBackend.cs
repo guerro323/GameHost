@@ -58,16 +58,22 @@ namespace GameHost.Inputs.Systems
 			{
 				var layouts = entity.Get<InputActionLayouts>();
 				data.WriteInt(entity.Get<InputEntityId>().Value);
+				data.WriteStaticString(entity.Get<InputActionType>().Type.FullName);
+
+				var skipActionMarker = data.WriteInt(0);
+
 				data.WriteInt(layouts.Count);
 				foreach (var layout in layouts.Values)
 				{
-					data.WriteStaticString(layout.GetType().FullName);
 					data.WriteStaticString(layout.Id);
+					data.WriteStaticString(layout.GetType().FullName);
 
-					var skipMarker = data.WriteInt(0);
+					var skipLayoutMarker = data.WriteInt(0);
 					layout.Serialize(ref data);
-					data.WriteInt(data.Length - skipMarker.GetOffset(sizeof(int)).Index, skipMarker);
+					data.WriteInt(data.Length - skipLayoutMarker.GetOffset(sizeof(int)).Index, skipLayoutMarker);
 				}
+
+				data.WriteInt(data.Length - skipActionMarker.GetOffset(sizeof(int)).Index, skipActionMarker);
 			}
 
 			foreach (var feature in Features)

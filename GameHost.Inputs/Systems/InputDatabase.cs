@@ -30,6 +30,7 @@ namespace GameHost.Inputs.Systems
 
             var ac = World.Mgr.CreateEntity();
             ac.Set(new InputActionLayouts(layouts));
+            ac.Set(new InputActionType(typeof(TAction)));
             ac.Set(default(TAction));
             ac.Set(new PushInputLayoutChange());
 
