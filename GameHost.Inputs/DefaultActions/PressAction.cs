@@ -39,7 +39,7 @@ namespace GameHost.Inputs.DefaultActions
 
         public bool HasBeenPressed => DownCount > 0;
 
-        public class InputActionSystem : InputActionSystemBase<PressAction, PressAction.Layout>
+        public class InputActionSystem : InputActionSystemBase<PressAction, Layout>
         {
             public InputActionSystem(WorldCollection collection) : base(collection)
             {
@@ -56,8 +56,6 @@ namespace GameHost.Inputs.DefaultActions
         {
             DownCount += buffer.ReadValue<uint>();
             UpCount   += buffer.ReadValue<uint>();
-
-            Console.WriteLine($"{DownCount} {UpCount}");
         }
     }
 }
