@@ -1,4 +1,6 @@
 ﻿using System;
+using DefaultEcs;
+using RevolutionSnapshot.Core.Buffers;
 
 namespace GameHost.Inputs.Components
 {
@@ -11,4 +13,28 @@ namespace GameHost.Inputs.Components
 			Type = type;
 		}
 	}
+
+	/*public readonly struct InputActionSerializeFunction
+	{
+		public delegate void OnSerialize(ref DataBufferWriter buffer);
+
+		public readonly OnSerialize Value;
+
+		public InputActionSerializeFunction(OnSerialize value)
+		{
+			Value = value;
+		}
+	}
+	
+	public readonly struct InputActionDeserializeFunction
+	{
+		public delegate void OnDeserialize(Entity entity, ref DataBufferReader buffer);
+
+		public readonly OnDeserialize Value;
+
+		public InputActionDeserializeFunction(OnDeserialize value)
+		{
+			Value = value;
+		}
+	}*/
 }

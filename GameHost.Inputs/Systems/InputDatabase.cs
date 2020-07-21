@@ -7,6 +7,7 @@ using GameHost.Core.Threading;
 using GameHost.Inputs.Components;
 using GameHost.Inputs.Interfaces;
 using GameHost.Inputs.Layouts;
+using RevolutionSnapshot.Core.Buffers;
 
 namespace GameHost.Inputs.Systems
 {
