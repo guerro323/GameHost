@@ -26,7 +26,7 @@ namespace GameHost.Inputs.DefaultActions
                 var count = buffer.ReadValue<int>();
                 var array = new CInput[count];
                 for (var i = 0; i != count; i++)
-                    array[i].Target = buffer.ReadString();
+                    array[i] = new CInput(buffer.ReadString());
 
                 Inputs = new ReadOnlyCollection<CInput>(array);
             }
