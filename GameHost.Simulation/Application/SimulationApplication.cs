@@ -31,7 +31,7 @@ namespace GameHost.Simulation.Application
 			// register game world since it's kinda important for the simu app, ahah
 			Data.Context.BindExisting(new GameWorld());
 
-			targetFrequency = TimeSpan.FromSeconds(1f / 60f);
+			targetFrequency = TimeSpan.FromSeconds(1f / 100f);
 			Console.WriteLine(targetFrequency.TotalMilliseconds);
 
 			timeApp = new TimeApp(Data.Context);

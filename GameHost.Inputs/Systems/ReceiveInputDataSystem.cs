@@ -30,10 +30,14 @@ namespace GameHost.Inputs.Systems
 			{
 				var actionType = data.ReadString();
 				var system     = actionSystemGroup.TryGetSystem(actionType);
+				var length     = data.ReadValue<int>();
 				if (system == null)
 					throw new InvalidOperationException($"System for type '{actionType}' not found!");
 
+				var start = data.CurrReadIndex;
 				system.CallDeserialize(ref data);
+				if (data.CurrReadIndex != (start + length))
+					throw new InvalidOperationException($"Invalid reading for '{actionType}' (expected_length={length}, actual_length={data.CurrReadIndex - start})");
 			}
 		}
 
