@@ -2,19 +2,15 @@
 using System.Collections.Generic;
 using GameHost.Simulation.TabEcs;
 using GameHost.Simulation.TabEcs.Interfaces;
+using GameHost.Simulation.Utility.Resource.Components;
 using GameHost.Simulation.Utility.Resource.Interfaces;
 
 namespace GameHost.Simulation.Utility.Resource
 {
 	public class GameResourceDb<TResourceDescription, TKey> : IDisposable
 		where TResourceDescription : IGameResourceDescription
-		where TKey : IEquatable<TKey>
+		where TKey : struct, IEquatable<TKey>, IGameResourceKeyDescription
 	{
-		public struct Key__ : IComponentData
-		{
-			public TKey Data;
-		}
-
 		private readonly GameWorld gameWorld;
 
 		private readonly Dictionary<GameEntity, TKey> entityToKey;
@@ -23,7 +19,7 @@ namespace GameHost.Simulation.Utility.Resource
 		public GameResourceDb(GameWorld gameWorld, int capacity = 0)
 		{
 			this.gameWorld = gameWorld;
-			
+
 			entityToKey = new Dictionary<GameEntity, TKey>(capacity);
 			keyToEntity = new Dictionary<TKey, GameEntity>(capacity);
 		}
@@ -35,7 +31,7 @@ namespace GameHost.Simulation.Utility.Resource
 				keyToEntity[key] = gameWorld.CreateEntity();
 			}
 
-			gameWorld.AddComponent(entity, new Key__ {Data = key});
+			gameWorld.AddComponent(entity, new GameResourceKey<TKey> {Value = key});
 			return new GameResource<TResourceDescription>(entity);
 		}
 
