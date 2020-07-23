@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GameHost.Native
+namespace GameHost.Native.Char
 {
 	public interface ICharBuffer
 	{

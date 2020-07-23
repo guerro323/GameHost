@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Runtime.CompilerServices;
 
-namespace GameHost.Native
+namespace GameHost.Native.Char
 {
-	public unsafe struct CharBuffer64 : ICharBuffer, IEquatable<CharBuffer64>
+	public unsafe struct CharBuffer32 : ICharBuffer, IEquatable<CharBuffer32>
 	{
-		private const int  ConstCapacity = 64;
+		private const int  ConstCapacity = 32;
 		private fixed char buffer[ConstCapacity];
 
 		int ICharBuffer.Capacity => ConstCapacity;
@@ -20,14 +19,14 @@ namespace GameHost.Native
 			}
 		}
 
-		public bool Equals(CharBuffer64 other)
+		public bool Equals(CharBuffer32 other)
 		{
 			return Span.SequenceEqual(other.Span);
 		}
 
 		public override bool Equals(object obj)
 		{
-			return obj is CharBuffer64 other && Equals(other);
+			return obj is CharBuffer32 other && Equals(other);
 		}
 
 		public override int GetHashCode()
