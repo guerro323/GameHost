@@ -208,6 +208,48 @@ namespace GameHost.Simulation.Features.ShareWorldState
 						buffer.WriteInt(count, countMarker);
 						break;
 					}
+					case BufferComponentBoard bufferComponentBoard:
+					{
+						var linkColumnSpan = world.Boards.Entity.GetComponentColumn(row);
+
+						buffer.WriteInt(linkColumnSpan.Length);
+						buffer.WriteDataSafe(ptr(linkColumnSpan), linkColumnSpan.Length * sizeof(EntityBoardContainer.ComponentMetadata), default);
+
+						var countMarker = buffer.WriteInt(0);
+						var count       = 0;
+						for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
+						{
+							var entity = entities[ent];
+							if (linkColumnSpan[(int) entity.Id].Null)
+								continue;
+
+							// Recursive support for shared components.
+
+							var recursionLeft = GameWorld.RecursionLimit;
+							while (recursionLeft-- > 0)
+							{
+								var link = linkColumnSpan[(int) entity.Id];
+								if (link.IsShared)
+								{
+									entity = new GameEntity(link.Entity);
+									continue;
+								}
+
+								count++;
+
+								var rawBufferData = bufferComponentBoard.AsSpan()[(int) link.Id];
+								buffer.WriteInt(rawBufferData.Count);
+								buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref rawBufferData.Span.GetPinnableReference()), rawBufferData.Count, default);
+								break;
+							}
+
+							if (recursionLeft == 0)
+								throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{entities[ent]}' and component (backing: {row})");
+						}
+
+						buffer.WriteInt(count, countMarker);
+						break;
+					}
 				}
 
 			buffer.WriteInt(buffer.Length - previousLength, skipMarker);

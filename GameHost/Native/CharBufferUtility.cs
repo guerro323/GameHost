@@ -4,6 +4,12 @@ namespace GameHost.Native
 {
 	public static class CharBufferUtility
 	{
+		public static int GetLength<TCharBuffer>(this TCharBuffer buffer)
+			where TCharBuffer : struct, ICharBuffer
+		{
+			return buffer.Length;
+		}
+		
 		public static void SetLength<TCharBuffer>(this TCharBuffer buffer, int length)
 			where TCharBuffer : struct, ICharBuffer
 		{

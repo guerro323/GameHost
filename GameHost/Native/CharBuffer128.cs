@@ -5,7 +5,6 @@ namespace GameHost.Native
 	public unsafe struct CharBuffer128 : ICharBuffer
 	{
 		private const int  ConstCapacity = 128;
-		private       int  length;
 		private fixed char buffer[ConstCapacity];
 
 		int ICharBuffer.Capacity => ConstCapacity;
@@ -16,7 +15,7 @@ namespace GameHost.Native
 			get
 			{
 				fixed (char* ptr = buffer)
-					return new Span<char>(ptr, ConstCapacity);
+					return new Span<char>(ptr, this.GetLength());
 			}
 		}
 	}
