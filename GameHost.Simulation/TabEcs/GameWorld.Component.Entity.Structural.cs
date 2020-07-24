@@ -129,7 +129,7 @@ namespace GameHost.Simulation.TabEcs
 		public ComponentReference AddComponent<T>(GameEntity entity, in T data = default)
 			where T : struct, IComponentData
 		{
-			var componentType = GetComponentType<T>();
+			var componentType = AsComponentType<T>();
 			var cRef          = AddComponent(entity, componentType);
 			GetComponentData<T>(entity) = data;
 
@@ -173,7 +173,7 @@ namespace GameHost.Simulation.TabEcs
 		public ComponentReference UpdateOwnedComponent<T>(GameEntity entity, T value = default)
 			where T : struct, IComponentData
 		{
-			var componentType = GetComponentType<T>();
+			var componentType = AsComponentType<T>();
 			var linkColumn    = Boards.Entity.GetComponentColumn(componentType.Id);
 
 			var componentMetadata = linkColumn[(int) entity.Id];

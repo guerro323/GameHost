@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using GameHost.Simulation.TabEcs.Interfaces;
 using NetFabric.Hyperlinq;
+using StormiumTeam.GameBase.Utility.Misc;
 
 namespace GameHost.Simulation.TabEcs
 {
@@ -40,7 +41,15 @@ namespace GameHost.Simulation.TabEcs
 			return new ComponentType(Boards.ComponentType.CreateRow(name, componentBoard));
 		}
 
-		public ComponentType GetComponentType<T>()
+		public ComponentType AsComponentType(Type type)
+		{
+			if (typeToComponentMap.TryGetValue(type, out var componentType))
+				return componentType;
+			
+			throw new NotImplementedException("Can't create non-generic type yet");
+		}
+
+		public ComponentType AsComponentType<T>()
 			where T : struct, IEntityComponent
 		{
 			if (typeToComponentMap.TryGetValue(typeof(T), out var componentType))
@@ -63,7 +72,7 @@ namespace GameHost.Simulation.TabEcs
 			else
 				throw new InvalidOperationException();
 			
-			return typeToComponentMap[typeof(T)] = RegisterComponent(typeof(T).FullName, board);
+			return typeToComponentMap[typeof(T)] = RegisterComponent(TypeExt.GetFriendlyName(typeof(T)), board);
 		}
 
 		public void Dispose()

@@ -17,7 +17,7 @@ namespace GameHost.Simulation.Tests
 				var sw    = new Stopwatch();
 				sw.Start();
 
-				var componentType = world.GetComponentType<Component>();
+				var componentType = world.AsComponentType<Component>();
 				for (var i = 0; i != 100_000; i++)
 				{
 					var ent = world.CreateEntity();

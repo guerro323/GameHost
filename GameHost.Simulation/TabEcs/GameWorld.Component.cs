@@ -27,7 +27,7 @@ namespace GameHost.Simulation.TabEcs
 		public ComponentReference CreateComponent<T>()
 			where T : struct, IEntityComponent
 		{
-			var componentType = GetComponentType<T>();
+			var componentType = AsComponentType<T>();
 			return new ComponentReference(componentType, GameWorldLL.CreateComponent(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType)));
 		}
 		
@@ -70,7 +70,7 @@ namespace GameHost.Simulation.TabEcs
 		public bool HasComponent<T>(GameEntity entity)
 			where T : struct, IComponentData
 		{
-			return HasComponent(entity, GetComponentType<T>());
+			return HasComponent(entity, AsComponentType<T>());
 		}
 
 		/// <summary>
@@ -83,7 +83,7 @@ namespace GameHost.Simulation.TabEcs
 		public ref T GetComponentData<T>(GameEntity entity)
 			where T : struct, IComponentData
 		{
-			var componentType = GetComponentType<T>().Id;
+			var componentType = AsComponentType<T>().Id;
 			var board = Boards.ComponentType.ComponentBoardColumns[(int) componentType];
 			if (board is TagComponentBoard)
 				return ref TagComponentBoard.Default<T>.V;
@@ -117,7 +117,7 @@ namespace GameHost.Simulation.TabEcs
 		/// <exception cref="InvalidOperationException"></exception>
 		public ComponentBuffer<T> GetBuffer<T>(GameEntity entity) where T : struct, IComponentBuffer
 		{
-			var componentType = GetComponentType<T>().Id;
+			var componentType = AsComponentType<T>().Id;
 			if (!(Boards.ComponentType.ComponentBoardColumns[(int) componentType] is BufferComponentBoard componentColumn))
 				throw new InvalidOperationException($"A board made from an {nameof(IComponentBuffer)} should be a {nameof(BufferComponentBoard)}");
 

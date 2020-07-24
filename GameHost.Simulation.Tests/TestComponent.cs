@@ -24,7 +24,7 @@ namespace GameHost.Simulation.Tests
 		public void TestAddToBuffer()
 		{
 			var entity = World.CreateEntity();
-			World.AddComponent(entity, World.GetComponentType<Buffer>());
+			World.AddComponent(entity, World.AsComponentType<Buffer>());
 
 			var buffer = World.GetBuffer<Buffer>(entity);
 			buffer.Add(new Buffer {Value = 1});
@@ -64,8 +64,8 @@ namespace GameHost.Simulation.Tests
 			var child  = World.CreateEntity();
 
 			World.AddComponent(root, new IntComponent {Value = 42});
-			World.DependOnEntityComponent(parent, root, World.GetComponentType<IntComponent>());
-			World.DependOnEntityComponent(child, parent, World.GetComponentType<IntComponent>());
+			World.DependOnEntityComponent(parent, root, World.AsComponentType<IntComponent>());
+			World.DependOnEntityComponent(child, parent, World.AsComponentType<IntComponent>());
 
 			int component_val(GameEntity entity) => World.GetComponentData<IntComponent>(entity).Value;
 
@@ -91,7 +91,7 @@ namespace GameHost.Simulation.Tests
 			Assert.AreEqual(component_val(parent), component_val(child));
 
 			// Remove the component from parent
-			World.RemoveComponent(parent, World.GetComponentType<IntComponent>());
+			World.RemoveComponent(parent, World.AsComponentType<IntComponent>());
 
 			// Root still has the component, but since the parent of the child has broken the component dependence the child shouldn't have the component anymore.
 			Assert.IsTrue(World.HasComponent<IntComponent>(root));

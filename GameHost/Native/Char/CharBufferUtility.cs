@@ -22,9 +22,24 @@ namespace GameHost.Native.Char
 			where TCharBuffer : struct, ICharBuffer
 		{
 			var buffer = new TCharBuffer();
+			if (string.IsNullOrEmpty(content))
+				return buffer;
+			
 			var span   = content.AsSpan();
 			buffer.SetLength(span.Length);
 			span.CopyTo(buffer.Span);
+			return buffer;
+		}
+		
+		public static TCharBuffer Create<TCharBuffer>(Span<char> content)
+			where TCharBuffer : struct, ICharBuffer
+		{
+			var buffer = new TCharBuffer();
+			if (content.Length == 0)
+				return buffer;
+			
+			buffer.SetLength(content.Length);
+			content.CopyTo(buffer.Span);
 			return buffer;
 		}
 

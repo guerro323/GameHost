@@ -22,7 +22,7 @@ namespace GameHost.Simulation.Utility.Resource.Systems
 
 		protected internal override void KeepAlive(Span<bool> keep, Span<GameEntity> resources)
 		{
-			var componentType = gameWorld.GetComponentType<TData>();
+			var componentType = gameWorld.AsComponentType<TData>();
 			if (!(gameWorld.Boards.ComponentType.ComponentBoardColumns[(int) componentType.Id] is SingleComponentBoard componentBoard))
 				return;
 

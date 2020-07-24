@@ -69,14 +69,20 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 				var metadataSpan = entityBoard.GetComponentColumn(typeSpan[i].Id);
 				if (metadataSpan.Length <= entity.Id)
 					continue;
-				
-				var metadata     = metadataSpan[(int) entity.Id];
+
+				var metadata = metadataSpan[(int) entity.Id];
 				if (metadata.Valid)
 					founds[foundIndex++] = typeSpan[i].Id;
 			}
 
-			var archetype = archetypeBoard.GetOrCreateRow(founds.Slice(0, foundIndex), true);
-			entityBoard.AssignArchetype(entity.Id, archetype);
+			var archetype        = archetypeBoard.GetOrCreateRow(founds.Slice(0, foundIndex), true);
+			var currentArchetype = entityBoard.ArchetypeColumn[(int) entity.Id];
+			if (currentArchetype.Id != archetype)
+			{
+				entityBoard.AssignArchetype(entity.Id, archetype);
+				archetypeBoard.AddEntity(archetype, entity.Id);
+			}
+
 			return archetype;
 		}
 	}

@@ -112,7 +112,7 @@ namespace RevolutionSnapshot.Core.Buffers
             // Copy from TryResize()
             if (m_Data->capacity <= predictedLength)
             {
-                Capacity  = predictedLength * 2;
+                Capacity = predictedLength * 2;
             }
 
             // Copy from WriteData()
@@ -192,91 +192,6 @@ namespace RevolutionSnapshot.Core.Buffers
         public DataBufferMarker WriteLong(long val, DataBufferMarker marker = default(DataBufferMarker))
         {
             return WriteDataSafe((byte*) &val, sizeof(long), marker);
-        }
-
-        public DataBufferMarker WriteString(string val, Encoding encoding = null, DataBufferMarker marker = default(DataBufferMarker))
-        {
-            fixed (char* strPtr = val)
-            {
-                return WriteString(strPtr, val.Length, encoding, marker);
-            }
-        }
-
-        public DataBufferMarker WriteString(char* val, int strLength, Encoding encoding = null, DataBufferMarker marker = default(DataBufferMarker))
-        {
-            throw new NotImplementedException("crash");
-            
-            // If we have a null encoding, let's get the default one (UTF8)
-            encoding = encoding ?? Encoding.UTF8;
-
-            var   returnMarker = default(DataBufferMarker);
-            void* tempCpyPtr   = null;
-
-            // ------------------------------------------ //
-            // Variables if we are writing to a marker
-            // ------------------------------------------ //
-            // Get the previous text size from the marker...
-            var oldCpyLength = -1;
-            // Difference between text size and buffer size
-            var sizeDiff = 0;
-            // The previous end index before re-writing the data
-            var endIndex     = -1;
-            var oldStrLength = -1;
-            if (marker.Valid)
-            {
-                // Read the data from this buffer
-                var reader = new DataBufferReader(GetSafePtr(), Length);
-                // Start reading from the current marker index.
-                var readerMarker = reader.CreateMarker(marker.Index);
-                // Get the previous text size from the marker...
-                oldCpyLength = reader.ReadValue<int>(readerMarker);
-                // Get the difference.
-                sizeDiff = Math.Abs(Length - oldCpyLength);
-                // Get the previous end index (we add an offset to the marker)
-                endIndex     = reader.ReadValue<int>(readerMarker.GetOffset(sizeof(int)));
-                oldStrLength = reader.ReadValue<int>(readerMarker.GetOffset(sizeof(int) * 2));
-            }
-
-            try
-            {
-                // Get the length of a 'UTF8 char' * 'string length';
-                var cpyLength = encoding.GetMaxByteCount(strLength);
-                if (cpyLength > oldCpyLength && oldCpyLength >= 0)
-                {
-                    cpyLength = oldCpyLength;
-                    strLength = oldStrLength;
-                }
-
-                // Allocate a temp memory region, and then...
-                tempCpyPtr = UnsafeUtility.Malloc(cpyLength);
-                // ... Get the bytes from the char array
-                encoding.GetBytes(val, strLength, (byte*) tempCpyPtr, cpyLength);
-
-                // Write the length of the string to the current index from the marker (or buffer if default)
-                returnMarker = WriteInt(cpyLength, marker);
-                // This integer give us the possilibity to know where will be our next values
-                // If we update the string with a smaller length, we need to know where our next values are.
-                var endMarker = WriteInt(0, returnMarker.GetOffset(sizeof(int)));
-                // Write the string buffer data
-                WriteInt(strLength, returnMarker.GetOffset(sizeof(int) * 2)); // In future, we should get a better way to define that
-                WriteDataSafe((byte*) tempCpyPtr, cpyLength - sizeDiff, returnMarker.GetOffset(sizeof(int) * 3));
-                // Re-write the end integer from end marker
-                WriteInt(endIndex < 0 ? Length : endIndex, endMarker);
-                
-                UnsafeUtility.Free(tempCpyPtr);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
-            finally
-            {
-                // If we had no problem with our temporary allocation, free it.
-                if (tempCpyPtr != null)
-                    UnsafeUtility.Free(tempCpyPtr);
-            }
-
-            return returnMarker;
         }
 
         public void WriteDynamicInt(ulong integer)
@@ -414,52 +329,26 @@ namespace RevolutionSnapshot.Core.Buffers
             WriteDataSafe((byte*) dataBuffer.GetSafePtr(), dataBuffer.Length, default(DataBufferMarker));
         }
 
-        public void WriteStaticString(string val, Encoding encoding = null)
+        public void WriteStaticString(string val)
         {
             fixed (char* strPtr = val)
             {
-                WriteStaticString(strPtr, val.Length, encoding);
+                WriteStaticString(strPtr, val.Length);
+            }
+        }
+        
+        public void WriteStaticString(Span<char> val)
+        {
+            fixed (char* strPtr = val)
+            {
+                WriteStaticString(strPtr, val.Length);
             }
         }
 
-        public void WriteStaticString(char* val, int strLength, Encoding encoding = null)
+        public void WriteStaticString(char* val, int strLength)
         {
-            var previousLength = Length;
-            
-            // If we have a null encoding, let's get the most used one (UTF8)
-            encoding = encoding ?? Encoding.UTF8;
-
-            void* tempCpyPtr = null;
-
-            try
-            {
-                // Get the length of a 'UTF8 char' * 'string length';
-                var cpyLength = encoding.GetMaxByteCount(strLength);
-                // Allocate a temp memory region, and then...
-                tempCpyPtr = UnsafeUtility.Malloc(cpyLength);
-                // ... Get the bytes from the char array
-                encoding.GetBytes(val, strLength, (byte*) tempCpyPtr, cpyLength);
-
-                // Write the length of the string to the current index of the buffer
-                WriteInt(cpyLength);
-                var endMarker = WriteInt(0);
-                // Write the string buffer data
-                WriteInt(strLength); // In future, we should get a better way to define that
-                WriteDataSafe((byte*) tempCpyPtr, cpyLength, default(DataBufferMarker));
-                // Re-write the end integer from end marker
-                var l = Length;
-                WriteInt(Length, endMarker);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
-            finally
-            {
-                // If we had no problem with our temporary allocation, free it.
-                if (tempCpyPtr != null)
-                    UnsafeUtility.Free(tempCpyPtr);
-            }
+            WriteInt(strLength);
+            WriteDataSafe((byte*) val, strLength * sizeof(char), default);
         }
     }
 }

@@ -22,7 +22,7 @@ namespace GameHost.Simulation.Utility.Resource.Systems
 
 		protected internal override void KeepAlive(Span<bool> keep, Span<GameEntity> resources)
 		{
-			var componentType = gameWorld.GetComponentType<TBuffer>();
+			var componentType = gameWorld.AsComponentType<TBuffer>();
 			if (!(gameWorld.Boards.ComponentType.ComponentBoardColumns[(int) componentType.Id] is BufferComponentBoard bufferComponentBoard))
 				return;
 

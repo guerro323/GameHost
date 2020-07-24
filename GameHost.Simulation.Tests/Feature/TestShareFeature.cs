@@ -67,7 +67,7 @@ namespace GameHost.Simulation.Tests.Feature
 			var gameWorld  = new ContextBindingStrategy(app.Data.Context, false).Resolve<GameWorld>();
 			var sendSystem = app.Data.Collection.GetOrCreate(c => new SendWorldStateSystem(c));
 			var serializer = new CustomIntSerializer();
-			sendSystem.SetComponentSerializer(gameWorld.GetComponentType<IntComponent>(), serializer);
+			sendSystem.SetComponentSerializer(gameWorld.AsComponentType<IntComponent>(), serializer);
 
 			var ent = gameWorld.CreateEntity();
 			gameWorld.AddComponent(ent, new IntComponent());

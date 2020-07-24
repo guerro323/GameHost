@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Collections.Pooled;
 
 namespace GameHost.Simulation.TabEcs
 {
@@ -12,12 +13,13 @@ namespace GameHost.Simulation.TabEcs
 	/// </remarks>
 	public class ArchetypeBoardContainer : BoardContainer
 	{
-		private (uint[] sum, uint[][] componentTypes, byte h) column;
+		private (uint[] sum, uint[][] componentTypes, PooledList<uint>[] entity, byte h) column;
 
 		public ArchetypeBoardContainer(int capacity) : base(capacity)
 		{
 			column.componentTypes = new uint[0][];
-			column.sum = new uint[0];
+			column.sum            = new uint[0];
+			column.entity         = new PooledList<uint>[0];
 		}
 
 		public override void CreateRowBulk(Span<uint> rows)
@@ -35,14 +37,16 @@ namespace GameHost.Simulation.TabEcs
 
 			return row;
 		}
-		
+
 		protected virtual void OnResize()
 		{
 			var previousLength = column.componentTypes.Length;
 			Array.Resize(ref column.componentTypes, (int) ((board.MaxId + 1) * 2));
+			Array.Resize(ref column.entity, (int) ((board.MaxId + 1) * 2));
 			for (var i = previousLength; i < column.componentTypes.Length; i++)
 			{
 				column.componentTypes[i] = Array.Empty<uint>();
+				column.entity[i]         = new PooledList<uint>();
 			}
 		}
 
@@ -50,7 +54,7 @@ namespace GameHost.Simulation.TabEcs
 		{
 			if (!isOrdered)
 				throw new NotImplementedException("Only ordered components is supported for now");
-			
+
 			uint sum = 0;
 			for (var i = 0; i < componentTypes.Length; i++)
 			{
@@ -97,8 +101,19 @@ namespace GameHost.Simulation.TabEcs
 			return row;
 		}
 
-		public Span<uint> GetComponentTypes(uint row) => column.componentTypes[row];
+		public void AddEntity(uint row, uint entity)
+		{
+			column.entity[row].Add(entity);
+		}
 		
+		public void RemoveEntity(uint row, uint entity)
+		{
+			column.entity[row].Remove(entity);
+		}
+
+		public Span<uint> GetComponentTypes(uint row) => column.componentTypes[row];
+		public Span<uint> GetEntities(uint       row) => column.entity[row].Span;
+
 		public Span<EntityArchetype> Registered => MemoryMarshal.Cast<uint, EntityArchetype>(board.UsedRows);
 	}
 }

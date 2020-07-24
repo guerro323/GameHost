@@ -17,7 +17,7 @@ namespace GameHost.Simulation.TabEcs
 
 		public void RemoveEntity(GameEntity entity)
 		{
-			foreach (ref readonly var componentType in Boards.ComponentType.Registered) 
+			foreach (ref readonly var componentType in Boards.ComponentType.Registered)
 				RemoveComponent(entity, componentType);
 
 			Boards.Entity.DeleteRow(entity.Id);
@@ -26,6 +26,11 @@ namespace GameHost.Simulation.TabEcs
 		public EntityArchetype GetArchetype(GameEntity entity)
 		{
 			return Boards.Entity.ArchetypeColumn[(int) entity.Id];
+		}
+
+		public bool Contains(GameEntity entity)
+		{
+			return Boards.Entity.ArchetypeColumn[(int) entity.Id].Id > 0;
 		}
 	}
 }

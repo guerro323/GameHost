@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using System.Text;
+using GameHost.Native.Char;
 
 namespace RevolutionSnapshot.Core.Buffers
 {
@@ -68,7 +69,7 @@ namespace RevolutionSnapshot.Core.Buffers
             CurrReadIndex = readIndex + size;
             if (CurrReadIndex > Length)
             {
-                throw new IndexOutOfRangeException("p2");
+                throw new IndexOutOfRangeException($"p2 {CurrReadIndex} ({readIndex} + {size}) > {Length}");
             }
 
             return readIndex;
@@ -77,6 +78,21 @@ namespace RevolutionSnapshot.Core.Buffers
         public void ReadUnsafe(byte* data, int index, int size)
         {
             Unsafe.CopyBlock(data, (void*) IntPtr.Add((IntPtr) DataPtr, index), (uint) size);
+        }
+        
+        public void ReadDataSafe(byte* data, int size, DataBufferMarker marker = default)
+        {
+            var readIndex = GetReadIndexAndSetNew(marker, size);
+            // Set it for later usage
+            CurrReadIndex = readIndex + size;
+            // Read the value
+            ReadUnsafe(data, readIndex, size);
+        }
+
+        public void ReadDataSafe<T>(Span<T> span, DataBufferMarker marker = default)
+            where T : struct
+        {
+            ReadDataSafe((byte*) Unsafe.AsPointer(ref span.GetPinnableReference()), span.Length * Unsafe.SizeOf<T>(), marker);
         }
 
         public T ReadValue<T>(DataBufferMarker marker = default(DataBufferMarker))
@@ -186,35 +202,35 @@ namespace RevolutionSnapshot.Core.Buffers
 
         public string ReadString(DataBufferMarker marker = default(DataBufferMarker))
         {
-            var encoding = (UTF8Encoding) Encoding.UTF8;
-
-            if (!marker.Valid)
-                marker = CreateMarker(CurrReadIndex);
-
-            var strDataLength     = ReadValue<int>(marker);
-            var strDataEnd        = ReadValue<int>(marker.GetOffset(sizeof(int) * 1));
-            var strExpectedLength = ReadValue<int>(marker.GetOffset(sizeof(int) * 2));
-            var strDataStart      = GetReadIndex(marker.GetOffset(sizeof(int) * 3));
-
-            if (strDataLength <= 0)
+            var length = ReadValue<int>();
+            if (length < 1024)
             {
-                if (strDataLength < 0)
-                {
-                    throw new Exception("No string found, maybe you are reading at the wrong location or you've done a bad write?");
-                }
-
-                return string.Empty;
+                Span<char> span = stackalloc char[length];
+                ReadDataSafe(new Span<char>(Unsafe.AsPointer(ref span.GetPinnableReference()), span.Length), marker);
+                return new string(span);
             }
 
-            var str = encoding.GetString(DataPtr + strDataStart, Math.Min(strDataEnd - strDataStart, strDataLength));
-            CurrReadIndex = strDataEnd;
+            var ptr = UnsafeUtility.Malloc(length * sizeof(char));
+            ReadDataSafe((byte*) ptr, length * sizeof(char), marker);
+            UnsafeUtility.Free(ptr);
+            return new string((char*) ptr, 0, length);
+        }
 
-            if (str.Length != strExpectedLength)
+        public TCharBuffer ReadBuffer<TCharBuffer>(DataBufferMarker marker = default(DataBufferMarker))
+            where TCharBuffer : struct, ICharBuffer
+        {
+            var length = ReadValue<int>();
+            if (length < 1024)
             {
-                return str.Substring(0, strExpectedLength);
+                Span<char> span = stackalloc char[length];
+                ReadDataSafe(new Span<char>(Unsafe.AsPointer(ref span.GetPinnableReference()), span.Length), marker);
+                return CharBufferUtility.Create<TCharBuffer>(span);
             }
 
-            return str;
+            var ptr = UnsafeUtility.Malloc(length * sizeof(char));
+            ReadDataSafe((byte*) ptr, length * sizeof(char), marker);
+            UnsafeUtility.Free(ptr);
+            return CharBufferUtility.Create<TCharBuffer>(new Span<char>(ptr, length));
         }
     }
 }
