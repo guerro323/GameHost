@@ -53,7 +53,6 @@ namespace GameHost.Inputs.Systems
 			Console.WriteLine("send data!");
 			data.WriteInt((int) EMessageInputType.Register);
 			data.WriteInt(entitySpan.Length);
-			Console.WriteLine(data.Length);
 			foreach (ref readonly var entity in entitySpan)
 			{
 				var layouts = entity.Get<InputActionLayouts>();

@@ -32,8 +32,6 @@ namespace GameHost.Simulation.Application
 			Data.Context.BindExisting(new GameWorld());
 
 			targetFrequency = TimeSpan.FromSeconds(1f / 100f);
-			Console.WriteLine(targetFrequency.TotalMilliseconds);
-
 			timeApp = new TimeApp(Data.Context);
 			fts     = new FixedTimeStep {TargetFrameTimeMs = (int) targetFrequency.TotalMilliseconds};
 
@@ -57,7 +55,7 @@ namespace GameHost.Simulation.Application
 					
 					while (updateCount-- > 0)
 					{
-						timeApp.Update(elapsed - TimeSpan.FromSeconds(fts.accumulatedTime) - updateCount * delta, delta);
+						timeApp.Update(elapsed - TimeSpan.FromSeconds(fts.accumulatedTime) - updateCount * targetFrequency, targetFrequency);
 						Data.Loop();
 					}
 				}

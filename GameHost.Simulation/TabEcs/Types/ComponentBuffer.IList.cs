@@ -82,8 +82,8 @@ namespace GameHost.Simulation.TabEcs
 
 		public T this[int index]
 		{
-			get => throw new NotImplementedException();
-			set => throw new NotImplementedException();
+			get => Span[index];
+			set => Span[index] = value;
 		}
 	}
 }
