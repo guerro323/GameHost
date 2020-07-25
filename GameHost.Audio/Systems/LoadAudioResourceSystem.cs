@@ -9,7 +9,7 @@ using GameHost.IO;
 
 namespace GameHost.Audio.Systems
 {
-	public class LoadAudioSystem : AppSystem
+	public class LoadAudioResourceSystem : AppSystem
 	{
 		private readonly struct Key__ : IEquatable<Key__>
 		{
@@ -53,7 +53,7 @@ namespace GameHost.Audio.Systems
 
 		private EntitySet toLoadSet;
 
-		public LoadAudioSystem(WorldCollection collection) : base(collection)
+		public LoadAudioResourceSystem(WorldCollection collection) : base(collection)
 		{
 			resourceMap = new Dictionary<Key__, Entity>();
 			currentId   = 1;
@@ -109,15 +109,12 @@ namespace GameHost.Audio.Systems
 		public ResourceHandle<AudioResource> Load(string path, IStorage storage)
 		{
 			var key = new Key__(path, storage);
-			Console.WriteLine("Load<");
 			if (!resourceMap.TryGetValue(key, out var resourceEntity))
 			{
 				resourceMap[key] = resourceEntity = World.Mgr.CreateEntity();
 				resourceEntity.Set(new AskLoadResource<AudioResource>());
 				resourceEntity.Set(new LoadResourceViaStorage {Path = path, Storage = storage});
 			}
-
-			Console.WriteLine("Load>");
 
 			return new ResourceHandle<AudioResource>(resourceEntity);
 		}

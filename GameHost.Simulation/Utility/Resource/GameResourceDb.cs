@@ -28,7 +28,7 @@ namespace GameHost.Simulation.Utility.Resource
 		{
 			if (!keyToEntity.TryGetValue(key, out var entity))
 			{
-				keyToEntity[key] = gameWorld.CreateEntity();
+				keyToEntity[key] = entity = gameWorld.CreateEntity();
 			}
 
 			gameWorld.AddComponent(entity, new GameResourceKey<TKey> {Value = key});

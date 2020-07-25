@@ -68,7 +68,7 @@ namespace GameHost.Simulation.TabEcs
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
 		public bool HasComponent<T>(GameEntity entity)
-			where T : struct, IComponentData
+			where T : struct, IEntityComponent
 		{
 			return HasComponent(entity, AsComponentType<T>());
 		}

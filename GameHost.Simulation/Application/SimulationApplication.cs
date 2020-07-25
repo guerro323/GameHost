@@ -55,9 +55,9 @@ namespace GameHost.Simulation.Application
 				{
 					Scheduler.Run();
 					
-					for (var i = 0; i < updateCount; i++)
+					while (updateCount-- > 0)
 					{
-						timeApp.Update(elapsed - (delta * (updateCount - 1 - i)), delta);
+						timeApp.Update(elapsed - TimeSpan.FromSeconds(fts.accumulatedTime) - updateCount * delta, delta);
 						Data.Loop();
 					}
 				}

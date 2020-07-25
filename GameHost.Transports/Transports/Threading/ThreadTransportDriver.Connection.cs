@@ -54,7 +54,6 @@ namespace GameHost.Transports
 				var prevLen = m_DataStream.Count;
 				m_DataStream.AddRange(new ReadOnlySpan<byte>(data.ToPointer(), length));
 				m_IncomingEvents.Enqueue(new DriverEvent {Type = TransportEvent.EType.Data, StreamOffset = prevLen, Length = length});
-				Console.WriteLine($"P={prevLen} L={length}");
 			}
 
 			public TransportEvent.EType PopEvent(out Span<byte> bs)

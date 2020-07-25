@@ -56,7 +56,6 @@ namespace GameHost.Audio
 						case TransportEvent.EType.Data:
 							var reader = new DataBufferReader(ev.Data);
 							var type = (EAudioSendType) reader.ReadValue<int>();
-							Console.WriteLine("Received: " + type);
 							switch (type)
 							{
 								case EAudioSendType.Unknown:

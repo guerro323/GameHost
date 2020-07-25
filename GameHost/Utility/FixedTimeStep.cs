@@ -4,7 +4,7 @@ namespace GameHost.Simulation
 {
 	public struct FixedTimeStep
 	{
-		private double accumulatedTime;
+		public double accumulatedTime;
 
 		public int TargetFrameTimeMs;
 

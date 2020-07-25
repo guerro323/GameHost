@@ -8,7 +8,7 @@
 		public readonly bool HasBeenPressed(RangeTick  range) => range.Contains(Pressed);
 		public readonly bool HasBeenReleased(RangeTick range) => range.Contains(Released);
 
-		public bool AnyUpdate(RangeTick range)
+		public readonly bool AnyUpdate(RangeTick range)
 		{
 			return range.Contains(Pressed) || range.Contains(Released);
 		}

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using DryIoc;
+using GameHost.Core.Ecs;
 
 namespace GameHost.Core
 {
@@ -42,10 +43,21 @@ namespace GameHost.Core
         {
             _TemporaryList ??= new List<Type>(8);
             _TemporaryList.Clear();
-            foreach (var attribute in toCheck.GetAttributes(typeof(T), true))
+
+            var tab = 0;
+            while (toCheck != null)
             {
-                var attr = (T)attribute;
-                _TemporaryList.AddRange(attr.Types);
+                foreach (var attribute in toCheck.GetAttributes(typeof(T), true))
+                {
+                    var attr = (T) attribute;
+                    _TemporaryList.AddRange(attr.Types);
+
+                    Console.WriteLine(string.Concat(Enumerable.Repeat("\t", tab)) + toCheck);
+                    foreach (var t in attr.Types)
+                        Console.WriteLine(string.Concat(Enumerable.Repeat("\t", tab)) + "\t" + t);
+                }
+                toCheck = toCheck.BaseType;
+                tab++;
             }
 
             return _TemporaryList.ToArray();
@@ -75,7 +87,7 @@ namespace GameHost.Core
             {
                 if (!listIsDirty)
                     return orderedElements.AsReadOnly();
-
+                
                 orderedElements.Clear();
                 foreach (var elem in dirtyElements)
                 {
@@ -139,7 +151,7 @@ namespace GameHost.Core
                         }
                     }
                 }
-
+                
                 OnOrderUpdate?.Invoke();
 
                 return orderedElements.AsReadOnly();
@@ -194,8 +206,12 @@ namespace GameHost.Core
             return -1;
         }
 
-        private struct Element
+        public class Element
         {
+            public bool visited;
+            public int LongestSystemsUpdatingAfterChain;
+            public int LongestSystemsUpdatingBeforeChain;
+
             public T      Value;
             public Type[] UpdateAfter;
             public Type[] UpdateBefore;

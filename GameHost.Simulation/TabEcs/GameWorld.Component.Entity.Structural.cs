@@ -138,6 +138,21 @@ namespace GameHost.Simulation.TabEcs
 
 			return cRef;
 		}
+		
+		/// Add a component to an entity
+		/// </summary>
+		/// <param name="entity"></param>
+		/// <param name="data"></param>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public ComponentBuffer<T> AddBuffer<T>(GameEntity entity, in T data = default)
+			where T : struct, IComponentBuffer
+		{
+			var componentType = AsComponentType<T>();
+			AddComponent(entity, componentType);
+
+			return GetBuffer<T>(entity);
+		}
 
 		/// <summary>
 		/// Update a component of an entity if it is owned, or create an owned component.
