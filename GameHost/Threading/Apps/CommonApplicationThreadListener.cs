@@ -42,8 +42,8 @@ namespace GameHost.Threading.Apps
 
 			LastUpdater = null;
 		}
-		
-		
+
+
 
 		ListenerUpdate IListener.OnUpdate(ListenerCollectionBase updater)
 		{
@@ -80,7 +80,8 @@ namespace GameHost.Threading.Apps
 			Scheduler.Schedule(action, args, parameters);
 		}
 
-		public GlobalWorld Global { get; }
-		public ApplicationData Data { get; }
+		public Entity          AssignedEntity { get; set; }
+		public GlobalWorld     Global         { get; }
+		public ApplicationData Data           { get; }
 	}
 }

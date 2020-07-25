@@ -26,9 +26,12 @@ namespace GameHost.Audio
 				logger.ZLogCritical("A SoLoud object already exist!");
 				return;
 			}
-			
+
 			soloud = new Soloud();
 			soloud.init();
+
+			World.Mgr.CreateEntity()
+			     .Set(soloud);
 		}
 
 		protected override void OnFeatureRemoved(SoLoudBackendFeature feature)
@@ -37,39 +40,6 @@ namespace GameHost.Audio
 
 			soloud.deinit();
 			soloud = null;
-		}
-
-		protected override void OnUpdate()
-		{
-			base.OnUpdate();
-
-			foreach (var feature in Features)
-			{
-				while (feature.Driver.Accept().IsCreated)
-				{}
-
-				TransportEvent ev;
-				while ((ev = feature.Driver.PopEvent()).Type != TransportEvent.EType.None)
-				{
-					switch (ev.Type)
-					{
-						case TransportEvent.EType.None:
-							break;
-						case TransportEvent.EType.RequestConnection:
-							break;
-						case TransportEvent.EType.Connect:
-							Console.WriteLine("connection!");
-							break;
-						case TransportEvent.EType.Disconnect:
-							break;
-						case TransportEvent.EType.Data:
-							Console.WriteLine("data!");
-							break;
-						default:
-							throw new ArgumentOutOfRangeException();
-					}
-				}
-			}
 		}
 	}
 }

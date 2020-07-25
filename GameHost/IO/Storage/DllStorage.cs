@@ -29,7 +29,7 @@ namespace GameHost.IO
         {
             return Task.FromResult(Assembly.GetManifestResourceNames()
                                            .Select(mrn => (IFile)new DllEmbeddedFile(Assembly, mrn))
-                                           .Where(file => FileSystemName.MatchesSimpleExpression(pattern, file.Name)));
+                                           .Where(file => FileSystemName.MatchesSimpleExpression(pattern, file.FullName.Replace(CurrentPath + "/", string.Empty))));
         }
 
         public Task<IStorage> GetOrCreateDirectoryAsync(string path)

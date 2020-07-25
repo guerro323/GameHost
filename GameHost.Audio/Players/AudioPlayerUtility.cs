@@ -10,6 +10,7 @@ namespace GameHost.Audio.Players
 			where TPlayerBackend : IAudioPlayerComponent
 		{
 			entity.Set(backend);
+			entity.Set(new AudioPlayerType(typeof(TPlayerBackend)));
 		}
 
 		public static void SetFireAndForget(Entity entity)
@@ -17,10 +18,10 @@ namespace GameHost.Audio.Players
 			entity.Set(new AudioFireAndForgetComponent());
 		}
 
-		/*public static void SetResource(Entity entity, ResourceHandle<AudioResource> resource)
+		public static void SetResource(Entity entity, ResourceHandle<AudioResource> resource)
 		{
-			entity.Set(resource.Result);
-		}*/
+			entity.Set(resource);
+		}
 
 		public static void Play(Entity entity)
 		{

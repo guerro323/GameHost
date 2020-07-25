@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features;
 using GameHost.Core.Features.Systems;
+using GameHost.Simulation.Application;
 using GameHost.Simulation.TabEcs;
 using NetFabric.Hyperlinq;
 using RevolutionSnapshot.Core.Buffers;
@@ -11,6 +12,7 @@ using Array = System.Array;
 
 namespace GameHost.Simulation.Features.ShareWorldState
 {
+	[RestrictToApplication(typeof(SimulationApplication))]
 	public class SendWorldStateSystem : AppSystemWithFeature<ShareWorldStateFeature>
 	{
 		private GameWorld gameWorld;

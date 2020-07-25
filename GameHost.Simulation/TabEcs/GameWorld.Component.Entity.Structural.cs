@@ -33,10 +33,13 @@ namespace GameHost.Simulation.TabEcs
 		/// <returns>True if the component was removed, false if it did not exist.</returns>
 		public bool RemoveComponent(GameEntity entity, ComponentType componentType)
 		{
-			var b = GameWorldLL.RemoveComponentReference(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType), componentType, Boards.Entity, entity);
-			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+			if (GameWorldLL.RemoveComponentReference(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType), componentType, Boards.Entity, entity))
+			{
+				GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+				return true;
+			}
 
-			return b;
+			return false;
 		}
 
 		/// <summary>

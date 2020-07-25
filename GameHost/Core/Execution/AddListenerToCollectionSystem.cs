@@ -30,6 +30,10 @@ namespace GameHost.Core.Execution
 				var listener   = entity.Get<IListener>();
 				var collection = entity.Get<PushToListenerCollection>().Entity.Get<ListenerCollectionBase>();
 
+				if (listener is IApplication application)
+					application.AssignedEntity = entity;
+
+				Console.WriteLine($"Add {listener} to collection");
 				if (entity.Has<ListenerCollectionTarget>())
 				{
 					var currentEntity = entity.Get<ListenerCollectionTarget>().Entity;
@@ -47,6 +51,7 @@ namespace GameHost.Core.Execution
 					keys = entity.Get<IListenerKey[]>();
 
 				collection.AddListener(listener, keys);
+				Console.WriteLine("Added.");
 				entity.Set(new ListenerCollectionTarget(entity.Get<PushToListenerCollection>().Entity));
 				entity.Remove<PushToListenerCollection>();
 			}

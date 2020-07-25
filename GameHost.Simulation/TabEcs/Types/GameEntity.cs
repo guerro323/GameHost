@@ -4,6 +4,16 @@ namespace GameHost.Simulation.TabEcs
 {
 	public readonly struct GameEntity : IEquatable<GameEntity>
 	{
+		public static bool operator ==(GameEntity left, GameEntity right)
+		{
+			return left.Equals(right);
+		}
+
+		public static bool operator !=(GameEntity left, GameEntity right)
+		{
+			return !left.Equals(right);
+		}
+
 		public readonly uint Id;
 
 		public GameEntity(uint id)

@@ -157,7 +157,7 @@ namespace GameHost.Transports
 				var otherSource = connection.Peer.Source;
 				var dataPtr     = Marshal.AllocHGlobal(data.Length);
 				var dataLength  = data.Length;
-				
+
 				data.CopyTo(new Span<byte>((void*) dataPtr, dataLength));
 
 				otherSource.scheduler.Schedule(sd =>

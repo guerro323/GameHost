@@ -32,6 +32,8 @@ namespace RevolutionSnapshot.Core.Buffers
 
         private DataBuffer* m_Data;
 
+        public bool IsCreated => m_Data != null;
+
         public int Length
         {
             get => m_Data->length;
@@ -61,6 +63,7 @@ namespace RevolutionSnapshot.Core.Buffers
         }
 
         public IntPtr GetSafePtr() => (IntPtr) m_Data->buffer;
+        public Span<byte> Span => new Span<byte>(m_Data->buffer, m_Data->length);
 
 
         public DataBufferWriter(int capacity)
@@ -69,10 +72,6 @@ namespace RevolutionSnapshot.Core.Buffers
             m_Data->buffer   = (byte*) UnsafeUtility.Malloc(capacity);
             m_Data->length   = 0;
             m_Data->capacity = capacity;
-        }
-
-        public void UpdateReference()
-        {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

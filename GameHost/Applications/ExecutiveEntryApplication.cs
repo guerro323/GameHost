@@ -1,4 +1,5 @@
-﻿using GameHost.Worlds;
+﻿using DefaultEcs;
+using GameHost.Worlds;
 
 namespace GameHost.Applications
 {
@@ -7,8 +8,9 @@ namespace GameHost.Applications
 	/// </summary>
 	public class ExecutiveEntryApplication : IApplication
 	{
-		public GlobalWorld     Global { get; }
-		public ApplicationData Data   { get; }
+		public Entity          AssignedEntity { get; set; }
+		public GlobalWorld     Global         { get; }
+		public ApplicationData Data           { get; }
 
 		public ExecutiveEntryApplication(GlobalWorld source)
 		{

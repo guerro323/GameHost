@@ -234,7 +234,7 @@ namespace GameHost.Core.Threading
                     spinLock.Exit(true);
                     return;
                 }
-
+                
                 scheduledValueTasks.Enqueue(((Collection<T>) collection).Enqueue(action, args));
                 spinLock.Exit(true);
             }

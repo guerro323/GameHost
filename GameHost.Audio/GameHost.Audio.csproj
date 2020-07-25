@@ -9,4 +9,10 @@
       <ProjectReference Include="..\GameHost\GameHost.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="native\soloud_x64.dll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

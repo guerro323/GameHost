@@ -83,7 +83,7 @@ namespace GameHost.Inputs.Systems
 					feature.Driver.Broadcast(feature.PreferredChannel, new Span<byte>((void*) data.GetSafePtr(), data.Length));
 				}
 			}
-
+			
 			data.Dispose();
 
 			pushInputSet.Remove<PushInputLayoutChange>();

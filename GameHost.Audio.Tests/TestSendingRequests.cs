@@ -18,7 +18,7 @@ namespace GameHost.Audio.Tests
 			{
 				var list = base.RequiredAudioSystems ?? new List<Type>();
 				list.Add(typeof(UpdateClientAudioDriver));
-				list.Add(typeof(UpdateAudioBackendDriverSystem));
+				list.Add(typeof(UpdateSoLoudBackendDriverSystem));
 				return list;
 			}
 		}
@@ -30,12 +30,11 @@ namespace GameHost.Audio.Tests
 			serverDriver.Listen();
 
 			Server.Data.World.CreateEntity().Set<IFeature>(new SoLoudBackendFeature(serverDriver));
-			Client.Data.World.CreateEntity().Set<IFeature>(new ClientAudioFeature(serverDriver.TransportAddress.Connect(), default));
+			Client.Data.World.CreateEntity().Set<IFeature>(new AudioClientFeature(serverDriver.TransportAddress.Connect(), default));
 
 			var request = Client.Data.World.CreateEntity();
 			var str = "Hello World!";
 			request.Set(new Request {Value = str});
-			request.Set<ClientAudioFeature.SendRequest>();
 
 			Global.Loop();
 			Global.Loop();

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Runtime.InteropServices;
+using System.Threading;
 using DefaultEcs;
 using DefaultEcs.Serialization;
 using GameHost.Audio.Features;
@@ -11,15 +12,10 @@ using RevolutionSnapshot.Core.Buffers;
 
 namespace GameHost.Audio
 {
-	public class UpdateClientAudioDriver : AppSystemWithFeature<ClientAudioFeature>
+	public class UpdateClientAudioDriver : AppSystemWithFeature<AudioClientFeature>
 	{
-		private EntitySet requestSet;
-
 		public UpdateClientAudioDriver(WorldCollection collection) : base(collection)
 		{
-			requestSet = collection.Mgr.GetEntities()
-			                       .With<ClientAudioFeature.SendRequest>()
-			                       .AsSet();
 		}
 
 		protected override void OnUpdate()
@@ -34,33 +30,40 @@ namespace GameHost.Audio
 				}
 
 				// todo: check events for errors and all
-				while (feature.Driver.PopEvent().Type != TransportEvent.EType.None)
+				TransportEvent ev;
+				while ((ev = feature.Driver.PopEvent()).Type != TransportEvent.EType.None)
 				{
-				}
-			}
-
-			// Send data...
-			foreach (ref readonly var entity in requestSet.GetEntities())
-			{
-				var serializer = new BinarySerializer();
-				var buffer     = new DataBufferWriter(0);
-				using (var stream = new DataStreamWriter(buffer))
-				{
-					serializer.Serialize(stream, entity);
-				}
-
-				foreach (var feature in Features)
-				{
-					unsafe
+					Console.WriteLine("CLIENT " + ev.Type);
+					switch (ev.Type)
 					{
-						feature.Driver.Broadcast(feature.PreferredChannel, new Span<byte>((void*) buffer.GetSafePtr(), buffer.Length));
+						case TransportEvent.EType.None:
+							break;
+						case TransportEvent.EType.RequestConnection:
+							break;
+						case TransportEvent.EType.Connect:
+							break;
+						case TransportEvent.EType.Disconnect:
+							break;
+						case TransportEvent.EType.Data:
+							var reader = new DataBufferReader(ev.Data);
+							var type = (EAudioSendType) reader.ReadValue<int>();
+							switch (type)
+							{
+								case EAudioSendType.Unknown:
+									throw new InvalidOperationException();
+								case EAudioSendType.RegisterResource:
+									throw new InvalidOperationException("shouldn't be called");
+								case EAudioSendType.SendAudioPlayerData:
+									throw new InvalidOperationException("shouldn't be called");
+								default:
+									throw new ArgumentOutOfRangeException();
+							}
+							break;
+						default:
+							throw new ArgumentOutOfRangeException();
 					}
 				}
-
-				buffer.Dispose();
 			}
-
-			requestSet.DisposeAllEntities();
 		}
 	}
 }

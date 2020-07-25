@@ -169,6 +169,7 @@ namespace GameHost.Threading
 					TimeSpan timeToSleep;
 					using (SynchronizeThread())
 					{
+						//Console.WriteLine(Thread.Name + ", " + Listeners.Count);
 						timeToSleep = Update();
 					}
 

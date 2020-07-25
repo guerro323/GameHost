@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Reflection;
 using GameHost.Core.Ecs;
+using GameHost.Core.Modules;
+using GameHost.Core.Modules.Feature;
+using GameHost.Core.Threading;
+using GameHost.Worlds;
 using Microsoft.Extensions.Logging;
 
 namespace GameHost.Injection
@@ -16,6 +20,7 @@ namespace GameHost.Injection
             this.collection = collection;
         }
 
+        private bool isResolvingModule;
         private object resolving;
 
         public object ResolveNow(Type type)
@@ -27,6 +32,10 @@ namespace GameHost.Injection
                 {
                     return resolving;
                 }
+
+                // if resolving isn't null and that we are resolving module, this mean that the module data is accessible
+                if (isResolvingModule)
+                    return resolving;
 
                 return null;
             }
@@ -43,9 +52,19 @@ namespace GameHost.Injection
 
             if (type == typeof(Assembly))
                 return source.GetType().Assembly;
-            /* TODO:: if (typeof(CModule).IsAssignableFrom(type))
-                return collection.GetOrCreate(world => new ModuleManager(world)).GetModule(source.GetType().Assembly).Result;
-                */
+            if (!isResolvingModule && typeof(GameHostModule).IsAssignableFrom(type))
+            {
+                isResolvingModule = true;
+
+                var executive = new ContextBindingStrategy(collection.Ctx, true).Resolve<GlobalWorld>();
+                executive.Scheduler.Schedule(() =>
+                {
+                    resolving = executive.Collection
+                                         .GetOrCreate(world => new ModuleManager(world))
+                                         .GetModule(source.GetType().Assembly);
+                }, default);
+                return null;
+            }
 
             if (typeof(ILogger).IsAssignableFrom(type))
             {

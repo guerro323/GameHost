@@ -2,7 +2,7 @@
 
 namespace GameHost.Audio.Features
 {
-	public struct FlatAudioPlayerComponent : IAudioPlayerComponent
+	public struct StandardAudioPlayerComponent : IAudioPlayerComponent
 	{
 		
 	}

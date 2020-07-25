@@ -12,7 +12,7 @@ namespace GameHost.Audio
     {
         public IntPtr objhandle;
 
-        public const string DLL_PATH = "native/soloud_x64.dll";
+        public const string DLL_PATH = "native/soloud_x64";
     }
 
     public class Soloud : SoloudObject

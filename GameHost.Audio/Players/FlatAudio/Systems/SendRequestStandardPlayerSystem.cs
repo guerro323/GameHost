@@ -1,48 +1,51 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using DefaultEcs;
 using DefaultEcs.Command;
 using GameHost.Applications;
 using GameHost.Audio.Players;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
+using GameHost.IO;
+using RevolutionSnapshot.Core.Buffers;
+using StormiumTeam.GameBase.Utility.Misc;
 
 namespace GameHost.Audio.Features
 {
-	public struct SPlay
+	public class SendRequestStandardPlayerSystem : AppSystemWithFeature<AudioClientFeature>
 	{
-		public Entity   Resource;
-		public Entity   Player;
-		public float    Volume;
-		public TimeSpan Delay;
-		
-		public struct Delayed {}
-	}
-
-	public class SendRequestToFlatAudioPlayerSystem : AppSystem
-	{
-		public SendRequestToFlatAudioPlayerSystem(WorldCollection collection) : base(collection)
+		public SendRequestStandardPlayerSystem(WorldCollection collection) : base(collection)
 		{
 		}
 
 		private EntitySet playAudioSet;
 		private EntitySet toDisposeSet;
 
+		private string typeName;
+
 		protected override void OnInit()
 		{
 			base.OnInit();
 
 			var baseSet = World.Mgr.GetEntities()
-			                   .With<AudioResourceComponent>()
-			                   .With<FlatAudioPlayerComponent>()
+			                   .With<ResourceHandle<AudioResource>>()
+			                   .With<AudioPlayerId>()
+			                   .With<StandardAudioPlayerComponent>()
 			                   .With<PlayAudioRequest>();
 			playAudioSet = baseSet.AsSet();
 			toDisposeSet = baseSet.With<AudioFireAndForgetComponent>().AsSet();
+
+			typeName = TypeExt.GetFriendlyName(typeof(StandardAudioPlayerComponent));
 		}
 
 		protected override void OnUpdate()
 		{
 			foreach (ref readonly var entity in playAudioSet.GetEntities())
 			{
+				var resource = entity.Get<ResourceHandle<AudioResource>>();
+				if (!resource.IsLoaded)
+					continue;
+
 				var volume = 1f;
 				if (entity.TryGet(out AudioVolumeComponent volumeComponent))
 					volume = volumeComponent.Volume;
@@ -51,15 +54,25 @@ namespace GameHost.Audio.Features
 				if (entity.TryGet(out AudioDelayComponent delayComponent))
 					delay = delayComponent.Delay;
 
-				var request = World.Mgr.CreateEntity();
-				request.Set(new SPlay
+				using var writer = new DataBufferWriter(16 + Unsafe.SizeOf<SControllerEvent>());
+				writer.WriteValue((int) EAudioSendType.SendAudioPlayerData);
+				writer.WriteStaticString(typeName);
+				writer.WriteValue(new SControllerEvent
 				{
-					Resource = entity.Get<AudioResourceComponent>().Source,
-					Player   = entity,
-					Volume   = volume,
-					Delay    = delay
+					State      = SControllerEvent.EState.Play,
+					ResourceId = entity.Get<ResourceHandle<AudioResource>>().Result.Id,
+					Player     = entity.Get<AudioPlayerId>().Id,
+					Volume     = volume,
+					Delay      = delay
 				});
-				request.Set<ClientAudioFeature.SendRequest>();
+
+				foreach (var feature in Features)
+				{
+					unsafe
+					{
+						feature.Driver.Broadcast(feature.PreferredChannel, new Span<byte>((void*) writer.GetSafePtr(), writer.Length));
+					}
+				}
 			}
 
 			playAudioSet.Remove<PlayAudioRequest>();

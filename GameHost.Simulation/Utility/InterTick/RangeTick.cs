@@ -30,7 +30,7 @@ namespace GameHost.Simulation.Utility.InterTick
 		{
 			if (tick == default)
 				return false;
-				
+
 			return End >= tick && tick >= Begin;
 		}
 
@@ -38,8 +38,18 @@ namespace GameHost.Simulation.Utility.InterTick
 		{
 			if (tick.Value == default)
 				return false;
-			
+
 			return End >= tick.Value && tick.Value >= Begin;
+		}
+		
+		public static implicit operator RangeTick(int tick)
+		{
+			return new RangeTick((uint)tick, (uint)tick);
+		}
+
+		public static implicit operator RangeTick(uint tick)
+		{
+			return new RangeTick(tick, tick);
 		}
 	}
 }
