@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using DefaultEcs;
 using DryIoc;
+using GameHost.Applications;
 using GameHost.Core.Ecs.Passes;
 using GameHost.Injection;
 
@@ -134,6 +136,11 @@ namespace GameHost.Core.Ecs
             systemMap[obj.GetType()] = obj;
             systemList.Set(obj, updateAfter, updateBefore);
             Ctx.Register(obj);
+
+            var prefix = $"Thread({Thread.CurrentThread.Name})";
+            if (new ContextBindingStrategy(Ctx, false).Resolve<IApplication>() != null)
+                prefix = $"App({new ContextBindingStrategy(Ctx, false).Resolve<IApplication>().GetType()})";
+            Console.WriteLine($"System for '{prefix}' --> {obj.GetType()}");
         }
 
         public void LoopPasses()

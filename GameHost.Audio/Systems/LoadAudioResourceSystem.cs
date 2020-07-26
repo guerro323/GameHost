@@ -13,18 +13,20 @@ namespace GameHost.Audio.Systems
 	{
 		private readonly struct Key__ : IEquatable<Key__>
 		{
+			public readonly IFile    File;
 			public readonly string   Path;
 			public readonly IStorage Storage;
 
-			public Key__(string path, IStorage storage)
+			public Key__(IFile file, string path, IStorage storage)
 			{
+				File    = file;
 				Path    = path;
 				Storage = storage;
 			}
 
 			public bool Equals(Key__ other)
 			{
-				return Path == other.Path && Equals(Storage, other.Storage);
+				return File == other.File && Path == other.Path && Equals(Storage, other.Storage);
 			}
 
 			public override bool Equals(object obj)
@@ -34,7 +36,7 @@ namespace GameHost.Audio.Systems
 
 			public override int GetHashCode()
 			{
-				return HashCode.Combine(Path, Storage);
+				return HashCode.Combine(File, Path, Storage);
 			}
 
 			public static bool operator ==(Key__ left, Key__ right)
@@ -57,7 +59,7 @@ namespace GameHost.Audio.Systems
 		{
 			resourceMap = new Dictionary<Key__, Entity>();
 			currentId   = 1;
-			
+
 			toLoadSet = World.Mgr.GetEntities()
 			                 .With<AskLoadResource<AudioResource>>()
 			                 .AsSet();
@@ -83,7 +85,7 @@ namespace GameHost.Audio.Systems
 
 					var file = files.First();
 					// todo: async
-					entity.Set(new AudioBytesData{Value = file.GetContentAsync().Result});
+					entity.Set(new AudioBytesData {Value = file.GetContentAsync().Result});
 				}
 				else if (entity.Has<LoadResourceViaFile>())
 				{
@@ -108,12 +110,25 @@ namespace GameHost.Audio.Systems
 
 		public ResourceHandle<AudioResource> Load(string path, IStorage storage)
 		{
-			var key = new Key__(path, storage);
+			var key = new Key__(null, path, storage);
 			if (!resourceMap.TryGetValue(key, out var resourceEntity))
 			{
 				resourceMap[key] = resourceEntity = World.Mgr.CreateEntity();
 				resourceEntity.Set(new AskLoadResource<AudioResource>());
 				resourceEntity.Set(new LoadResourceViaStorage {Path = path, Storage = storage});
+			}
+
+			return new ResourceHandle<AudioResource>(resourceEntity);
+		}
+
+		public ResourceHandle<AudioResource> Load(IFile file)
+		{
+			var key = new Key__(file, null, null);
+			if (!resourceMap.TryGetValue(key, out var resourceEntity))
+			{
+				resourceMap[key] = resourceEntity = World.Mgr.CreateEntity();
+				resourceEntity.Set(new AskLoadResource<AudioResource>());
+				resourceEntity.Set(new LoadResourceViaFile {File = file});
 			}
 
 			return new ResourceHandle<AudioResource>(resourceEntity);

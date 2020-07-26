@@ -130,7 +130,7 @@ namespace GameHost.Core.Threading
 
         public Scheduler(Func<Exception, bool> onExceptionFound = null)
         {
-            this.OnExceptionFound = onExceptionFound ?? (_ => true);
+            this.OnExceptionFound = onExceptionFound ?? (ex => throw ex);
 
             scheduledValueTasks = new Queue<ScheduledValueTask>();
             nextRunningTasks    = new List<ScheduledValueTask>();

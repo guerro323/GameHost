@@ -46,11 +46,14 @@ namespace GameHost.Audio
 			}
 		}
 
-		private Dictionary<Key__, Wav> mapped;
+		private Dictionary<Key__, Wav>      mapped;
+		private SoLoudSendAudioResourceData sendAudioResourceData;
 
 		public SoLoudResourceManager(WorldCollection collection) : base(collection)
 		{
 			mapped = new Dictionary<Key__, Wav>();
+			
+			DependencyResolver.Add(() => ref sendAudioResourceData);
 		}
 
 		public unsafe void Register(TransportConnection connection, int id, Span<byte> span)
@@ -66,6 +69,8 @@ namespace GameHost.Audio
 			{
 				wav.loadMem((IntPtr) dataPtr, (uint) span.Length, aCopy: 1);
 			}
+
+			sendAudioResourceData.Send(connection, id, ref wav);
 
 			mapped[key] = wav;
 		}

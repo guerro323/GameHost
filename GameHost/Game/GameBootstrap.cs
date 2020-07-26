@@ -111,6 +111,7 @@ namespace GameHost.Game
 			while (!CancellationTokenSource.IsCancellationRequested)
 			{
 				Global.Loop();
+				Thread.Sleep(10);
 			}
 		}
 

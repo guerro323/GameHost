@@ -52,6 +52,9 @@ namespace GameHost.Audio.Players
 			entity.Set(resource);
 			entity.Set(new PlayAudioRequest());
 			entity.Set<StandardAudioPlayerComponent>();
+			
+			if (ev.Delay > TimeSpan.Zero)
+				entity.Set(new AudioDelayComponent(worldTime.Total + ev.Delay - worldTime.Delta));
 		}
 
 		protected override void OnUpdate()
@@ -61,10 +64,18 @@ namespace GameHost.Audio.Players
 			{
 				if (entity.Has<PlayAudioRequest>())
 				{
-					entity.Set(soloud.play(entity.Get<Wav>()));
-					
-					recorder.Record(entity)
-					        .Remove<PlayAudioRequest>();
+					if (!entity.TryGet(out AudioDelayComponent delay) || worldTime.Total >= delay.Delay)
+					{
+						if (entity.TryGet(out uint currSoloudId))
+							soloud.stop(currSoloudId);
+						
+						entity.Set(soloud.play(entity.Get<Wav>()));
+
+						recorder.Record(entity)
+						        .Remove<PlayAudioRequest>();
+						recorder.Record(entity)
+						        .Remove<AudioDelayComponent>();
+					}
 				}
 			}
 			

@@ -55,12 +55,12 @@ namespace GameHost.Simulation.Application
 					
 					while (updateCount-- > 0)
 					{
-						timeApp.Update(elapsed - TimeSpan.FromSeconds(fts.accumulatedTime) - updateCount * targetFrequency, targetFrequency);
+						timeApp.Update(elapsed - TimeSpan.FromSeconds(fts.accumulatedTime) - updateCount * delta, delta);
 						Data.Loop();
 					}
 				}
 			}
-
+			
 			var timeToSleep = TimeSpan.FromTicks(Math.Max(targetFrequency.Ticks - worker.Delta.Ticks, 0));
 			if (timeToSleep.Ticks > 0)
 				worker.Delta += timeToSleep;

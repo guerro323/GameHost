@@ -7,6 +7,7 @@ using GameHost.Audio.Players;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
 using GameHost.IO;
+using GameHost.Worlds.Components;
 using RevolutionSnapshot.Core.Buffers;
 using StormiumTeam.GameBase.Utility.Misc;
 
@@ -18,6 +19,9 @@ namespace GameHost.Audio.Features
 		{
 		}
 
+		private IManagedWorldTime worldTime;
+		
+		private EntitySet playerSet;
 		private EntitySet playAudioSet;
 		private EntitySet toDisposeSet;
 
@@ -30,16 +34,27 @@ namespace GameHost.Audio.Features
 			var baseSet = World.Mgr.GetEntities()
 			                   .With<ResourceHandle<AudioResource>>()
 			                   .With<AudioPlayerId>()
-			                   .With<StandardAudioPlayerComponent>()
-			                   .With<PlayAudioRequest>();
-			playAudioSet = baseSet.AsSet();
+			                   .With<StandardAudioPlayerComponent>();
+
+			playerSet    = baseSet.AsSet();
+			playAudioSet = baseSet.With<PlayAudioRequest>().AsSet();
 			toDisposeSet = baseSet.With<AudioFireAndForgetComponent>().AsSet();
 
 			typeName = TypeExt.GetFriendlyName(typeof(StandardAudioPlayerComponent));
+			
+			DependencyResolver.Add(() => ref worldTime);
 		}
 
 		protected override void OnUpdate()
 		{
+			foreach (ref readonly var entity in playerSet.GetEntities())
+			{
+				if (entity.TryGet(out AudioStartTime startTime))
+				{
+					entity.Set(new AudioCurrentPlayTime(worldTime.Total - startTime.Value));
+				}
+			}
+
 			foreach (ref readonly var entity in playAudioSet.GetEntities())
 			{
 				var resource = entity.Get<ResourceHandle<AudioResource>>();
@@ -65,6 +80,8 @@ namespace GameHost.Audio.Features
 					Volume     = volume,
 					Delay      = delay
 				});
+				
+				entity.Set(new AudioStartTime {Value = worldTime.Total + delay});
 
 				foreach (var feature in Features)
 				{
@@ -80,48 +97,8 @@ namespace GameHost.Audio.Features
 		}
 	}
 
-	/*public class FlatAudioPlayerSystem : AppSystemWithFeature<IAudioBackendFeature>
+	public struct AudioStartTime
 	{
-		private EntitySet entitySet;
-		private EntityCommandRecorder recorder;
-		private IManagedWorldTime worldTime;
-
-		public FlatAudioPlayerSystem(WorldCollection collection) : base(collection)
-		{
-			entitySet = collection.Mgr.GetEntities()
-			                      .With<SPlay>()
-			                      .AsSet();
-			
-			recorder = new EntityCommandRecorder();
-			
-			DependencyResolver.Add(() => ref worldTime);
-		}
-
-		protected override void OnUpdate()
-		{
-			base.OnUpdate();
-
-			foreach (var entity in entitySet.GetEntities())
-			{
-				ref var play = ref entity.Get<SPlay>();
-
-				var isDelayed = entity.Has<SPlay.Delayed>();
-				if (play.Delay > TimeSpan.Zero)
-				{
-					play.Delay = worldTime.Total.Add(play.Delay, worldTime.Delta);
-					entity.Set<SPlay.Delayed>();
-
-					isDelayed = true;
-				}
-
-				if (!isDelayed || play.Delay <= worldTime.Total)
-				{
-					// todo: play
-					
-					recorder.Record(entity)
-					        .Dispose();
-				}
-			}
-		}
-	}*/
+		public TimeSpan Value;
+	}
 }

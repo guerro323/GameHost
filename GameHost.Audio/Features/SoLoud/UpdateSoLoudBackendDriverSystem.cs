@@ -91,7 +91,6 @@ namespace GameHost.Audio
 			{
 				var id   = reader.ReadValue<int>();
 				var type = (EAudioRegisterResourceType) reader.ReadValue<int>();
-				Console.WriteLine($"Id={id}, Type={type}");
 				switch (type)
 				{
 					case EAudioRegisterResourceType.Bytes:
@@ -100,7 +99,6 @@ namespace GameHost.Audio
 						reader.ReadDataSafe(data.AsSpan());
 
 						resourceManager.Register(connection, id, data);
-						Console.WriteLine($"Received audio resource {data.Length}b");
 
 						break;
 					}
@@ -118,7 +116,6 @@ namespace GameHost.Audio
 			{
 				var id   = reader.ReadValue<int>();
 				var type = reader.ReadString();
-				Console.WriteLine($"Id={id}, Type={type}");
 
 				playerManager.Register(connection, id, type);
 			}

@@ -229,8 +229,9 @@ namespace RevolutionSnapshot.Core.Buffers
 
             var ptr = UnsafeUtility.Malloc(length * sizeof(char));
             ReadDataSafe((byte*) ptr, length * sizeof(char), marker);
+            var buffer = CharBufferUtility.Create<TCharBuffer>(new Span<char>(ptr, length));
             UnsafeUtility.Free(ptr);
-            return CharBufferUtility.Create<TCharBuffer>(new Span<char>(ptr, length));
+            return buffer;
         }
     }
 }

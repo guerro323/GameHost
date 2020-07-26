@@ -6,10 +6,11 @@ namespace GameHost.Audio.Features
 {
 	public enum EAudioSendType
 	{
-		Unknown             = 0,
-		RegisterResource    = 1,
-		RegisterPlayer      = 2,
-		SendAudioPlayerData = 10
+		Unknown               = 0,
+		RegisterResource      = 1,
+		RegisterPlayer        = 2,
+		SendReplyResourceData = 3,
+		SendAudioPlayerData   = 10
 	}
 
 	public enum EAudioRegisterResourceType

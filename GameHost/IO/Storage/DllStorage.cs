@@ -29,11 +29,15 @@ namespace GameHost.IO
         {
             return Task.FromResult(Assembly.GetManifestResourceNames()
                                            .Select(mrn => (IFile)new DllEmbeddedFile(Assembly, mrn))
-                                           .Where(file => FileSystemName.MatchesSimpleExpression(pattern, file.FullName.Replace(CurrentPath + "/", string.Empty))));
+                                           .Where(file => FileSystemName.MatchesSimpleExpression(CurrentPath + "/" + pattern, file.FullName)));
         }
 
         public Task<IStorage> GetOrCreateDirectoryAsync(string path)
         {
+            // remove the last slash if it exist
+            while (path[^1] == '/')
+                path = path.Substring(0, path.Length - 1);
+            
             var success = Assembly.GetManifestResourceNames().Any(name => DllEmbeddedFile.ToDirectoryLike(name).StartsWith(CurrentPath + "/" + path));
             if (!success)
                 throw new InvalidOperationException("No such directory in path: " + path);

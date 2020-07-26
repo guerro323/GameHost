@@ -18,7 +18,7 @@ namespace GameHost.Native.Char
 					return new Span<char>(ptr, this.GetLength());
 			}
 		}
-
+		
 		public bool Equals(CharBuffer128 other)
 		{
 			return Span.SequenceEqual(other.Span);
@@ -32,6 +32,13 @@ namespace GameHost.Native.Char
 		public override int GetHashCode()
 		{
 			return CharBufferUtility.ComputeHashCode(this);
+		}
+		
+		public static implicit operator CharBuffer128(string str) => CharBufferUtility.Create<CharBuffer128>(str); 
+		
+		public override string ToString()
+		{
+			return Span.ToString();
 		}
 	}
 }

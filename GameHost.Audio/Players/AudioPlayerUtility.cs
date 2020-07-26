@@ -1,5 +1,6 @@
 ﻿using System;
 using DefaultEcs;
+using GameHost.Core.Ecs;
 using GameHost.IO;
 
 namespace GameHost.Audio.Players
@@ -18,6 +19,12 @@ namespace GameHost.Audio.Players
 			entity.Set(new AudioFireAndForgetComponent());
 		}
 
+		public static ResourceHandle<AudioResource> GetResource(Entity entity)
+		{
+			entity.TryGet(out ResourceHandle<AudioResource> resourceHandle);
+			return resourceHandle;
+		}
+		
 		public static void SetResource(Entity entity, ResourceHandle<AudioResource> resource)
 		{
 			entity.Set(resource);
@@ -55,6 +62,13 @@ namespace GameHost.Audio.Players
 
 			entity.Set(new AudioDelayComponent(delay));
 			entity.Set(new PlayAudioRequest());
+		}
+
+		public static TimeSpan GetPlayTime(Entity entity)
+		{
+			if (!entity.TryGet(out AudioCurrentPlayTime currentPlayTime))
+				return TimeSpan.Zero;
+			return currentPlayTime.Value;
 		}
 	}
 

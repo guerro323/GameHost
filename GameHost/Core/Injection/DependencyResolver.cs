@@ -55,6 +55,8 @@ namespace GameHost.Injection
             onComplete = action;
         }
 
+        private int unresolvedFrames;
+
         private void Update()
         {
             var allResolved = true;
@@ -78,19 +80,24 @@ namespace GameHost.Injection
                     allResolved = false;
             }
 
-            if (allResolved && onComplete != null)
+            if (allResolved && Dependencies.Count > 0)
             {
                 var resolvedDependencies = Dependencies
                                            .Where(d => d.IsResolved && d is IResolvedObject)
                                            .Select(d => ((IResolvedObject) d).Resolved)
                                            .ToList();
 
-                onComplete(resolvedDependencies);
-                onComplete = null;
+                if (onComplete != null)
+                {
+                    onComplete(resolvedDependencies);
+                    onComplete = null;
+                }
+
                 Dependencies.Clear();
-                // Console.WriteLine($"completed {source}");
+                Console.WriteLine($"completed {source}");
+                unresolvedFrames = 0;
             }
-            else
+            else if (unresolvedFrames++ > 2)
             {
                 var str = Dependencies.Aggregate(source, (current, dep) => current + $"\n\t{dep}; {dep.IsResolved}");
                 Console.WriteLine(str);
@@ -105,7 +112,7 @@ namespace GameHost.Injection
             }
 
             if (!allResolved)
-                scheduler.Schedule(Update, SchedulingParameters.AsOnce);
+                scheduler.Schedule(Update, default);
         }
 
         public interface IResolvedObject

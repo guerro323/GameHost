@@ -20,6 +20,10 @@ namespace GameHost.Injection
                 // todo: we should have an interface called IHasDependencies for getting the DependencyResolver field.
                 if (obj is AppObject ao && ao.DependencyResolver.Dependencies.Count > 0)
                 {
+                    Console.WriteLine($"System {obj.GetType()} still has dependencies");
+                    foreach (var dep in ao.DependencyResolver.Dependencies)
+                        Console.WriteLine($"\t{dep.ToString()}");
+                    
                     return null;
                 }
 
@@ -27,6 +31,7 @@ namespace GameHost.Injection
             }
 
             // todo: maybe we should have an option to create the system if it does not exist?
+            Console.WriteLine($"System {type} isn't created");
             return null;
         }
 

@@ -5,6 +5,7 @@ using System.Threading;
 using DefaultEcs;
 using DefaultEcs.Serialization;
 using GameHost.Audio.Features;
+using GameHost.Audio.Features.Systems;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
 using GameHost.Core.IO;
@@ -14,8 +15,11 @@ namespace GameHost.Audio
 {
 	public class UpdateClientAudioDriver : AppSystemWithFeature<AudioClientFeature>
 	{
+		private ClientReceiveAudioResourceDataSystem clientReceiveAudioResourceDataSystem;
+		
 		public UpdateClientAudioDriver(WorldCollection collection) : base(collection)
 		{
+			DependencyResolver.Add(() => ref clientReceiveAudioResourceDataSystem);
 		}
 
 		protected override void OnUpdate()
@@ -33,7 +37,6 @@ namespace GameHost.Audio
 				TransportEvent ev;
 				while ((ev = feature.Driver.PopEvent()).Type != TransportEvent.EType.None)
 				{
-					Console.WriteLine("CLIENT " + ev.Type);
 					switch (ev.Type)
 					{
 						case TransportEvent.EType.None:
@@ -53,6 +56,11 @@ namespace GameHost.Audio
 									throw new InvalidOperationException();
 								case EAudioSendType.RegisterResource:
 									throw new InvalidOperationException("shouldn't be called");
+								case EAudioSendType.SendReplyResourceData:
+								{
+									clientReceiveAudioResourceDataSystem.OnMessage(ref reader);
+									break;
+								}
 								case EAudioSendType.SendAudioPlayerData:
 									throw new InvalidOperationException("shouldn't be called");
 								default:
