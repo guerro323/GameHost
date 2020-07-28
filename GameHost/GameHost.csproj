@@ -10,7 +10,7 @@
       <PackageReference Include="DryIoc" Version="4.2.3" />
       <PackageReference Include="JetBrains.Annotations" Version="2020.2.0-eap" />
       <PackageReference Include="LiteNetLib" Version="0.9.2.2" />
-      <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta18" />
+      <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta21" />
       <PackageReference Include="SharpZipLib" Version="1.2.0" />
       <PackageReference Include="ZLogger" Version="1.2.1" />
     </ItemGroup>
