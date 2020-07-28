@@ -17,5 +17,10 @@ namespace GameHost.Transports
 			driver.Connect(Address);
 			return driver;
 		}
+
+		public override string ToString()
+		{
+			return $"ThreadAddress #{Address.Source.SelfId}";
+		}
 	}
 }

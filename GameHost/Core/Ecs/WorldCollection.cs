@@ -151,7 +151,6 @@ namespace GameHost.Core.Ecs
 
         public void Dispose()
         {
-            Mgr?.Dispose();
             foreach (var sys in systemList)
             {
                 if (sys is IDisposable disposable)
@@ -159,7 +158,8 @@ namespace GameHost.Core.Ecs
                     disposable.Dispose();
                 }
             }
-
+            Mgr?.Dispose();
+            
             systemList = null;
         }
     }

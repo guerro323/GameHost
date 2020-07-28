@@ -44,6 +44,27 @@ namespace GameHost.Inputs.DefaultActions
             public InputActionSystem(WorldCollection collection) : base(collection)
             {
             }
+            
+            public override void OnInputUpdate()
+            {
+                var currentLayout = World.Mgr.Get<InputCurrentLayout>()[0];
+                foreach (var entity in InputQuery.GetEntities())
+                {
+                    var layouts = GetLayouts(entity);
+                    if (!layouts.TryGetOrDefault(currentLayout.Id, out var layout))
+                        return;
+
+                    PressAction action = default;
+                    foreach (var input in layout.Inputs)
+                        if (Backend.GetInputControl(input.Target) is { } buttonControl)
+                        {
+                            action.DownCount += buttonControl.wasPressedThisFrame ? 1u : 0;
+                            action.UpCount   += buttonControl.wasReleasedThisFrame ? 1u : 0;
+                        }
+
+                    entity.Set(action);
+                }
+            }
         }
 
         public void Serialize(ref DataBufferWriter buffer)

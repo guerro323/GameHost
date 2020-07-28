@@ -85,8 +85,7 @@ namespace GameHost.Audio.Features.Systems
 						writer.WriteInt(entity.Get<AudioPlayerId>().Id);
 						writer.WriteStaticString(TypeExt.GetFriendlyName(entity.Get<AudioPlayerType>().Type));
 					}
-
-					Console.WriteLine($"UpdatedCount={updatedCount}, Length={writer.Length}");
+					
 					if (feature.Driver.Broadcast(feature.PreferredChannel, writer.Span) < 0)
 						throw new InvalidOperationException("Couldn't send data!");
 				}

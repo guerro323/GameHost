@@ -72,8 +72,6 @@ namespace GameHost.Audio.Features.Systems
 						}
 					}
 					
-					Console.WriteLine($"UpdatedCount={updatedCount}, Length={writer.Length}");
-
 					if (feature.Driver.Broadcast(feature.PreferredChannel, writer.Span) < 0)
 						throw new InvalidOperationException("Couldn't send data!");
 				}

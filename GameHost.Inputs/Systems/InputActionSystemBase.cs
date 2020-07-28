@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using DefaultEcs;
 using GameHost.Core.Ecs;
@@ -11,29 +12,44 @@ namespace GameHost.Inputs.Systems
 {
 	public class InputActionSystemGroup : AppSystem
 	{
-		private Dictionary<string, InputActionSystemBase> SystemMap;
+		private Dictionary<string, InputActionSystemBase> SystemActionMap;
+		private Dictionary<string, InputActionSystemBase> SystemLayoutMap;
 
 		public InputActionSystemGroup(WorldCollection collection) : base(collection)
 		{
-			SystemMap = new Dictionary<string, InputActionSystemBase>();
+			SystemActionMap = new Dictionary<string, InputActionSystemBase>();
+			SystemLayoutMap = new Dictionary<string, InputActionSystemBase>();
 		}
+
+		public Dictionary<string,InputActionSystemBase>.ValueCollection Systems => SystemActionMap.Values;
 
 		public void Add(InputActionSystemBase system)
 		{
 			Console.WriteLine($"Register action system : {system.ActionPath}");
 			
-			SystemMap.Add(system.ActionPath, system);
+			SystemActionMap.Add(system.ActionPath, system);
+			SystemLayoutMap.Add(system.LayoutPath, system);
 		}
 
-		public InputActionSystemBase TryGetSystem(string type)
+		public InputActionSystemBase GetSystemOrDefault(string type)
 		{
-			SystemMap.TryGetValue(type, out var system);
+			if (!SystemActionMap.TryGetValue(type, out var system))
+				SystemLayoutMap.TryGetValue(type, out system);
 			return system;
+		}
+
+		public void BackendUpdateInputs()
+		{
+			foreach (var system in SystemActionMap)
+			{
+				if (system.Value is IUpdateInputPass pass)
+					pass.OnInputUpdate();
+			}
 		}
 
 		public void BeginFrame()
 		{
-			foreach (var system in SystemMap.Values)
+			foreach (var system in SystemActionMap.Values)
 				system.OnBeginFrame();
 		}
 	}
@@ -50,15 +66,37 @@ namespace GameHost.Inputs.Systems
 		{
 		}
 
-		internal abstract  void CallSerialize(ref   DataBufferWriter buffer);
-		internal abstract  void CallDeserialize(ref DataBufferReader buffer);
+		public abstract void CallSerialize(ref   DataBufferWriter buffer);
+		public abstract void CallDeserialize(ref DataBufferReader buffer);
 		public abstract void OnBeginFrame();
+
+		public abstract Entity          CreateEntityAction();
+		public abstract InputLayoutBase CreateLayout(string layoutId);
 	}
 
-	public abstract class InputActionSystemBase<TAction, TLayout> : InputActionSystemBase
+	public abstract class InputActionSystemBase<TAction, TLayout> : InputActionSystemBase, IUpdateInputPass
 		where TAction : IInputAction
 		where TLayout : InputLayoutBase
 	{
+		protected override void OnUpdate()
+		{
+			base.OnUpdate();
+		}
+
+		protected InputBackendSystem Backend;
+		
+		public override Entity CreateEntityAction()
+		{
+			var ent = World.Mgr.CreateEntity();
+			ent.Set<TAction>();
+			return ent;
+		}
+
+		public override InputLayoutBase CreateLayout(string layoutId)
+		{
+			return (InputLayoutBase) Activator.CreateInstance(typeof(TLayout), layoutId);
+		}
+
 		public override string LayoutPath => CustomLayoutPath ?? typeof(TLayout).FullName;
 		public override string ActionPath => CustomActionPath ?? typeof(TAction).FullName;
 		
@@ -71,10 +109,10 @@ namespace GameHost.Inputs.Systems
 		{
 			DependencyResolver.Add(() => ref group);
 			DependencyResolver.Add(() => ref receiveSystem);
+			DependencyResolver.Add(() => ref Backend);
 
 			InputQuery = collection.Mgr.GetEntities()
 			                       .With<TAction>()
-			                       .With<InputActionLayouts>()
 			                       .With<InputEntityId>()
 			                       .AsSet();
 		}
@@ -86,12 +124,12 @@ namespace GameHost.Inputs.Systems
 			group.Add(this);
 		}
 
-		internal override void CallSerialize(ref DataBufferWriter buffer)
+		public override void CallSerialize(ref DataBufferWriter buffer)
 		{
 			OnSerialize(ref buffer);
 		}
 
-		internal override void CallDeserialize(ref DataBufferReader buffer)
+		public override void CallDeserialize(ref DataBufferReader buffer)
 		{
 			OnDeserialize(ref buffer);
 		}
@@ -127,11 +165,18 @@ namespace GameHost.Inputs.Systems
 				}
 			}
 		}
+		
+		protected InputActionLayouts GetLayouts(in Entity entity)
+		{
+			return Backend.GetLayoutsOf(entity);
+		}
 
 		public override void OnBeginFrame()
 		{
 			foreach (ref readonly var entity in InputQuery.GetEntities())
 				entity.Get<TAction>() = default;
 		}
+
+		public abstract void OnInputUpdate();
 	}
 }

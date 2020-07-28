@@ -49,7 +49,6 @@ namespace GameHost.Audio
 						case TransportEvent.EType.RequestConnection:
 							break;
 						case TransportEvent.EType.Connect:
-							Console.WriteLine("connection!");
 							break;
 						case TransportEvent.EType.Disconnect:
 							break;
@@ -72,12 +71,12 @@ namespace GameHost.Audio
 									@delegate?.Invoke(ev.Connection, ref reader);
 									break;
 								default:
-									throw new ArgumentOutOfRangeException();
+									throw new ArgumentOutOfRangeException($"EAudioSendType: " + type);
 							}
 
 							break;
 						default:
-							throw new ArgumentOutOfRangeException();
+							throw new ArgumentOutOfRangeException($"MessageType" + ev.Type);
 					}
 				}
 			}
@@ -86,7 +85,6 @@ namespace GameHost.Audio
 		private void OnReceiveResource(TransportConnection connection, ref DataBufferReader reader)
 		{
 			var count = reader.ReadValue<int>();
-			Console.WriteLine($"Count={count}");
 			for (var i = 0; i != count; i++)
 			{
 				var id   = reader.ReadValue<int>();
@@ -111,7 +109,6 @@ namespace GameHost.Audio
 		private void OnReceivePlayer(TransportConnection connection, ref DataBufferReader reader)
 		{
 			var count = reader.ReadValue<int>();
-			Console.WriteLine($"Count={count}");
 			for (var i = 0; i != count; i++)
 			{
 				var id   = reader.ReadValue<int>();

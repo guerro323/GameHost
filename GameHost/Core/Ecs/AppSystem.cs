@@ -75,8 +75,10 @@ namespace GameHost.Core.Ecs
                 category = $"Thread({Thread.CurrentThread.Name})";
             }
 
-            DependencyResolver                 = new DependencyResolver(Context.Container.Resolve<IScheduler>(), Context, $"{category} System[{GetType().Name}]");
-            DependencyResolver.DefaultStrategy = new DefaultAppObjectStrategy(this, World);
+            DependencyResolver = new DependencyResolver(new ContextBindingStrategy(Context, true).Resolve<IScheduler>(), Context, $"{category} System[{GetType().Name}]")
+            {
+                DefaultStrategy = new DefaultAppObjectStrategy(this, World)
+            };
             DependencyResolver.OnComplete(OnDependenciesResolved);
 
             if (inheritedDependencies != null)

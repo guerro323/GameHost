@@ -72,6 +72,28 @@ namespace GameHost.Inputs.DefaultActions
             {
                 // dont set data to default
             }
+
+            public override void OnInputUpdate()
+            {
+                var currentLayout = World.Mgr.Get<InputCurrentLayout>()[0];
+                foreach (var entity in InputQuery.GetEntities())
+                {
+                    var layouts = GetLayouts(entity);
+                    if (!layouts.TryGetOrDefault(currentLayout.Id, out var layout) || !(layout is Layout axisLayout))
+                        return;
+
+                    ref var action = ref entity.Get<AxisAction>();
+                    var     value  = 0f;
+                    foreach (var input in axisLayout.Negative)
+                        if (Backend.GetInputControl(input.Target) is {} buttonControl)
+                            value -= buttonControl.ReadValue();
+                    foreach (var input in axisLayout.Positive)
+                        if (Backend.GetInputControl(input.Target) is {} buttonControl)
+                            value += buttonControl.ReadValue();
+
+                    action.Value = Math.Clamp(value, -1, 1);
+                }
+            }
         }
 
         public void Serialize(ref DataBufferWriter buffer)

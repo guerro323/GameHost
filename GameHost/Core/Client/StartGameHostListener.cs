@@ -27,18 +27,20 @@ namespace GameHost.Core.Client
 
 		private ILogger logger;
 
-		public NetManager Server { get; private set; }
+		public Bindable<NetManager> Server;
 
 		// we require an absolute type
 		public StartGameHostListener(WorldCollection collection) : base(f => f.GetType() == typeof(ReceiveGameHostClientFeature), collection)
 		{
+			Server = new Bindable<NetManager>();
+			
 			DependencyResolver.Add(() => ref logger);
 			DependencyResolver.Add(() => ref collectionSystem);
 		}
 
 		protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
 		{
-			Server = new NetManager(listener = new RpcListener(collectionSystem));
+			Server.Value = new NetManager(listener = new RpcListener(collectionSystem));
 
 			base.OnDependenciesResolved(dependencies);
 		}
@@ -46,8 +48,8 @@ namespace GameHost.Core.Client
 		protected override void OnUpdate()
 		{
 			base.OnUpdate();
-			if (Server.IsRunning)
-				Server.PollEvents();
+			if (Server.Value.IsRunning)
+				Server.Value.PollEvents();
 		}
 
 		protected override void OnFeatureAdded(ReceiveGameHostClientFeature obj)
@@ -57,13 +59,13 @@ namespace GameHost.Core.Client
 				return;
 
 			if (obj.ServerPort > 0)
-				Server.Start(obj.ServerPort);
+				Server.Value.Start(obj.ServerPort);
 			else
 			{
-				Server.Start(GetAvailablePort(9000));
+				Server.Value.Start(GetAvailablePort(9000));
 			}
 
-			logger.Log(LogLevel.Information, "RPC Server started on port: " + Server.LocalPort);
+			logger.Log(LogLevel.Information, "RPC Server started on port: " + Server.Value.LocalPort);
 		}
 
 		protected override void OnFeatureRemoved(ReceiveGameHostClientFeature obj)
@@ -71,12 +73,12 @@ namespace GameHost.Core.Client
 			base.OnFeatureRemoved(obj);
 			featureCount--;
 			if (featureCount == 0)
-				Server.Stop();
+				Server.Value.Stop();
 		}
 
 		public void SendReply(TransportConnection connection, CharBuffer128 command, DataBufferWriter data)
 		{
-			var peer = Server.GetPeerById((int) connection.Id);
+			var peer = Server.Value.GetPeerById((int) connection.Id);
 			if (peer == null)
 				throw new InvalidOperationException($"Peer '{connection.Id}' not existing");
 

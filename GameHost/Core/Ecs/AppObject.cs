@@ -39,8 +39,10 @@ namespace GameHost.Core.Ecs
             if (DependencyResolver?.Dependencies.Count > 0)
                 inheritedDependencies = DependencyResolver.Dependencies;
 
-            DependencyResolver                 = new DependencyResolver(context.Container.Resolve<IScheduler>(), context, $"AppObject[{GetType().Name}]");
-            DependencyResolver.DefaultStrategy = new DefaultAppObjectStrategy(this, context.Container.Resolve<WorldCollection>(IfUnresolved.ReturnDefault));
+            DependencyResolver = new DependencyResolver(new ContextBindingStrategy(Context, true).Resolve<IScheduler>(), context, $"AppObject[{GetType().Name}]")
+            {
+                DefaultStrategy = new DefaultAppObjectStrategy(this, context.Container.Resolve<WorldCollection>(IfUnresolved.ReturnDefault))
+            };
 
             if (inheritedDependencies != null)
                 DependencyResolver.Dependencies.AddRange(inheritedDependencies);
@@ -70,6 +72,7 @@ namespace GameHost.Core.Ecs
 
         public virtual void Dispose()
         {
+            Console.WriteLine("Disposing: " + GetType());
             foreach (var d in ReferencedDisposables)
             {
                 try

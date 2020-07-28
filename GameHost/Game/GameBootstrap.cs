@@ -123,7 +123,6 @@ namespace GameHost.Game
 			CancellationTokenSource.Cancel();
 			Global.Scheduler.Run();
 			Global.Collection.Dispose();
-			Global.World.Dispose();
 		}
 
 

@@ -49,8 +49,7 @@ namespace GameHost.Inputs.Systems
 
 			var data       = new DataBufferWriter(0);
 			var entitySpan = pushInputSet.GetEntities();
-
-			Console.WriteLine("send data!");
+			
 			data.WriteInt((int) EMessageInputType.Register);
 			data.WriteInt(entitySpan.Length);
 			foreach (ref readonly var entity in entitySpan)

@@ -29,7 +29,7 @@ namespace GameHost.Inputs.Systems
 			for (var i = 0; i != systemCount; i++)
 			{
 				var actionType = data.ReadString();
-				var system     = actionSystemGroup.TryGetSystem(actionType);
+				var system     = actionSystemGroup.GetSystemOrDefault(actionType);
 				var length     = data.ReadValue<int>();
 				if (system == null)
 					throw new InvalidOperationException($"System for type '{actionType}' not found!");
