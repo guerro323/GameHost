@@ -13,9 +13,12 @@ namespace GameHost.Tests
 			{
 				game.GameEntity.Set(new GameName("GameTest"));
 				game.CancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(0.1));
-				game.Run();
+				game.Setup();
+				while (game.Loop())
+				{
+				}
 			}
-			
+
 			Assert.Pass();
 		}
 	}

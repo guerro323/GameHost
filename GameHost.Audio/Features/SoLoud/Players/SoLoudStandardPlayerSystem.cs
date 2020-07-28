@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using DefaultEcs;
 using DefaultEcs.Command;
 using GameHost.Applications;
@@ -47,10 +48,23 @@ namespace GameHost.Audio.Players
 		{
 			var ev       = reader.ReadValue<SControllerEvent>();
 			var entity   = playerManager.Get(connection, ev.Player);
-			var resource = resourceManager.GetWav(connection, ev.ResourceId);
+			switch (ev.State)
+			{
+				case SControllerEvent.EState.Paused:
+					break;
+				case SControllerEvent.EState.Stop:
+					entity.Set(new StopAudioRequest());
+					break;
+				case SControllerEvent.EState.Play:
+					var resource = resourceManager.GetWav(connection, ev.ResourceId);
 
-			entity.Set(resource);
-			entity.Set(new PlayAudioRequest());
+					entity.Set(resource);
+					entity.Set(new PlayAudioRequest());
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+			
 			entity.Set<StandardAudioPlayerComponent>();
 			
 			if (ev.Delay > TimeSpan.Zero)
@@ -68,7 +82,7 @@ namespace GameHost.Audio.Players
 					{
 						if (entity.TryGet(out uint currSoloudId))
 							soloud.stop(currSoloudId);
-						
+
 						entity.Set(soloud.play(entity.Get<Wav>()));
 
 						recorder.Record(entity)
@@ -77,31 +91,23 @@ namespace GameHost.Audio.Players
 						        .Remove<AudioDelayComponent>();
 					}
 				}
+
+				if (entity.Has<StopAudioRequest>())
+				{
+					if (!entity.TryGet(out AudioDelayComponent delay) || worldTime.Total >= delay.Delay)
+					{
+						if (entity.TryGet(out uint currSoloudId))
+							soloud.stop(currSoloudId);
+
+						recorder.Record(entity)
+						        .Remove<StopAudioRequest>();
+						recorder.Record(entity)
+						        .Remove<AudioDelayComponent>();
+					}
+				}
 			}
-			
+
 			recorder.Execute(World.Mgr);
-			
-			/*foreach (var entity in controllerSet.GetEntities())
-			{
-				ref var play = ref entity.Get<SPlay>();
-
-				var isDelayed = entity.Has<SPlay.Delayed>();
-				if (play.Delay > TimeSpan.Zero)
-				{
-					play.Delay = worldTime.Total.Add(play.Delay, worldTime.Delta);
-					entity.Set<SPlay.Delayed>();
-
-					isDelayed = true;
-				}
-
-				if (!isDelayed || play.Delay <= worldTime.Total)
-				{
-					// todo: play
-					
-					recorder.Record(entity)
-					        .Dispose();
-				}
-			}*/
 		}
 	}
 }

@@ -140,7 +140,7 @@ namespace GameHost.Core.Ecs
             var prefix = $"Thread({Thread.CurrentThread.Name})";
             if (new ContextBindingStrategy(Ctx, false).Resolve<IApplication>() != null)
                 prefix = $"App({new ContextBindingStrategy(Ctx, false).Resolve<IApplication>().GetType()})";
-            Console.WriteLine($"System for '{prefix}' --> {obj.GetType()}");
+            //Console.WriteLine($"System for '{prefix}' --> {obj.GetType()}");
         }
 
         public void LoopPasses()

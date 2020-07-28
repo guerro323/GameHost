@@ -94,13 +94,13 @@ namespace GameHost.Injection
                 }
 
                 Dependencies.Clear();
-                Console.WriteLine($"completed {source}");
+                //Console.WriteLine($"completed {source}");
                 unresolvedFrames = 0;
             }
             else if (unresolvedFrames++ > 2)
             {
                 var str = Dependencies.Aggregate(source, (current, dep) => current + $"\n\t{dep}; {dep.IsResolved}");
-                Console.WriteLine(str);
+                //Console.WriteLine(str);
             }
 
             // Be sure to set the result right after onComplete has been called

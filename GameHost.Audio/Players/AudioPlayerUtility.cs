@@ -43,7 +43,8 @@ namespace GameHost.Audio.Players
 		{
 			entity.Remove<PlayAudioRequest>();
 			entity.Remove<PauseAudioRequest>();
-
+			entity.Remove<AudioDelayComponent>();
+			
 			entity.Set(new StopAudioRequest());
 		}
 

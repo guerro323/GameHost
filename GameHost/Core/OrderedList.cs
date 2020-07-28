@@ -52,9 +52,9 @@ namespace GameHost.Core
                     var attr = (T) attribute;
                     _TemporaryList.AddRange(attr.Types);
 
-                    Console.WriteLine(string.Concat(Enumerable.Repeat("\t", tab)) + toCheck);
+                   /* Console.WriteLine(string.Concat(Enumerable.Repeat("\t", tab)) + toCheck);
                     foreach (var t in attr.Types)
-                        Console.WriteLine(string.Concat(Enumerable.Repeat("\t", tab)) + "\t" + t);
+                        Console.WriteLine(string.Concat(Enumerable.Repeat("\t", tab)) + "\t" + t);*/
                 }
                 toCheck = toCheck.BaseType;
                 tab++;

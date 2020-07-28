@@ -9,6 +9,7 @@ namespace GameHost.Audio.Features
 		public enum EState
 		{
 			Paused,
+			Stop,
 			Play
 		}
 

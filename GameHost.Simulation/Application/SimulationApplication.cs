@@ -52,10 +52,10 @@ namespace GameHost.Simulation.Application
 				using (CurrentUpdater.SynchronizeThread())
 				{
 					Scheduler.Run();
-					
-					while (updateCount-- > 0)
+
+					for (var tickAge = updateCount - 1; tickAge >= 0; --tickAge)
 					{
-						timeApp.Update(elapsed - TimeSpan.FromSeconds(fts.accumulatedTime) - updateCount * delta, delta);
+						timeApp.Update(elapsed - TimeSpan.FromSeconds(fts.accumulatedTime) - targetFrequency * tickAge, delta);
 						Data.Loop();
 					}
 				}

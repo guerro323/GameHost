@@ -200,7 +200,14 @@ namespace RevolutionSnapshot.Core.Buffers
             getval(ref this, val3, ref r4);
         }
 
-        public string ReadString(DataBufferMarker marker = default(DataBufferMarker))
+        public Span<T> ReadSpanDirect<T>(DataBufferMarker marker = default)
+            where T : struct
+        {
+            var length = ReadValue<int>();
+            return new Span<T>(DataPtr + GetReadIndexAndSetNew(marker, length + Unsafe.SizeOf<T>()), length);
+        }
+
+        public string ReadString(DataBufferMarker marker = default)
         {
             var length = ReadValue<int>();
             if (length < 1024)

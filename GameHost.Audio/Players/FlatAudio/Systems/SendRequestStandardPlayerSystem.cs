@@ -23,6 +23,7 @@ namespace GameHost.Audio.Features
 		
 		private EntitySet playerSet;
 		private EntitySet playAudioSet;
+		private EntitySet stopAudioSet;
 		private EntitySet toDisposeSet;
 
 		private string typeName;
@@ -31,14 +32,16 @@ namespace GameHost.Audio.Features
 		{
 			base.OnInit();
 
-			var baseSet = World.Mgr.GetEntities()
-			                   .With<ResourceHandle<AudioResource>>()
+			var baseSet = new Func<EntityRuleBuilder>(() => World.Mgr.GetEntities()
 			                   .With<AudioPlayerId>()
-			                   .With<StandardAudioPlayerComponent>();
+			                   .With<StandardAudioPlayerComponent>());
 
-			playerSet    = baseSet.AsSet();
-			playAudioSet = baseSet.With<PlayAudioRequest>().AsSet();
-			toDisposeSet = baseSet.With<AudioFireAndForgetComponent>().AsSet();
+			playerSet    = baseSet().AsSet();
+			playAudioSet = baseSet().With<ResourceHandle<AudioResource>>()
+			                      .With<PlayAudioRequest>()
+			                      .AsSet();
+			stopAudioSet = baseSet().With<StopAudioRequest>().AsSet();
+			toDisposeSet = baseSet().With<AudioFireAndForgetComponent>().AsSet();
 
 			typeName = TypeExt.GetFriendlyName(typeof(StandardAudioPlayerComponent));
 			
@@ -91,8 +94,34 @@ namespace GameHost.Audio.Features
 					}
 				}
 			}
+			
+			foreach (ref readonly var entity in stopAudioSet.GetEntities())
+			{
+				var delay = TimeSpan.Zero;
+				if (entity.TryGet(out AudioDelayComponent delayComponent))
+					delay = delayComponent.Delay;
+
+				using var writer = new DataBufferWriter(16 + Unsafe.SizeOf<SControllerEvent>());
+				writer.WriteValue((int) EAudioSendType.SendAudioPlayerData);
+				writer.WriteStaticString(typeName);
+				writer.WriteValue(new SControllerEvent
+				{
+					State  = SControllerEvent.EState.Stop,
+					Player = entity.Get<AudioPlayerId>().Id,
+					Delay  = delay
+				});
+				
+				foreach (var feature in Features)
+				{
+					unsafe
+					{
+						feature.Driver.Broadcast(feature.PreferredChannel, new Span<byte>((void*) writer.GetSafePtr(), writer.Length));
+					}
+				}
+			}
 
 			playAudioSet.Remove<PlayAudioRequest>();
+			playAudioSet.Remove<StopAudioRequest>();
 			toDisposeSet.DisposeAllEntities();
 		}
 	}

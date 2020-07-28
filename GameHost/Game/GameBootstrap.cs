@@ -40,7 +40,7 @@ namespace GameHost.Game
 			TaskScheduler.UnobservedTaskException      += (sender, args) => { OnException((Exception) args.Exception); };
 		}
 
-		public void Run()
+		public void Setup()
 		{
 			if (!GameEntity.Has<GameName>())
 				throw new InvalidOperationException("A game name should be set before running.");
@@ -107,17 +107,23 @@ namespace GameHost.Game
 			ResolveDefaults();
 			SetContexts();
 			AddExecutiveSystems();
+		}
 
-			while (!CancellationTokenSource.IsCancellationRequested)
-			{
-				Global.Loop();
-				Thread.Sleep(10);
-			}
+		public bool Loop()
+		{
+			if (CancellationTokenSource.IsCancellationRequested)
+				return false;
+			
+			Global.Loop();
+			return true;
 		}
 
 		public void Dispose()
 		{
 			CancellationTokenSource.Cancel();
+			Global.Scheduler.Run();
+			Global.Collection.Dispose();
+			Global.World.Dispose();
 		}
 
 
