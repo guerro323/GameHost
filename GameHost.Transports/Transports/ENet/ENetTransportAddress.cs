@@ -16,7 +16,13 @@ namespace GameHost.Transports
 		{
 			var driver = new ENetTransportDriver(1);
 			driver.Connect(Address);
+			
 			return driver;
+		}
+
+		public override string ToString()
+		{
+			return $"ENET {Address.GetIP()}:{Address.Port}";
 		}
 	}
 }

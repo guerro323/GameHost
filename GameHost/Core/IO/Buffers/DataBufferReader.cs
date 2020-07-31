@@ -213,7 +213,7 @@ namespace RevolutionSnapshot.Core.Buffers
             if (length < 1024)
             {
                 Span<char> span = stackalloc char[length];
-                ReadDataSafe(new Span<char>(Unsafe.AsPointer(ref span.GetPinnableReference()), span.Length), marker);
+                ReadDataSafe(new Span<char>(Unsafe.AsPointer(ref span.GetPinnableReference()), length), marker);
                 return new string(span);
             }
 
@@ -230,7 +230,7 @@ namespace RevolutionSnapshot.Core.Buffers
             if (length < 1024)
             {
                 Span<char> span = stackalloc char[length];
-                ReadDataSafe(new Span<char>(Unsafe.AsPointer(ref span.GetPinnableReference()), span.Length), marker);
+                ReadDataSafe(new Span<char>(Unsafe.AsPointer(ref span.GetPinnableReference()), length), marker);
                 return CharBufferUtility.Create<TCharBuffer>(span);
             }
 

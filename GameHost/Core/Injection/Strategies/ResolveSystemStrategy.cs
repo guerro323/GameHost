@@ -20,10 +20,12 @@ namespace GameHost.Injection
                 // todo: we should have an interface called IHasDependencies for getting the DependencyResolver field.
                 if (obj is AppObject ao && ao.DependencyResolver.Dependencies.Count > 0)
                 {
+#if LOG_RESOLVESYSTEM_DEPS
                     Console.WriteLine($"System {obj.GetType()} still has dependencies");
                     foreach (var dep in ao.DependencyResolver.Dependencies)
                         Console.WriteLine($"\t{dep.ToString()}");
-                    
+#endif
+
                     return null;
                 }
 

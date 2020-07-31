@@ -346,8 +346,11 @@ namespace RevolutionSnapshot.Core.Buffers
 
         public void WriteStaticString(char* val, int strLength)
         {
-            WriteInt(strLength);
-            WriteDataSafe((byte*) val, strLength * sizeof(char), default);
+            /*WriteInt(strLength);
+            WriteDataSafe((byte*) val, strLength * sizeof(char), default);*/
+            var span = new Span<char>(val, strLength);
+            WriteInt(span.Length);
+            WriteSpan(span);
         }
     }
 }

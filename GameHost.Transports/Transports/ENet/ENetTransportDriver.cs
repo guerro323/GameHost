@@ -211,6 +211,8 @@ namespace GameHost.Transports
 
 			var peer = m_Host.Connect(address, 32);
 			AddConnection(peer);
+			
+			peer.Timeout(0, 5000, 7500);
 
 			return new TransportConnection {Id = peer.ID, Version = 1};
 		}

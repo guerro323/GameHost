@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
@@ -13,22 +14,20 @@ namespace GameHost.Inputs.Systems
 {
 	public class SendPushedInputLayoutsToBackend : AppSystemWithFeature<ClientInputFeature>
 	{
-		private EntitySet withoutIdSet;
 		private EntitySet pushInputSet;
 
 		private int maxId = 1;
+		
+		private readonly Dictionary<ClientInputFeature, int> clientLastMaxId;
 
 		public SendPushedInputLayoutsToBackend(WorldCollection collection) : base(collection)
 		{
-			withoutIdSet = collection.Mgr.GetEntities()
-			                         .With<PushInputLayoutChange>()
-			                         .With<InputActionLayouts>()
-			                         .Without<InputEntityId>()
-			                         .AsSet();
 			pushInputSet = collection.Mgr.GetEntities()
-			                         .With<PushInputLayoutChange>()
 			                         .With<InputActionLayouts>()
+			                         .With<InputEntityId>()
 			                         .AsSet();
+			
+			clientLastMaxId = new Dictionary<ClientInputFeature, int>();
 		}
 
 		public override bool CanUpdate()
@@ -39,50 +38,72 @@ namespace GameHost.Inputs.Systems
 		protected override void OnUpdate()
 		{
 			base.OnUpdate();
-
-			// assign an Input Id to the entities for the backend to track them.
-			if (withoutIdSet.Count > 0)
-			{
-				foreach (var entity in withoutIdSet.GetEntities().ToArray())
-					entity.Set(new InputEntityId(maxId++));
-			}
-
-			var data       = new DataBufferWriter(0);
-			var entitySpan = pushInputSet.GetEntities();
 			
-			data.WriteInt((int) EMessageInputType.Register);
-			data.WriteInt(entitySpan.Length);
-			foreach (ref readonly var entity in entitySpan)
+			var maxId = 0;
+			foreach (var entity in pushInputSet.GetEntities())
 			{
-				var layouts = entity.Get<InputActionLayouts>();
-				data.WriteInt(entity.Get<InputEntityId>().Value);
-				data.WriteStaticString(entity.Get<InputActionType>().Type.FullName);
-
-				var skipActionMarker = data.WriteInt(0);
-
-				data.WriteInt(layouts.Count);
-				foreach (var layout in layouts.Values)
-				{
-					data.WriteStaticString(layout.Id);
-					data.WriteStaticString(layout.GetType().FullName);
-
-					var skipLayoutMarker = data.WriteInt(0);
-					layout.Serialize(ref data);
-					data.WriteInt(data.Length - skipLayoutMarker.GetOffset(sizeof(int)).Index, skipLayoutMarker);
-				}
-
-				data.WriteInt(data.Length - skipActionMarker.GetOffset(sizeof(int)).Index, skipActionMarker);
+				maxId = Math.Max(maxId, entity.Get<InputEntityId>().Value);
 			}
-
+			
+			var entitySpan = pushInputSet.GetEntities();
+			if (entitySpan.Length == 0)
+				return;
+			
 			foreach (var feature in Features)
 			{
-				unsafe
+				var update     = false;
+				foreach (var ent in entitySpan)
+					if (ent.Has<PushInputLayoutChange>())
+					{
+						update = true;
+						break;
+					}
+				
+				if (!clientLastMaxId.TryGetValue(feature, out var clientMaxId) || clientMaxId < maxId)
 				{
-					feature.Driver.Broadcast(feature.PreferredChannel, new Span<byte>((void*) data.GetSafePtr(), data.Length));
+					clientLastMaxId[feature] = maxId;
+					update                   = true;
+				}
+				
+				if (update)
+				{
+					var data = new DataBufferWriter(0);
+					try
+					{
+						data.WriteInt((int) EMessageInputType.Register);
+						data.WriteInt(entitySpan.Length);
+						foreach (ref readonly var entity in entitySpan)
+						{
+							var layouts = entity.Get<InputActionLayouts>();
+							data.WriteInt(entity.Get<InputEntityId>().Value);
+							data.WriteStaticString(entity.Get<InputActionType>().Type.FullName);
+
+							var skipActionMarker = data.WriteInt(0);
+
+							data.WriteInt(layouts.Count);
+							foreach (var layout in layouts.Values)
+							{
+								data.WriteStaticString(layout.Id);
+								data.WriteStaticString(layout.GetType().FullName);
+
+								var skipLayoutMarker = data.WriteInt(0);
+								layout.Serialize(ref data);
+								data.WriteInt(data.Length - skipLayoutMarker.Index, skipLayoutMarker);
+							}
+
+							data.WriteInt(data.Length - skipActionMarker.Index, skipActionMarker);
+						}
+
+						Console.WriteLine("Send Input Data. " + data.Span.Length);
+						if (feature.Driver.Broadcast(feature.PreferredChannel, data.Span) < 0)
+							throw new InvalidOperationException("Couldn't send data!");
+					}
+					finally
+					{
+						data.Dispose();
+					}
 				}
 			}
-			
-			data.Dispose();
 
 			pushInputSet.Remove<PushInputLayoutChange>();
 		}

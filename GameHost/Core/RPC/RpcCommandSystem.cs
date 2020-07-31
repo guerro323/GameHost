@@ -17,13 +17,15 @@ namespace GameHost.Core.RPC
 
 		private RpcEventCollectionSystem collectionSystem;
 		private StartGameHostListener    listener;
-		
+
 		private DataBufferWriter tempWriter;
 		private bool             isWriting;
 		private bool             isInRequestSection;
 
 		protected RpcCommandSystem(WorldCollection collection) : base(collection)
 		{
+			tempWriter = new DataBufferWriter(0);
+			
 			DependencyResolver.Add(() => ref collectionSystem);
 			DependencyResolver.Add(() => ref listener);
 		}
@@ -31,20 +33,23 @@ namespace GameHost.Core.RPC
 		protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
 		{
 			base.OnDependenciesResolved(dependencies);
-			collectionSystem.CommandRequest += r =>
+			collectionSystem.Global.CommandRequest += r =>
 			{
 				if (CommandId.AsSpan().SequenceEqual(r.Command.Span))
 				{
+					isInRequestSection = true;
 					OnReceiveRequest(r);
 					if (isWriting)
 					{
+						isWriting = false;
 						listener.SendReply(r.Connection, r.Command, tempWriter);
 						tempWriter.Length = 0;
 					}
 				}
 			};
-			collectionSystem.CommandReply += r =>
+			collectionSystem.Global.CommandReply += r =>
 			{
+				isInRequestSection = false;
 				if (CommandId.AsSpan().SequenceEqual(r.Command.Span))
 					OnReceiveReply(r);
 			};
@@ -59,6 +64,7 @@ namespace GameHost.Core.RPC
 				throw new InvalidOperationException("Already writing");
 
 			tempWriter.Length = 0;
+			isWriting         = true;
 			return tempWriter;
 		}
 	}

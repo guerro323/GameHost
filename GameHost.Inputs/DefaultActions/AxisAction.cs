@@ -49,7 +49,7 @@ namespace GameHost.Inputs.DefaultActions
                 {
                     var count = reader.ReadValue<int>();
                     array = new CInput[count];
-                    for (var i = 0; i != count; i++)
+                    for (var i = 0; i < count; i++)
                         array[i] = new CInput(reader.ReadString());
                 }
 

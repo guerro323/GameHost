@@ -13,6 +13,8 @@ namespace GameHost.Inputs.Systems
 {
     public class InputDatabase : AppSystem
     {
+        private int maxId = 1;
+
         public InputDatabase(WorldCollection collection) : base(collection)
         {
         }
@@ -30,6 +32,7 @@ namespace GameHost.Inputs.Systems
             Debug.Assert(DependencyResolver.Dependencies.Count == 0, "DependencyResolver.Dependencies.Count == 0");
 
             var ac = World.Mgr.CreateEntity();
+            ac.Set(new InputEntityId(maxId++));
             ac.Set(new InputActionLayouts(layouts));
             ac.Set(new InputActionType(typeof(TAction)));
             ac.Set(default(TAction));

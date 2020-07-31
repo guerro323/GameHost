@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using GameHost.Core.IO;
 using GameHost.Native.Char;
+using Newtonsoft.Json;
 using RevolutionSnapshot.Core.Buffers;
 
 namespace GameHost.Core.RPC
@@ -11,7 +12,7 @@ namespace GameHost.Core.RPC
 	public ref struct GameHostCommandResponse
 	{
 		public TransportConnection Connection;
-		public CharBuffer128        Command;
+		public CharBuffer128       Command;
 		public DataBufferReader    Data;
 
 		public static GameHostCommandResponse GetResponse(TransportConnection connection, DataBufferReader data)
@@ -24,9 +25,9 @@ namespace GameHost.Core.RPC
 			};
 		}
 
-		public unsafe T Deserialize<T>(JsonSerializerOptions options = null)
+		public unsafe T Deserialize<T>(JsonSerializerSettings options = null)
 		{
-			return JsonSerializer.Deserialize<T>(Data.ReadString(), options);
+			return JsonConvert.DeserializeObject<T>(Data.ReadString(), options);
 		}
 	}
 }

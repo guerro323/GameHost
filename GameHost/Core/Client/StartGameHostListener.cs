@@ -88,6 +88,7 @@ namespace GameHost.Core.Client
 			writer.Put(command.ToString());
 			writer.Put(data.Span.ToArray());
 
+			Console.WriteLine("reply sent!");
 			peer.Send(writer, DeliveryMethod.ReliableOrdered);
 		}
 
@@ -170,12 +171,12 @@ namespace GameHost.Core.Client
 					{
 						case nameof(RpcCommandType.Send):
 						{
-							collection.TriggerCommandRequest(response);
+							collection.Global.TriggerCommandRequest(response);
 							break;
 						}
 						case nameof(RpcCommandType.Reply):
 						{
-							collection.TriggerCommandReply(response);
+							collection.Global.TriggerCommandReply(response);
 							break;
 						}
 					}

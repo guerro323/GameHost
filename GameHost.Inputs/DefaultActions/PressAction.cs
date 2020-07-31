@@ -19,16 +19,17 @@ namespace GameHost.Inputs.DefaultActions
 
             public override void Serialize(ref DataBufferWriter buffer)
             {
-                buffer.WriteInt(Inputs.Count);
-                foreach (var input in Inputs)
-                    buffer.WriteStaticString(input.Target);
+                var count = Inputs.Count;
+                buffer.WriteInt(count);
+                for (var i = 0; i < count; i++)
+                    buffer.WriteStaticString(Inputs[i].Target);
             }
 
             public override void Deserialize(ref DataBufferReader buffer)
             {
                 var count = buffer.ReadValue<int>();
                 var array = new CInput[count];
-                for (var i = 0; i != count; i++)
+                for (var i = 0; i < count; i++)
                     array[i] = new CInput(buffer.ReadString());
 
                 Inputs = new ReadOnlyCollection<CInput>(array);
