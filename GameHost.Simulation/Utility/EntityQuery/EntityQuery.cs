@@ -53,9 +53,9 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			if (lastArchetypeCount == newLength)
 				return false;
 
-			Array.Resize(ref archetypeIsValid, newLength);
+			Array.Resize(ref archetypeIsValid, newLength + 1);
 
-			for (var i = lastArchetypeCount - 1; i < newLength; i++)
+			for (var i = lastArchetypeCount; i < newLength; i++)
 			{
 				var archetype     = archetypeBoard.Registered[i];
 				var matches       = 0;

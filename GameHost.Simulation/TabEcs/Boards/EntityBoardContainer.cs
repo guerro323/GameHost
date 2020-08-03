@@ -102,7 +102,7 @@ using System.Collections.Generic;
 			 if (assignedComponentMap.TryGetValue(type, out var assigned))
 				 return ref assigned.reference;
 			 
-			 assignedComponentMap[type] = assigned = new AssignedComponent {reference = new ComponentMetadata[0]};
+			 assignedComponentMap[type] = assigned = new AssignedComponent {reference = new ComponentMetadata[board.MaxId]};
 			 return ref assigned.reference;
 		 }
 

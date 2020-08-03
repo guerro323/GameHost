@@ -15,23 +15,19 @@ namespace GameHost.Simulation.Utility.EntityQuery
 
 		public bool MoveNext()
 		{
-			if (Inner.Current == 0)
+			while (true)
 			{
-				if (!Inner.MoveNext())
+				if (!Inner.MoveNext()) 
 					return false;
-			}
 
-			var entitySpan = Board.GetEntities(Inner.Current);
-			while (entitySpan.Length > index)
-			{
-				Current = new GameEntity(entitySpan[index]);
-				index++;
-				return true;
+				var entitySpan = Board.GetEntities(Inner.Current);
+				while (entitySpan.Length > index)
+				{
+					Current = new GameEntity(entitySpan[index]);
+					index++;
+					return true;
+				}
 			}
-
-			if (!Inner.MoveNext())
-				return false;
-			return true;
 		}
 
 		public EntityQueryEnumerator GetEnumerator() => this;

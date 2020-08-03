@@ -50,7 +50,7 @@ namespace GameHost.Simulation.TabEcs
 			var method = typeof(GameWorld).GetMethods()
 			                              .Single(m => m.Name == nameof(AsComponentType) && m.IsGenericMethodDefinition);
 
-			return (ComponentType) method.Invoke(this, null);
+			return (ComponentType) method.MakeGenericMethod(type).Invoke(this, null);
 		}
 
 		public ComponentType AsComponentType<T>()

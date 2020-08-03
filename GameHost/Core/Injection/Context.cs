@@ -24,6 +24,7 @@ namespace GameHost.Injection
 
         public void Register(object obj)
         {
+            registeredObjects.Add(obj);
             Container.UseInstance(obj);
         }
 
