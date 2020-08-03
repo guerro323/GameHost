@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using ENet;
 using GameHost.Core.IO;
-using ICSharpCode.SharpZipLib.Zip;
-using RevolutionSnapshot.Core.Buffers;
 
 namespace GameHost.Transports
 {

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using DefaultEcs;
-using DefaultEcs.Command;
-using GameHost.Applications;
 using GameHost.Audio.Players;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;

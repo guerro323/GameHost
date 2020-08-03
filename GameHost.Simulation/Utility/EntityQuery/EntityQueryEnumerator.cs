@@ -1,5 +1,4 @@
 ﻿using System;
-using DefaultEcs;
 using GameHost.Simulation.TabEcs;
 
 namespace GameHost.Simulation.Utility.EntityQuery

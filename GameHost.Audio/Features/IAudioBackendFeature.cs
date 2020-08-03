@@ -1,5 +1,4 @@
-﻿using System;
-using GameHost.Applications;
+﻿using GameHost.Applications;
 using GameHost.Core.IO;
 
 namespace GameHost.Audio.Features

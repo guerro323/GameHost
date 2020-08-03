@@ -6,7 +6,6 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
-using GameHost.Core.Features;
 using GameHost.Core.Features.Systems;
 using GameHost.Core.IO;
 using GameHost.Core.RPC;

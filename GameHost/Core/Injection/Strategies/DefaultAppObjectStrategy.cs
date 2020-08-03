@@ -3,7 +3,6 @@ using System.Reflection;
 using GameHost.Core.Ecs;
 using GameHost.Core.Modules;
 using GameHost.Core.Modules.Feature;
-using GameHost.Core.Threading;
 using GameHost.Worlds;
 using Microsoft.Extensions.Logging;
 

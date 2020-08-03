@@ -1,6 +1,4 @@
 ﻿using System;
-using DefaultEcs;
-using GameHost.Audio.Players;
 
 namespace GameHost.Audio.Features
 {

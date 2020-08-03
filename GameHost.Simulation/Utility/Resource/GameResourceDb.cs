@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using GameHost.Simulation.TabEcs;
-using GameHost.Simulation.TabEcs.Interfaces;
 using GameHost.Simulation.Utility.Resource.Components;
 using GameHost.Simulation.Utility.Resource.Interfaces;
 

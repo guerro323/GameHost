@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace GameHost.Simulation
+﻿namespace GameHost.Simulation
 {
 	public struct FixedTimeStep
 	{

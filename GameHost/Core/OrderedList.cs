@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using DryIoc;
-using GameHost.Core.Ecs;
 
 namespace GameHost.Core
 {

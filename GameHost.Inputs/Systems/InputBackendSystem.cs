@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Core.IO;
-using GameHost.Inputs.Components;
 using GameHost.Inputs.Layouts;
 
 namespace GameHost.Inputs.Systems

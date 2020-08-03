@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using DryIoc;
 using GameHost.Applications;
 using GameHost.Core.Ecs.Passes;
 using GameHost.Core.Threading;

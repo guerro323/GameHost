@@ -1,6 +1,5 @@
 ﻿using System;
 using DefaultEcs;
-using GameHost.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
 using GameHost.Inputs.Components;

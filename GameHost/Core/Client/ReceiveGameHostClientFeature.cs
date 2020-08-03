@@ -1,5 +1,4 @@
 ﻿using GameHost.Applications;
-using GameHost.Core.IO;
 
 namespace GameHost.Core.Client
 {

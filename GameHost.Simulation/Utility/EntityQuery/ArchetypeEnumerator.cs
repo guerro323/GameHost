@@ -1,6 +1,5 @@
 ﻿using System;
 using GameHost.Simulation.TabEcs;
-using NetFabric.Hyperlinq;
 
 namespace GameHost.Simulation.Utility.EntityQuery
 {

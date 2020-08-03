@@ -1,6 +1,4 @@
-﻿using DefaultEcs;
-
-namespace GameHost.Audio.Players
+﻿namespace GameHost.Audio.Players
 {
 	public readonly struct AudioPlayerId
 	{

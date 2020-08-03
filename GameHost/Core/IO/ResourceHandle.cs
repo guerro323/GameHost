@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using DefaultEcs;
 using GameHost.Core.IO;
 

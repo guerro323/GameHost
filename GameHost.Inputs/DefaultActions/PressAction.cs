@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using GameHost.Core.Ecs;
 using GameHost.Inputs.Interfaces;
 using GameHost.Inputs.Layouts;
