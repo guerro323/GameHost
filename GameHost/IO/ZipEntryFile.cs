@@ -13,28 +13,29 @@ namespace GameHost.IO
     /// </remarks>
     public class ZipEntryFile : IFile
     {
-        private readonly string zipPath;
+        private readonly IFile zipFile;
 
         public string Name     { get; }
         public string FullName { get; }
 
         public async Task<byte[]> GetContentAsync()
         {
-            using var archive = new ZipFile(zipPath);
-            var       entry   = archive.GetEntry(FullName);
+            await using var zipStream = new MemoryStream(await zipFile.GetContentAsync());
+            using var       archive   = new ZipFile(zipStream);
+            var             entry     = archive.GetEntry(FullName);
 
-            await using var stream = archive.GetInputStream(entry);
+            await using var outputStream = archive.GetInputStream(entry);
 
             var mem = new byte[entry.Size];
-            await stream.ReadAsync(mem, 0, mem.Length);
+            await outputStream.ReadAsync(mem, 0, mem.Length);
 
             return mem;
         }
 
-        public ZipEntryFile(string zipPath, ZipEntry entry)
+        public ZipEntryFile(IFile zipFile, ZipEntry entry)
         {
-            this.zipPath = zipPath;
-
+            this.zipFile = zipFile;
+            
             Name     = Path.GetFileName(entry.Name);
             FullName = entry.Name;
         }

@@ -152,7 +152,8 @@ namespace GameHost.Inputs.Systems
 			var entityCount = buffer.ReadValue<int>();
 			for (var i = 0; i < entityCount; i++)
 			{
-				var replId = buffer.ReadValue<int>();
+				var replId      = buffer.ReadValue<int>();
+				var hasBeenRead = false;
 				foreach (ref readonly var entity in InputQuery.GetEntities())
 				{
 					if (entity.Get<InputEntityId>().Value != replId)
@@ -160,9 +161,13 @@ namespace GameHost.Inputs.Systems
 
 					ref var current = ref entity.Get<TAction>();
 					current.Deserialize(ref buffer);
+					hasBeenRead = true;
 
 					break;
 				}
+				
+				if (!hasBeenRead)
+					throw new InvalidOperationException($"Input data not read for {GetType()} --> repl={replId}");
 			}
 		}
 		

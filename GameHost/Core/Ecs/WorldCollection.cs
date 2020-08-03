@@ -16,44 +16,27 @@ namespace GameHost.Core.Ecs
         public readonly Context Ctx;
         public readonly World   Mgr;
 
-        public IReadOnlyCollection<object> SystemList
-        {
-            get { return systemList.Elements; }
-        }
-
         public IReadOnlyCollection<IUpdatePass> UpdateLoop
         {
             get { return updatePassRegister.GetObjects(); }
         }
 
-        private OrderedList<object>      systemList;
-        private Dictionary<Type, object> systemMap;
-
         private InitializePassRegister initializePassRegister;
         private UpdatePassRegister     updatePassRegister;
 
-        private List<PassRegisterBase> availablePasses;
+        public readonly SystemCollection DefaultSystemCollection;
 
         public WorldCollection(Context parentContext, World mgr)
         {
             Mgr = mgr;
 
-            systemList             = new OrderedList<object>();
-            systemMap              = new Dictionary<Type, object>(64);
-            initializePassRegister = new InitializePassRegister();
-            updatePassRegister     = new UpdatePassRegister();
-
-            availablePasses = new List<PassRegisterBase> {initializePassRegister, updatePassRegister};
-
             Ctx = new Context(parentContext, Rules.Default.With(SelectPropertiesAndFieldsWithImportAttribute));
             Ctx.BindExisting<WorldCollection, WorldCollection>(this);
             Ctx.BindExisting<World, World>(mgr);
 
-            systemList.OnDirty += () =>
-            {
-                foreach (var register in availablePasses)
-                    register.RegisterCollectionAndFilter(systemList);
-            };
+            DefaultSystemCollection = new SystemCollection(Ctx, this);
+            DefaultSystemCollection.AddPass(initializePassRegister = new InitializePassRegister());
+            DefaultSystemCollection.AddPass(updatePassRegister     = new UpdatePassRegister());
         }
 
         public static readonly PropertiesAndFieldsSelector SelectPropertiesAndFieldsWithImportAttribute =
@@ -65,102 +48,42 @@ namespace GameHost.Core.Ecs
             return import == null ? null : PropertyOrFieldServiceInfo.Of(m).WithDetails(ServiceDetails.IfUnresolvedReturnDefaultIfNotRegistered);
         }
 
-        private void RemakeLoop<T>(ref List<T> originalList, ref bool isDirty)
-            where T : class
-        {
-            if (!isDirty)
-                return;
+        public bool TryGet(Type type, out object obj) => DefaultSystemCollection.TryGet(type, out obj);
 
-            var systemToReorder = new List<object>(originalList);
-            originalList.Clear();
-
-            // kinda slow?
-            foreach (var obj in systemList.Elements)
-            {
-                if (systemToReorder.Contains(obj))
-                    originalList.Add((T) obj);
-            }
-
-            isDirty = false;
-        }
-
-        public bool TryGet(Type type, out object obj)
-        {
-            return systemMap.TryGetValue(type, out obj);
-        }
-
-        public bool TryGet<T>(out T obj)
-        {
-            var success = TryGet(typeof(T), out var nonGenObj);
-            obj = (T) nonGenObj;
-            return success;
-        }
+        public bool TryGet<T>(out T obj) => DefaultSystemCollection.TryGet(out obj);
 
         public T GetOrCreate<T>(Func<WorldCollection, T> createFunction) where T : class, IWorldSystem
         {
-            return GetOrCreate(createFunction, OrderedList.GetBefore(typeof(T)), OrderedList.GetAfter(typeof(T)));
+            return DefaultSystemCollection.GetOrCreate(createFunction);
         }
 
         public T GetOrCreate<T>(Func<WorldCollection, T> createFunction, Type[] updateBefore, Type[] updateAfter)
             where T : class, IWorldSystem
         {
-            if (systemMap.TryGetValue(typeof(T), out var obj))
-                return (T) obj;
-
-            obj = createFunction(this);
-            new InjectPropertyStrategy(Ctx, true).Inject(obj);
-            Add(obj, updateBefore, updateAfter);
-            return (T) obj;
+            return DefaultSystemCollection.GetOrCreate(createFunction, updateBefore, updateAfter);
         }
 
         public object GetOrCreate(Type type)
         {
-            if (systemMap.TryGetValue(type, out var obj))
-                return obj;
-
-            obj = Activator.CreateInstance(type, args: this);
-            new InjectPropertyStrategy(Ctx, true).Inject(obj);
-            Add(obj, OrderedList.GetBefore(obj.GetType()), OrderedList.GetAfter(obj.GetType()));
-            return obj;
+            return DefaultSystemCollection.GetOrCreate(type);
         }
 
         public void ForceSystemOrder(object obj, Type[] updateBefore, Type[] updateAfter)
         {
-            if (!systemMap.ContainsKey(obj.GetType()))
-                throw new InvalidOperationException("The system does not exit in world database.");
-            systemList.Set(obj, updateBefore, updateAfter);
+            DefaultSystemCollection.ForceSystemOrder(obj, updateBefore, updateAfter);
         }
 
         public void Add(object obj, Type[] updateBefore, Type[] updateAfter)
         {
-            systemMap[obj.GetType()] = obj;
-            systemList.Set(obj, updateAfter, updateBefore);
-            Ctx.Register(obj);
-
-            var prefix = $"Thread({Thread.CurrentThread.Name})";
-            if (new ContextBindingStrategy(Ctx, false).Resolve<IApplication>() != null)
-                prefix = $"App({new ContextBindingStrategy(Ctx, false).Resolve<IApplication>().GetType()})";
-            //Console.WriteLine($"System for '{prefix}' --> {obj.GetType()}");
+            DefaultSystemCollection.Add(obj, updateBefore, updateAfter);
         }
 
-        public void LoopPasses()
-        {
-            foreach (var register in availablePasses)
-                register.Trigger();
-        }
+        public void LoopPasses() => DefaultSystemCollection.LoopPasses();
 
         public void Dispose()
         {
-            foreach (var sys in systemList)
-            {
-                if (sys is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
-            }
+            DefaultSystemCollection.Dispose();
             Mgr?.Dispose();
-            
-            systemList = null;
         }
     }
 

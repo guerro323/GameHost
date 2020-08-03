@@ -80,6 +80,8 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 			if (currentArchetype.Id != archetype)
 			{
 				entityBoard.AssignArchetype(entity.Id, archetype);
+				if (currentArchetype.Id > 0)
+					archetypeBoard.RemoveEntity(currentArchetype.Id, entity.Id);
 				archetypeBoard.AddEntity(archetype, entity.Id);
 			}
 

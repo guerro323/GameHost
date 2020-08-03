@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using GameHost.Simulation.TabEcs.Interfaces;
@@ -45,8 +46,11 @@ namespace GameHost.Simulation.TabEcs
 		{
 			if (typeToComponentMap.TryGetValue(type, out var componentType))
 				return componentType;
-			
-			throw new NotImplementedException("Can't create non-generic type yet");
+
+			var method = typeof(GameWorld).GetMethods()
+			                              .Single(m => m.Name == nameof(AsComponentType) && m.IsGenericMethodDefinition);
+
+			return (ComponentType) method.Invoke(this, null);
 		}
 
 		public ComponentType AsComponentType<T>()

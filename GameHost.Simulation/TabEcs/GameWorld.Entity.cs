@@ -20,6 +20,10 @@ namespace GameHost.Simulation.TabEcs
 			foreach (ref readonly var componentType in Boards.ComponentType.Registered)
 				RemoveComponent(entity, componentType);
 
+			var archetype = GetArchetype(entity);
+			if (archetype.Id > 0)
+				Boards.Archetype.RemoveEntity(archetype.Id, entity.Id);
+
 			Boards.Entity.DeleteRow(entity.Id);
 		}
 
