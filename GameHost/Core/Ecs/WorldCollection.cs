@@ -33,8 +33,8 @@ namespace GameHost.Core.Ecs
             Ctx.BindExisting<World, World>(mgr);
 
             DefaultSystemCollection = new SystemCollection(Ctx, this);
-            DefaultSystemCollection.AddPass(initializePassRegister = new InitializePassRegister());
-            DefaultSystemCollection.AddPass(updatePassRegister     = new UpdatePassRegister());
+            DefaultSystemCollection.AddPass(initializePassRegister = new InitializePassRegister(), null, null);
+            DefaultSystemCollection.AddPass(updatePassRegister     = new UpdatePassRegister(), new[] {typeof(InitializePassRegister)}, null);
         }
 
         public static readonly PropertiesAndFieldsSelector SelectPropertiesAndFieldsWithImportAttribute =

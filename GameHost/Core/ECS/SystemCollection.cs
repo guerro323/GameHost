@@ -8,12 +8,11 @@ using GameHost.Injection;
 namespace GameHost.Core.Ecs
 {
 	public class SystemCollection : IDisposable
-
 	{
 		private OrderedList<object>      systemList;
 		private Dictionary<Type, object> systemMap;
 
-		private List<PassRegisterBase> availablePasses;
+		private OrderedList<PassRegisterBase> availablePasses;
 
 		public IReadOnlyCollection<object> SystemList => systemList.Elements;
 
@@ -28,7 +27,7 @@ namespace GameHost.Core.Ecs
 			systemList = new OrderedList<object>();
 			systemMap  = new Dictionary<Type, object>(64);
 
-			availablePasses = new List<PassRegisterBase>(2);
+			availablePasses = new OrderedList<PassRegisterBase>();
 
 			systemList.OnDirty += () =>
 			{
@@ -37,15 +36,20 @@ namespace GameHost.Core.Ecs
 			};
 		}
 
+		public PassRegisterBase ExecutingRegister { get; private set; }
+
 		public void LoopPasses()
 		{
 			foreach (var register in availablePasses)
+			{
+				ExecutingRegister = register;
 				register.Trigger();
+			}
 		}
 
-		public void AddPass(PassRegisterBase pass)
+		public void AddPass(PassRegisterBase pass, Type[] updateAfter, Type[] updateBefore)
 		{
-			availablePasses.Add(pass);
+			availablePasses.Add(pass, updateAfter, updateBefore);
 		}
 
 		private void RemakeLoop<T>(ref List<T> originalList, ref bool isDirty)
@@ -101,7 +105,7 @@ namespace GameHost.Core.Ecs
 			if (systemMap.TryGetValue(type, out var obj))
 				return obj;
 
-			obj = Activator.CreateInstance(type, args: this);
+			obj = Activator.CreateInstance(type, args: WorldCollection);
 			new InjectPropertyStrategy(Ctx, true).Inject(obj);
 			Add(obj, OrderedList.GetBefore(obj.GetType()), OrderedList.GetAfter(obj.GetType()));
 			return obj;

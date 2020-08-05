@@ -35,5 +35,10 @@ namespace GameHost.Simulation.TabEcs
 		{
 			return (int) Id;
 		}
+
+		public override string ToString()
+		{
+			return $"(GameEntity Row={Id})";
+		}
 	}
 }

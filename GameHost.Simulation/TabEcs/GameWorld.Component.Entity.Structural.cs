@@ -139,13 +139,13 @@ namespace GameHost.Simulation.TabEcs
 			return cRef;
 		}
 		
+		/// <summary>
 		/// Add a component to an entity
 		/// </summary>
 		/// <param name="entity"></param>
-		/// <param name="data"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public ComponentBuffer<T> AddBuffer<T>(GameEntity entity, in T data = default)
+		public ComponentBuffer<T> AddBuffer<T>(GameEntity entity)
 			where T : struct, IComponentBuffer
 		{
 			var componentType = AsComponentType<T>();

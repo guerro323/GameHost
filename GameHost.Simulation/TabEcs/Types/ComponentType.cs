@@ -4,13 +4,38 @@ using NetFabric.Hyperlinq;
 
 namespace GameHost.Simulation.TabEcs
 {
-	public readonly struct ComponentType
+	public readonly struct ComponentType : IEquatable<ComponentType>
 	{
 		public readonly uint Id;
 
 		public ComponentType(uint id)
 		{
 			Id = id;
+		}
+
+		public bool Equals(ComponentType other)
+		{
+			return Id == other.Id;
+		}
+
+		public override bool Equals(object obj)
+		{
+			return obj is ComponentType other && Equals(other);
+		}
+
+		public override int GetHashCode()
+		{
+			return (int) Id;
+		}
+
+		public static bool operator ==(ComponentType left, ComponentType right)
+		{
+			return left.Equals(right);
+		}
+
+		public static bool operator !=(ComponentType left, ComponentType right)
+		{
+			return !left.Equals(right);
 		}
 	}
 	

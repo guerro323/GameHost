@@ -4,13 +4,13 @@ namespace GameHost.Native.Fixed
 {
 	public static class FixedBufferUtility
 	{
-		public static int GetCapacity<TFixedBuffer>(this ref TFixedBuffer buffer)
+		public static int GetCapacity<TFixedBuffer>(this TFixedBuffer buffer)
 			where TFixedBuffer : struct, IFixedBuffer
 		{
 			return buffer.Capacity;
 		}
 
-		public static int GetLength<TFixedBuffer>(this ref TFixedBuffer buffer)
+		public static int GetLength<TFixedBuffer>(this TFixedBuffer buffer)
 			where TFixedBuffer : struct, IFixedBuffer
 		{
 			return buffer.Length;
@@ -24,7 +24,13 @@ namespace GameHost.Native.Fixed
 			buffer.Length = length;
 		}
 		
-		public static int IndexOf<TFixedBuffer, TElement>(this ref TFixedBuffer buffer, TElement element)
+		public static void Clear<TFixedBuffer>(this ref TFixedBuffer buffer)
+			where TFixedBuffer : struct, IFixedBuffer
+		{
+			buffer.Length = 0;
+		}
+		
+		public static int IndexOf<TFixedBuffer, TElement>(this TFixedBuffer buffer, TElement element)
 			where TFixedBuffer : struct, IFixedBuffer<TElement>
 			where TElement : IEquatable<TElement>
 		{

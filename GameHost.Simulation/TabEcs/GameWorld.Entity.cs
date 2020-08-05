@@ -20,6 +20,12 @@ namespace GameHost.Simulation.TabEcs
 			foreach (ref readonly var componentType in Boards.ComponentType.Registered)
 				RemoveComponent(entity, componentType);
 
+			foreach (ref readonly var linkedEntity in Boards.Entity.GetLinkedEntities(entity.Id))
+			{
+				if (Contains(linkedEntity))
+					RemoveEntity(linkedEntity);
+			}
+
 			var archetype = GetArchetype(entity);
 			if (archetype.Id > 0)
 				Boards.Archetype.RemoveEntity(archetype.Id, entity.Id);
@@ -35,6 +41,20 @@ namespace GameHost.Simulation.TabEcs
 		public bool Contains(GameEntity entity)
 		{
 			return Boards.Entity.ArchetypeColumn[(int) entity.Id].Id > 0;
+		}
+
+		/// <summary>
+		/// Set if a child entity should be linked to an owner entity. If the owner get removed, the child will too.
+		/// </summary>
+		/// <param name="child"></param>
+		/// <param name="owner"></param>
+		/// <param name="isLinked"></param>
+		/// <returns>Return if the linking state has been changed</returns>
+		public bool SetLinkedTo(GameEntity child, GameEntity owner, bool isLinked = true)
+		{
+			return isLinked
+				? Boards.Entity.AddLinked(owner.Id, child.Id)
+				: Boards.Entity.RemoveLinked(owner.Id, child.Id);
 		}
 	}
 }

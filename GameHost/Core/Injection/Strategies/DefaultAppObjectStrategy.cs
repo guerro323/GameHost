@@ -45,7 +45,7 @@ namespace GameHost.Injection
             if (typeof(AppObject).IsAssignableFrom(type)
                 && !typeof(AppSystem).IsAssignableFrom(type))
             {
-                resolving = Activator.CreateInstance(type, new object[] {collection.Ctx});
+                resolving = Activator.CreateInstance(type, collection.Ctx);
                 return null;
             }
 
