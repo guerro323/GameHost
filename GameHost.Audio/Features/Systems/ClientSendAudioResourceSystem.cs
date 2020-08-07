@@ -67,7 +67,13 @@ namespace GameHost.Audio.Features.Systems
 						{
 							writer.WriteInt((int) EAudioRegisterResourceType.Bytes, typeMarker);
 							writer.WriteInt(bytesData.Value.Length);
-							writer.WriteSpan(bytesData.Value.AsSpan());
+							unsafe
+							{
+								fixed (byte* bytePtr = bytesData.Value)
+								{
+									writer.WriteDataSafe(bytePtr, bytesData.Value.Length, default);
+								}
+							}
 						}
 					}
 					

@@ -5,6 +5,7 @@
 		public double accumulatedTime;
 
 		public int TargetFrameTimeMs;
+		
 
 		public void Reset()
 		{

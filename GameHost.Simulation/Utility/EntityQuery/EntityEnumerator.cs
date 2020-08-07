@@ -9,27 +9,33 @@ namespace GameHost.Simulation.Utility.EntityQuery
 
 		public GameEntity Current { get; private set; }
 
-		private int index;
+		private int  index;
+		private bool canMove;
+
+		private bool MoveInnerNext()
+		{
+			index   = 0;
+			canMove = Inner.MoveNext();
+
+			return canMove;
+		}
 
 		public bool MoveNext()
 		{
-			if (Inner.Current.Id == 0)
+			while (true)
 			{
-				if (!Inner.MoveNext())
-					return false;
-			}
+				if (!canMove && !MoveInnerNext()) return false;
 
-			var entitySpan = Inner.Board.GetEntities(Inner.Current.Id);
-			while (entitySpan.Length > index)
-			{
-				Current = new GameEntity(entitySpan[index]);
-				index++;
+				var entitySpan = Inner.Board.GetEntities(Inner.Current.Id);
+				if (entitySpan.Length <= index)
+				{
+					canMove = false;
+					continue;
+				}
+
+				Current = new GameEntity(entitySpan[index++]);
 				return true;
 			}
-
-			if (!Inner.MoveNext())
-				return false;
-			return true;
 		}
 
 		public EntityEnumerator GetEnumerator() => this;

@@ -41,6 +41,7 @@ namespace GameHost.Simulation.Application
 		{
 			var delta       = worker.Delta;
 			var updateCount = fts.GetUpdateCount(delta.TotalSeconds);
+			updateCount = Math.Min(updateCount, 3);
 			
 			var elapsed           = worker.Elapsed;
 			var previousWorkDelta = delta;
