@@ -48,6 +48,7 @@ namespace GameHost.Simulation.Utility.Resource
 			}
 
 			GameWorld.AddComponent(entity, new GameResourceKey<TKey> {Value = key});
+			GameWorld.AddComponent(entity, new IsResourceEntity());
 			return new GameResource<TResourceDescription>(entity);
 		}
 
