@@ -90,6 +90,8 @@ namespace GameHost.Simulation.TabEcs
 			if (!(board is SingleComponentBoard componentColumn))
 				throw new InvalidOperationException($"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
 
+			return ref componentColumn.AsSpan<T>()[Boards.Entity.GetComponentColumn(componentType)[(int) entity.Id].Assigned];
+			
 			var recursionLeft  = RecursionLimit;
 			var originalEntity = entity;
 			while (recursionLeft-- > 0)

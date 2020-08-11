@@ -10,28 +10,32 @@ namespace RevolutionSnapshot.Core.Buffers
 		public static void* Malloc(int size)
 		{
 			var ptr = (void*) Marshal.AllocHGlobal(size);
+#if DEBUG
 			if (ptr == lastFreedAddress)
 				lastFreedAddress = null;
+#endif
 			return ptr;
 		}
 
 		[ThreadStatic]
 		private static void* lastFreedAddress;
-		
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Free(void* addr)
 		{
+#if DEBUG
 			if (lastFreedAddress == addr)
 				throw new InvalidOperationException("You are freeing on the previous freed address!");
 
 			lastFreedAddress = addr;
+#endif
 			Marshal.FreeHGlobal((IntPtr) addr);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void MemCpy(byte* addr1, byte* addr2, int size)
+		public static void MemCpy(byte* dest, byte* source, int size)
 		{
-			Unsafe.CopyBlock(addr1, addr2, (uint) size);
+			Unsafe.CopyBlock(dest, source, (uint) size);
 		}
 		
 		const int Threshold = 128;

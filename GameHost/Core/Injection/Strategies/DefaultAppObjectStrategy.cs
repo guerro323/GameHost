@@ -34,7 +34,10 @@ namespace GameHost.Injection
 
                 // if resolving isn't null and that we are resolving module, this mean that the module data is accessible
                 if (isResolvingModule)
+                {
+                    isResolvingModule = false;
                     return resolving;
+                }
 
                 return null;
             }

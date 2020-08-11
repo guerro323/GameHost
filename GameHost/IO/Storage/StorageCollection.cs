@@ -57,7 +57,8 @@ namespace GameHost.IO
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex);
+                    // todo: we need a better way to display this error, the user may think it would make the application crash
+                    Console.WriteLine("Minimal Impact Exception: " + ex);
                 }
             }
 

@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Buffers;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
 using GameHost.Simulation.Application;
 using GameHost.Simulation.TabEcs;
+using K4os.Compression.LZ4;
 using RevolutionSnapshot.Core.Buffers;
 using Array = System.Array;
 
@@ -17,26 +20,53 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 		private (IShareComponentSerializer[] serializer, byte h) custom_column;
 		private DataBufferWriter                                 dataBuffer;
+		private DataBufferWriter                                 compressedBuffer;
 
+		private ParallelOptions parallelOptions;
+		
 		public SendWorldStateSystem(WorldCollection collection) : base(collection)
 		{
 			DependencyResolver.Add(() => ref gameWorld);
 
+			parallelOptions     = new ParallelOptions {MaxDegreeOfParallelism = Environment.ProcessorCount};
+			getDataParallelBody = GetDataParallel_Body;
+
 			custom_column.serializer = new IShareComponentSerializer[0];
 			dataBuffer               = new DataBufferWriter(0);
+			compressedBuffer         = new DataBufferWriter(0);
 		}
 
 		protected override void OnUpdate()
 		{
 			base.OnUpdate();
-
+			
 			GetDataParallel(gameWorld);
+
+			compressedBuffer.Length = 0;
+
+			var compressedSize = LZ4Codec.MaximumOutputSize(dataBuffer.Length);
+			if (compressedSize + sizeof(int) * 2 > compressedBuffer.Capacity)
+				compressedBuffer.Capacity = compressedSize + sizeof(int) * 2;
+
+			unsafe
+			{
+				var originalCapacity = compressedBuffer.Capacity;
+				var encoder          = LZ4Level.L04_HC;
+				var size = LZ4Codec.Encode(dataBuffer.Span,
+					new Span<byte>((byte*) compressedBuffer.GetSafePtr() + sizeof(int) * 2, compressedBuffer.Capacity - sizeof(int) * 2));
+				compressedBuffer.WriteInt(size);
+				compressedBuffer.WriteInt(dataBuffer.Length);
+				compressedBuffer.Length += size;
+
+				if (originalCapacity < compressedBuffer.Capacity)
+					throw new InvalidOperationException("The capacity shouldn't have been modified. This does remove the compression data.");
+			}
 			
 			foreach (var feature in Features)
 			{
 				unsafe
 				{
-					feature.Transport.Broadcast(default, new Span<byte>((void*) dataBuffer.GetSafePtr(), dataBuffer.Length));
+					feature.Transport.Broadcast(default, compressedBuffer.Span);
 				}
 			}
 		}
@@ -54,6 +84,24 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				Array.Resize(ref custom_column.serializer, (int) componentType.Id + 1);
 
 			custom_column.serializer[(int) componentType.Id] = serializer;
+		}
+
+		private Action<StateData, ParallelLoopState, long> getDataParallelBody;
+		private List<StateData> pooledStates = new List<StateData>();
+
+		private struct StateData
+		{
+			public DataBufferWriter[] Writers;
+			public GameWorld          World;
+			public ComponentType      ComponentType;
+		}
+		
+		void GetDataParallel_Body(StateData state, ParallelLoopState loop, long i)
+		{
+			var buffer   = state.Writers[i] = new DataBufferWriter(128);
+			var entities = state.World.Boards.Entity.Alive;
+
+			Inner(ref buffer, state.World, state.ComponentType.Id, entities);
 		}
 
 		private unsafe DataBufferWriter GetDataParallel(GameWorld world, bool forceSingleThread = false)
@@ -124,15 +172,25 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			}
 			else
 			{
-				Parallel.ForEach(componentTypeSpan.ToArray(), (componentType, loop, i) =>
+				pooledStates.Clear();
+				for (var i = 0; i != componentTypeSpan.Length; i++)
 				{
-					var buffer   = componentBuffers[i] = new DataBufferWriter(128);
-					var entities = world.Boards.Entity.Alive;
+					pooledStates.Add(new StateData
+					{
+						Writers = componentBuffers,
+						World = world,
+						ComponentType = componentTypeSpan[i]
+					});
+				}
 
-					Inner(ref buffer, world, componentType.Id, entities);
-				});
+				Parallel.ForEach(pooledStates, parallelOptions, getDataParallelBody);
 			}
 
+			var capacityIncrease = 0;
+			foreach (var buffer in componentBuffers)
+				capacityIncrease += buffer.Capacity;
+
+			dataBuffer.Capacity = Math.Max(dataBuffer.Capacity, dataBuffer.Length + capacityIncrease + 1);
 			foreach (var buffer in componentBuffers)
 			{
 				dataBuffer.WriteBuffer(buffer);
@@ -153,7 +211,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			var serializer = world.Boards.ComponentType.GetColumn(row, ref custom_column.serializer);
 
 			var componentBoard = world.Boards.ComponentType.ComponentBoardColumns[(int) row];
-			buffer.Capacity += componentBoard.Size * entities.Length;
+			buffer.Capacity += (sizeof(EntityBoardContainer.ComponentMetadata) + sizeof(int) + componentBoard.Size) * entities.Length + 64;
 
 			if (serializer != null && serializer.CanSerialize(world, entities, componentBoard))
 			{

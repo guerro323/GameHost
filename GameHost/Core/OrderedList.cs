@@ -80,12 +80,12 @@ namespace GameHost.Core
         public           bool    listIsDirty;
         private readonly List<T> orderedElements = new List<T>();
 
-        public ReadOnlyCollection<T> Elements
+        public IReadOnlyList<T> Elements
         {
             get
             {
                 if (!listIsDirty)
-                    return orderedElements.AsReadOnly();
+                    return orderedElements;
                 
                 orderedElements.Clear();
                 foreach (var elem in dirtyElements)

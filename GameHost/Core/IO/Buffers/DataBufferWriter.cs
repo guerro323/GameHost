@@ -74,24 +74,6 @@ namespace RevolutionSnapshot.Core.Buffers
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetWriteInfo(int size, DataBufferMarker marker)
-        {
-            var writeIndex = marker.Valid ? marker.Index : m_Data->length;
-
-            TryResize(writeIndex + size);
-
-            return writeIndex;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void TryResize(int newCapacity)
-        {
-            if (m_Data->capacity >= newCapacity) return;
-
-            Capacity = newCapacity * 2;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteData(byte* data, int index, int length)
         {
             UnsafeUtility.MemCpy(m_Data->buffer + index, data, length);
@@ -100,25 +82,27 @@ namespace RevolutionSnapshot.Core.Buffers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DataBufferMarker WriteDataSafe(byte* data, int writeSize, DataBufferMarker marker)
         {
-            int dataLength = m_Data->length,
-                writeIndex = marker.Valid ? marker.Index : dataLength;
-
+            ref var buffer = ref *m_Data;
+            
+            var dataLength = buffer.length;
+            var writeIndex = marker.Index * (*(byte*) &marker.Valid) + dataLength * (1 - (*(byte*) &marker.Valid));
+            
             // Copy from GetWriteInfo()
 
             var predictedLength = writeIndex + writeSize;
 
             // Copy from TryResize()
-            if (m_Data->capacity <= predictedLength)
+            if (buffer.capacity <= predictedLength)
             {
                 Capacity = predictedLength * 2;
             }
 
             // Copy from WriteData()
-            UnsafeUtility.MemCpy(m_Data->buffer + writeIndex, data, writeSize);
+            UnsafeUtility.MemCpy(buffer.buffer + writeIndex, data, writeSize);
 
-            m_Data->length = Math.Max(predictedLength, dataLength);
+            buffer.length = Math.Max(predictedLength, dataLength);
 
-            var rm = default(DataBufferMarker);
+            DataBufferMarker rm;
             rm.Valid = true;
             rm.Index = writeIndex;
 

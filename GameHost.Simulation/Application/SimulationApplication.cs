@@ -55,11 +55,13 @@ namespace GameHost.Simulation.Application
 
 					for (var tickAge = updateCount - 1; tickAge >= 0; --tickAge)
 					{
-						timeApp.Update(elapsed - TimeSpan.FromSeconds(fts.accumulatedTime) - targetFrequency * tickAge, delta);
+						timeApp.Update(elapsed - TimeSpan.FromSeconds(fts.accumulatedTime) - targetFrequency * tickAge, targetFrequency);
 						Data.Loop();
 					}
 				}
 			}
+
+			//Console.WriteLine("DeltaMs : " + worker.Delta.TotalMilliseconds + ", perf: " + worker.Performance);
 			
 			var timeToSleep = TimeSpan.FromTicks(Math.Max(targetFrequency.Ticks - worker.Delta.Ticks, 0));
 			if (timeToSleep.Ticks > 0)

@@ -1,17 +1,88 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using GameHost.Simulation.TabEcs.Interfaces;
 using NetFabric.Hyperlinq;
 using StormiumTeam.GameBase.Utility.Misc;
+using Array = System.Array;
 
 namespace GameHost.Simulation.TabEcs
 {
 	public partial class GameWorld : IDisposable
 	{
-		private Dictionary<Type, ComponentType> typeToComponentMap;
+		private static class TypedComponentRegister
+		{
+			private static Dictionary<Type, Action<int>>                typeNewWorldMap     = new Dictionary<Type, Action<int>>();
+			private static Dictionary<Type, Action<int, ComponentType>> typeNewComponentMap = new Dictionary<Type, Action<int, ComponentType>>();
+			private static Dictionary<Type, Func<int, ComponentType>> typeGetComponentMap = new Dictionary<Type, Func<int, ComponentType>>();
 
+			private static int maxWorldId;
+			
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void AddWorld(GameWorld world)
+			{
+				foreach (var action in typeNewWorldMap.Values)
+					action(world.WorldId);
+
+				maxWorldId = Math.Max(maxWorldId, world.WorldId);
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void AddComponent(int worldId, Type original, ComponentType componentType)
+			{
+				typeNewComponentMap[original](worldId, componentType);
+			}
+
+			public static ComponentType GetComponentType(int worldId, Type original)
+			{
+				if (!typeGetComponentMap.ContainsKey(original))
+					return default;
+				return typeGetComponentMap[original](worldId);
+			}
+
+			public static void RegisterType(Type type, Action<int> onNewWorld, Action<int, ComponentType> onNewComponentType, Func<int, ComponentType> getComponentType)
+			{
+				var had = typeNewComponentMap.ContainsKey(type);
+				
+				typeNewWorldMap[type]     = onNewWorld;
+				typeNewComponentMap[type] = onNewComponentType;
+				typeGetComponentMap[type] = getComponentType;
+
+				if (!had)
+				{
+					onNewWorld(maxWorldId);
+				}
+			}
+		}
+
+		private static class TypedComponent<T>
+		{
+			public static ComponentType[] mappedComponentType = Array.Empty<ComponentType>();
+
+			static TypedComponent()
+			{
+				TypedComponentRegister.RegisterType(typeof(T),
+					world =>
+					{
+						if (world < mappedComponentType.Length)
+							return;
+						Array.Resize(ref mappedComponentType, world + 1);
+					},
+					(world, ct) => mappedComponentType[world] = ct,
+					world => mappedComponentType[world]);
+			}
+
+			// This function does nothing but call the static function
+			public static void Register()
+			{
+				
+			}
+		}
+
+		private static int s_WorldIdCounter = 1;
+		
 		public struct __Boards
 		{
 			public EntityBoardContainer        Entity;
@@ -20,11 +91,14 @@ namespace GameHost.Simulation.TabEcs
 		}
 
 		public readonly __Boards Boards;
+		public readonly int      WorldId;
 
 		public GameWorld()
 		{
-			typeToComponentMap = new Dictionary<Type, ComponentType>();
+			WorldId            = s_WorldIdCounter++;
 
+			TypedComponentRegister.AddWorld(this);
+			
 			Boards = new __Boards
 			{
 				Entity        = new EntityBoardContainer(0),
@@ -33,7 +107,7 @@ namespace GameHost.Simulation.TabEcs
 			};
 		}
 
-		public ComponentType RegisterComponent(string name, ComponentBoardBase componentBoard)
+		public ComponentType RegisterComponent(string name, ComponentBoardBase componentBoard, Type optionalManagedType = null)
 		{
 			if (Boards.ComponentType.Registered.Where(row => Boards.ComponentType.NameColumns[(int) row.Id] == name).Count() > 0)
 				throw new InvalidOperationException($"A component named '{name}' already exist");
@@ -43,7 +117,8 @@ namespace GameHost.Simulation.TabEcs
 
 		public ComponentType AsComponentType(Type type)
 		{
-			if (typeToComponentMap.TryGetValue(type, out var componentType))
+			var componentType = TypedComponentRegister.GetComponentType(WorldId, type);
+			if (componentType.Id > 0)
 				return componentType;
 
 			var method = typeof(GameWorld).GetMethods()
@@ -55,7 +130,8 @@ namespace GameHost.Simulation.TabEcs
 		public ComponentType AsComponentType<T>()
 			where T : struct, IEntityComponent
 		{
-			if (typeToComponentMap.TryGetValue(typeof(T), out var componentType))
+			var componentType = TypedComponent<T>.mappedComponentType[WorldId];
+			if (componentType.Id > 0)
 				return componentType;
 
 			ComponentBoardBase board = null;
@@ -74,8 +150,10 @@ namespace GameHost.Simulation.TabEcs
 				board = new BufferComponentBoard(Unsafe.SizeOf<T>(), 0);
 			else
 				throw new InvalidOperationException();
-			
-			return typeToComponentMap[typeof(T)] = RegisterComponent(TypeExt.GetFriendlyName(typeof(T)), board);
+
+			componentType = RegisterComponent(TypeExt.GetFriendlyName(typeof(T)), board);
+			TypedComponentRegister.AddComponent(WorldId, typeof(T), componentType);
+			return componentType;
 		}
 
 		public void Dispose()

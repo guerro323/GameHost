@@ -69,6 +69,8 @@ namespace GameHost.Simulation.TabEcs
 
 		public void DependOnEntityComponent(GameEntity entity, GameEntity target, ComponentType componentType)
 		{
+			throw new NotImplementedException("This feature is not yet finished.");
+			
 			var componentBoard = Boards.ComponentType.ComponentBoardColumns[(int) componentType.Id];
 
 			var previousComponentId = Boards.Entity.AssignSharedComponent(entity.Id, componentType.Id, target.Id);

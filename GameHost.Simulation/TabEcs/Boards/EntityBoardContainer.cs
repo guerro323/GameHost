@@ -48,17 +48,12 @@ using System.Collections.Generic;
 			 }
 		 }
 
-		 private class AssignedComponent
-		 {
-			 public ComponentMetadata[] reference;
-		 }
-
-		 private Dictionary<uint, AssignedComponent>                   assignedComponentMap;
 		 private (uint[] archetype, PooledList<uint>[] linkedEntities) column;
 
 		 public EntityBoardContainer(int capacity) : base(capacity)
 		 {
-			 assignedComponentMap  = new Dictionary<uint, AssignedComponent>();
+			 p_componentColumn = new ComponentMetadata[0][];
+			 
 			 column.archetype      = new uint[0];
 			 column.linkedEntities = new PooledList<uint>[0];
 		 }
@@ -74,9 +69,9 @@ using System.Collections.Generic;
 				 column.linkedEntities[i] = new PooledList<uint>();
 			 }
 
-			 foreach (var componentColumn in assignedComponentMap.Values)
+			 for (var i = 0; i < p_componentColumn.Length; i++)
 			 {
-				 GetColumn(board.MaxId, ref componentColumn.reference);
+				 GetColumn(board.MaxId, ref p_componentColumn[i]);
 			 }
 		 }
 
@@ -104,13 +99,21 @@ using System.Collections.Generic;
 
 		 public Span<ComponentMetadata> GetComponentColumn(uint type) => getComponentColumn(type);
 
+		 private ComponentMetadata[][] p_componentColumn;
+
 		 private ref ComponentMetadata[] getComponentColumn(uint type)
 		 {
-			 if (assignedComponentMap.TryGetValue(type, out var assigned))
-				 return ref assigned.reference;
+			 var length = p_componentColumn.Length;
+			 if (type >= length)
+			 {
+				 Array.Resize(ref p_componentColumn, ((int) type + 1) * 2);
+				 for (var i = length; i < p_componentColumn.Length; i++)
+				 {
+					 p_componentColumn[i] = new ComponentMetadata[board.MaxId];
+				 }
+			 }
 
-			 assignedComponentMap[type] = assigned = new AssignedComponent {reference = new ComponentMetadata[board.MaxId]};
-			 return ref assigned.reference;
+			 return ref p_componentColumn[type];
 		 }
 
 		 public Span<GameEntity> GetLinkedEntities(uint entity) => getLinkedColumn(entity);
