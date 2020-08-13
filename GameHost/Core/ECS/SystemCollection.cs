@@ -15,6 +15,7 @@ namespace GameHost.Core.Ecs
 		private OrderedList<PassRegisterBase> availablePasses;
 
 		public IReadOnlyCollection<object> SystemList => systemList.Elements;
+		public IReadOnlyCollection<PassRegisterBase> Passes => availablePasses.Elements;
 
 		public readonly Context         Ctx;
 		public readonly WorldCollection WorldCollection;
@@ -50,6 +51,7 @@ namespace GameHost.Core.Ecs
 		public void AddPass(PassRegisterBase pass, Type[] updateAfter, Type[] updateBefore)
 		{
 			availablePasses.Add(pass, updateAfter, updateBefore);
+			pass.RegisterCollectionAndFilter(systemList);
 		}
 
 		private void RemakeLoop<T>(ref List<T> originalList, ref bool isDirty)

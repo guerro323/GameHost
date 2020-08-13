@@ -1,9 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 
 namespace GameHost.Core.Ecs.Passes
 {
 	public abstract class PassRegisterBase
 	{
+		public abstract IList RegisteredObjects { get; }
+
 		public void RegisterCollectionAndFilter(IEnumerable<object> objects)
 		{
 			OnRegisterCollectionAndFilter(objects);
@@ -20,6 +23,8 @@ namespace GameHost.Core.Ecs.Passes
 
 	public abstract class PassRegisterBase<TActOn> : PassRegisterBase
 	{
+		public override IList RegisteredObjects => GetObjects();
+
 		protected List<TActOn> finalObjects = new List<TActOn>();
 		protected List<TActOn> temporaryObjects = new List<TActOn>();
 
