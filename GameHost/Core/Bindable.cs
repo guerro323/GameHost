@@ -55,21 +55,35 @@ namespace GameHost.Core
         {
         }
 
+        private ValueChanged<T> currentListener;
         protected virtual void InvokeOnUpdate(ref T value)
         {
             var currentList = new List<ValueChanged<T>>((List<ValueChanged<T>>) SubscribedListeners);
             foreach (var listener in currentList)
             {
+                currentListener = listener;
                 listener(this.value, value);
             }
 
             this.value = value;
         }
 
+        /// <summary>
+        /// Unsubcribe the current listener
+        /// </summary>
+        public void UnsubscribeCurrent()
+        {
+            if (currentListener != null)
+                ((List<ValueChanged<T>>) SubscribedListeners).Remove(currentListener);
+        }
+
         public virtual void Subscribe(in ValueChanged<T> listener, bool invokeNow = false)
         {
-            if (SubscribedListeners is List<ValueChanged<T>> list && !list.Contains(listener))
-                list.Add(listener);
+            if (SubscribedListeners is List<ValueChanged<T>> list)
+            {
+                if (!list.Contains(listener))
+                    list.Add(listener);
+            }
             else
                 throw new InvalidOperationException("You've replaced the list type by something else!");
 

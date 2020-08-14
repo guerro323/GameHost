@@ -21,7 +21,7 @@ namespace GameHost.IO
     {
         private readonly Entity handleEntity;
 
-        public bool IsLoaded => handleEntity.Has<IsResourceLoaded<T>>();
+        public bool IsLoaded => handleEntity != default && handleEntity.Has<IsResourceLoaded<T>>();
 
         public ResourceHandle(Entity handleEntity)
         {
