@@ -36,8 +36,6 @@ namespace GameHost.Core.RPC.AvailableRpcCommands
 
 		protected override void OnReceiveRequest(GameHostCommandResponse response)
 		{
-			Console.WriteLine("received request!");
-			
 			var connectionMap = new Dictionary<string, List<Result.Connection>>();
 			foreach (var connection in connectionSet.GetEntities())
 			{

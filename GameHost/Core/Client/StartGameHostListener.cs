@@ -86,8 +86,7 @@ namespace GameHost.Core.Client
 			writer.Put(nameof(RpcCommandType.Reply));
 			writer.Put(command.ToString());
 			writer.Put(data.Span.ToArray());
-
-			Console.WriteLine("reply sent!");
+			
 			peer.Send(writer, DeliveryMethod.ReliableOrdered);
 		}
 
@@ -137,7 +136,6 @@ namespace GameHost.Core.Client
 
 		public virtual void OnPeerConnected(NetPeer peer)
 		{
-			Console.WriteLine("connected");
 		}
 
 		public virtual void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
@@ -150,8 +148,6 @@ namespace GameHost.Core.Client
 
 		public virtual void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
 		{
-			Console.WriteLine("received data");
-			
 			var type = reader.GetString();
 			switch (type)
 			{
@@ -195,7 +191,6 @@ namespace GameHost.Core.Client
 
 		public virtual void OnConnectionRequest(ConnectionRequest request)
 		{
-			Console.WriteLine("accept");
 			request.Accept();
 		}
 	}

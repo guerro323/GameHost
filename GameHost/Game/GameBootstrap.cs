@@ -92,6 +92,7 @@ namespace GameHost.Game
 				
 				if (GameEntity.TryGet(out GameUserStorage userStorage))
 					Global.Context.BindExisting(userStorage.Value);
+				
 			}
 
 			void AddExecutiveSystems()

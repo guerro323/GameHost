@@ -91,8 +91,7 @@ namespace GameHost.Inputs.Systems
 
 							data.WriteInt(data.Length - skipActionMarker.Index, skipActionMarker);
 						}
-
-						Console.WriteLine("Send Input Data. " + data.Span.Length);
+						
 						if (feature.Driver.Broadcast(feature.PreferredChannel, data.Span) < 0)
 							throw new InvalidOperationException("Couldn't send data!");
 					}

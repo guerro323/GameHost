@@ -52,6 +52,7 @@ namespace GameHost.Simulation.Application
 				using (CurrentUpdater.SynchronizeThread())
 				{
 					Scheduler.Run();
+					TryExecuteScheduler();
 
 					for (var tickAge = updateCount - 1; tickAge >= 0; --tickAge)
 					{

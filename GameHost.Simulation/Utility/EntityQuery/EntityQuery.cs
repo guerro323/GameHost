@@ -102,6 +102,31 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			};
 		}
 
+		public bool Any()
+		{
+			CheckForNewArchetypes();
+
+			foreach (var arch in matchedArchetypes.Span)
+				if (!GameWorld.Boards.Archetype.GetEntities(arch).IsEmpty)
+					return true;
+			return false;
+		}
+
+		public void RemoveAllEntities()
+		{
+			CheckForNewArchetypes();
+
+			foreach (var arch in matchedArchetypes.Span)
+			{
+				var prev = GameWorld.Boards.Archetype.GetEntities(arch);
+				// This work on a swapback basis, so we need to decrement by one at each delete
+				for (var i = 0; i < prev.Length; i++)
+					GameWorld.RemoveEntity(new GameEntity(prev[i--]));
+			}
+		}
+		
+		
+
 		/// <summary>
 		/// Check if this entity can be contained in this query
 		/// </summary>

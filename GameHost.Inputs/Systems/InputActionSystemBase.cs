@@ -24,8 +24,6 @@ namespace GameHost.Inputs.Systems
 
 		public void Add(InputActionSystemBase system)
 		{
-			Console.WriteLine($"Register action system : {system.ActionPath}");
-			
 			SystemActionMap.Add(system.ActionPath, system);
 			SystemLayoutMap.Add(system.LayoutPath, system);
 		}

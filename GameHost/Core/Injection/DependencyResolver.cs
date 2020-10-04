@@ -87,13 +87,17 @@ namespace GameHost.Injection
                                            .Select(d => ((IResolvedObject) d).Resolved)
                                            .ToList();
 
+                Dependencies.Clear();
                 if (onComplete != null)
                 {
                     onComplete(resolvedDependencies);
                     onComplete = null;
                 }
 
-                Dependencies.Clear();
+                // Here we go again!
+                if (Dependencies.Count > 0)
+                    allResolved = false;
+
                 Console.WriteLine($"completed {source}");
                 unresolvedFrames = 0;
             }
@@ -103,7 +107,7 @@ namespace GameHost.Injection
                 Console.WriteLine(str);
             }
 
-            // Be sure to set the result right after onComplete has been called
+            // Be sure to set the result right after onComplete has been called (in case new deps has been added)
             if (allResolved && dependencyCompletion.Count > 0)
             {
                 foreach (var tcs in dependencyCompletion)

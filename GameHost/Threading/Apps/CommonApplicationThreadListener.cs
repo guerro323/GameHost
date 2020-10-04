@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Threading.Tasks;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Threading;
 using GameHost.Injection;
+using GameHost.Utility;
 using GameHost.Worlds;
+using NetFabric.Hyperlinq;
 
 namespace GameHost.Threading.Apps
 {
@@ -13,7 +16,8 @@ namespace GameHost.Threading.Apps
 		public         ListenerCollectionBase LastUpdater        { get; protected set; }
 		public         ListenerCollectionBase CurrentUpdater     { get; protected set; }
 
-		public IScheduler Scheduler { get; protected set; }
+		public IScheduler    Scheduler     { get; protected set; }
+		public TaskScheduler TaskScheduler { get; protected set; }
 
 		public CommonApplicationThreadListener(GlobalWorld source, Context overrideContext)
 		{
@@ -22,6 +26,7 @@ namespace GameHost.Threading.Apps
 			Data      = new ApplicationData(overrideContext ?? new Context(source.Context));
 			Data.Context.BindExisting<IScheduler>(Scheduler);
 			Data.Context.BindExisting<IApplication>(this);
+			Data.Context.BindExisting<TaskScheduler>(TaskScheduler = new SameThreadTaskScheduler());
 		}
 
 		public virtual void OnAttachedToUpdater(ListenerCollectionBase updater)
@@ -51,11 +56,25 @@ namespace GameHost.Threading.Apps
 			return OnUpdate();
 		}
 
+		// This is done so SimulationApplication can call the scheduler from here
+		protected bool TryExecuteScheduler()
+		{
+			if (TaskScheduler is SameThreadTaskScheduler sameThreadTaskScheduler)
+			{
+				sameThreadTaskScheduler.Execute();
+				return true;
+			}
+
+			return false;
+		}
+		
 		protected virtual ListenerUpdate OnUpdate()
 		{
 			using (CurrentUpdater.SynchronizeThread())
 			{
 				Scheduler.Run();
+				TryExecuteScheduler();
+
 				Data.Loop();
 			}
 
