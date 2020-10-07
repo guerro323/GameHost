@@ -156,6 +156,12 @@ namespace GameHost.Simulation.TabEcs
 			return componentType;
 		}
 
+		public TBoard GetComponentBoard<TBoard>(ComponentType componentType)
+			where TBoard : ComponentBoardBase
+		{
+			return (TBoard) Boards.ComponentType.ComponentBoardColumns[(int) componentType.Id];
+		}
+
 		public void Dispose()
 		{
 		}

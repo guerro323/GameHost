@@ -1,12 +1,16 @@
 ﻿using System;
+using System.Buffers;
+using System.Runtime.InteropServices;
 using GameHost.Simulation.TabEcs;
 
 namespace GameHost.Simulation.Utility.EntityQuery
 {
-	public ref struct EntityQueryEnumerator
+	public unsafe struct EntityQueryEnumerator
 	{
 		public ArchetypeBoardContainer Board;
-		public Span<uint>.Enumerator              Inner;
+		public uint*                   Inner;
+		public int                    InnerIndex;
+		public int                    InnerSize;
 
 		public GameEntity Current { get; private set; }
 
@@ -15,8 +19,10 @@ namespace GameHost.Simulation.Utility.EntityQuery
 
 		private bool MoveInnerNext()
 		{
-			index   = 0;
-			canMove = Inner.MoveNext();
+			index = 0;
+
+			InnerIndex++;
+			canMove = InnerIndex < InnerSize;
 
 			return canMove;
 		}
@@ -25,10 +31,10 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		{
 			while (true)
 			{
-				if (!canMove && !MoveInnerNext()) 
+				if (!canMove && !MoveInnerNext())
 					return false;
 
-				var entitySpan = Board.GetEntities(Inner.Current);
+				var entitySpan = Board.GetEntities(Inner[InnerIndex]);
 				if (entitySpan.Length <= index)
 				{
 					canMove = false;

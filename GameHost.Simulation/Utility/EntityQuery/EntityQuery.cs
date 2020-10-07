@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Collections.Pooled;
 using GameHost.Simulation.TabEcs;
 
@@ -91,14 +93,17 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		/// Get the entities from valid archetypes
 		/// </summary>
 		/// <returns></returns>
-		public EntityQueryEnumerator GetEntities()
+		public unsafe EntityQueryEnumerator GetEntities()
 		{
 			CheckForNewArchetypes();
 
+			ref var r = ref MemoryMarshal.GetReference(matchedArchetypes.Span);
 			return new EntityQueryEnumerator
 			{
-				Board = GameWorld.Boards.Archetype,
-				Inner = matchedArchetypes.Span.GetEnumerator()
+				Board      = GameWorld.Boards.Archetype,
+				Inner      = (uint*) Unsafe.AsPointer(ref r),
+				InnerIndex = -1,
+				InnerSize  = matchedArchetypes.Count
 			};
 		}
 
@@ -118,10 +123,9 @@ namespace GameHost.Simulation.Utility.EntityQuery
 
 			foreach (var arch in matchedArchetypes.Span)
 			{
-				var prev = GameWorld.Boards.Archetype.GetEntities(arch);
 				// This work on a swapback basis, so we need to decrement by one at each delete
-				for (var i = 0; i < prev.Length; i++)
-					GameWorld.RemoveEntity(new GameEntity(prev[i--]));
+				while (GameWorld.Boards.Archetype.GetEntities(arch).Length > 0)
+					GameWorld.RemoveEntity(new GameEntity(GameWorld.Boards.Archetype.GetEntities(arch)[0]));
 			}
 		}
 		
