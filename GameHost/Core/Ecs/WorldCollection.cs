@@ -76,6 +76,11 @@ namespace GameHost.Core.Ecs
             DefaultSystemCollection.Add(obj, updateBefore, updateAfter);
         }
 
+        public void Remove(object system)
+        {
+            DefaultSystemCollection.Unregister(system);
+        }
+
         public void LoopPasses() => DefaultSystemCollection.LoopPasses();
 
         public void Dispose()

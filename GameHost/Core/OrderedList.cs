@@ -192,6 +192,19 @@ namespace GameHost.Core
             OnDirty?.Invoke();
         }
 
+        public void Remove(T elem)
+        {
+            listIsDirty = true;
+
+            for (var i = 0; i < dirtyElements.Count; i++)
+            {
+                if (dirtyElements[i].Value.Equals(elem))
+                    dirtyElements.RemoveAt(i--);
+            }
+            
+            OnDirty?.Invoke();
+        }
+
         private int GetElementIndex(Type type)
         {
             for (var i = 0; i != orderedElements.Count; i++)

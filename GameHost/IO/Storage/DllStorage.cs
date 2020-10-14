@@ -27,7 +27,6 @@ namespace GameHost.IO
 
         public Task<IEnumerable<IFile>> GetFilesAsync(string pattern)
         {
-            Console.WriteLine(CurrentPath + "/" + pattern);
             return Task.FromResult(Assembly.GetManifestResourceNames()
                                            .Select(mrn => (IFile)new DllEmbeddedFile(Assembly, mrn))
                                            .Where(file => FileSystemName.MatchesSimpleExpression(CurrentPath + "/" + pattern, file.FullName)));

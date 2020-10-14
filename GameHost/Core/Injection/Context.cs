@@ -28,6 +28,12 @@ namespace GameHost.Injection
             Container.UseInstance(obj);
         }
 
+        public void Unregister(object obj)
+        {
+            registeredObjects.Remove(obj);
+            Container.Unregister(obj.GetType());
+        }
+
         public void Bind<TIn, TOut>() where TOut : TIn
         {
             Container.Register<TIn, TOut>();

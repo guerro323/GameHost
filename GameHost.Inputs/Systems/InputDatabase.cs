@@ -38,5 +38,32 @@ namespace GameHost.Inputs.Systems
 
             return ac;
         }
+
+        public Entity UpdateSingle<TAction>(Entity existing, params InputLayoutBase[] layouts)
+            where TAction : IInputAction, new()
+        {
+            Debug.Assert(DependencyResolver.Dependencies.Count == 0, "DependencyResolver.Dependencies.Count == 0");
+
+            if (!existing.IsAlive)
+            {
+                var ac = World.Mgr.CreateEntity();
+                ac.Set(new InputEntityId(maxId++));
+
+                existing = ac;
+            }
+
+            existing.Set(new InputActionLayouts(layouts));
+            existing.Set(new InputActionType(typeof(TAction)));
+            existing.Set(default(TAction));
+            existing.Set(new PushInputLayoutChange());
+
+            return existing;
+        }
+        
+        public void UpdateSingle<TAction>(ref Entity existing, params InputLayoutBase[] layouts)
+            where TAction : IInputAction, new()
+        {
+            existing = UpdateSingle<TAction>(existing, layouts);
+        }
     }
 }

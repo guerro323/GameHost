@@ -122,6 +122,9 @@ namespace GameHost.Core.Ecs
 
 		public void Add(object obj, Type[] updateBefore, Type[] updateAfter)
 		{
+			if (systemMap.TryGetValue(obj.GetType(), out var prev))
+				Unregister(prev);
+			
 			systemMap[obj.GetType()] = obj;
 			systemList.Set(obj, updateAfter, updateBefore);
 			Ctx.Register(obj);
@@ -130,6 +133,16 @@ namespace GameHost.Core.Ecs
 			if (new ContextBindingStrategy(Ctx, false).Resolve<IApplication>() != null)
 				prefix = $"App({new ContextBindingStrategy(Ctx, false).Resolve<IApplication>().GetType()})";
 			//Console.WriteLine($"System for '{prefix}' --> {obj.GetType()}");
+		}
+
+		public void Unregister(object obj)
+		{
+			if (systemMap.TryGetValue(obj.GetType(), out var currInMap) && currInMap == obj)
+			{
+				systemMap.Remove(obj.GetType());
+				systemList.Remove(obj);
+				Ctx.Unregister(obj);
+			}
 		}
 
 		public void Dispose()

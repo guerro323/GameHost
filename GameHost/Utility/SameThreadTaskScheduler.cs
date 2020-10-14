@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -37,6 +38,16 @@ namespace GameHost.Utility
 				TryExecuteTask(tasks[0]);
 				tasks.RemoveAt(0);
 			}
+		}
+	}
+
+	public static class TaskRunUtility
+	{
+		public static Task StartUnwrap(Func<CancellationToken, Task> taskCreator, TaskScheduler taskScheduler, CancellationToken cancellationToken)
+		{
+			return Task.Factory
+			           .StartNew(() => taskCreator(cancellationToken), cancellationToken, TaskCreationOptions.AttachedToParent, taskScheduler)
+			           .Unwrap();
 		}
 	}
 }
