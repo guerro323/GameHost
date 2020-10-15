@@ -93,7 +93,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		/// Get the entities from valid archetypes
 		/// </summary>
 		/// <returns></returns>
-		public unsafe EntityQueryEnumerator GetEntities()
+		public unsafe EntityQueryEnumerator GetEnumerator()
 		{
 			CheckForNewArchetypes();
 
