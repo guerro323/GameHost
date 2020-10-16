@@ -60,5 +60,10 @@
 			 list.Remove(entity);
 			 return list.Count;
 		 }
+
+		 public virtual Span<GameEntity> GetReferences(uint row)
+		 {
+			 return GetColumn(row, ref column.references).Span;
+		 }
 	 }
  }

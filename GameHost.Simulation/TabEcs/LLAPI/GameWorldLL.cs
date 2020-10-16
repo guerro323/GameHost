@@ -38,6 +38,17 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 		{
 			componentBoard.OwnerColumn[(int) componentReference.Id] = entity;
 		}
+		
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static GameEntity GetOwner(ComponentBoardBase componentBoard, ComponentReference componentReference)
+		{
+			return componentBoard.OwnerColumn[(int) componentReference.Id];
+		}
+
+		public static Span<GameEntity> GetReferences(ComponentBoardBase componentBoard, ComponentReference componentReference)
+		{
+			return componentBoard.GetReferences(componentReference.Id);
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool RemoveComponentReference(ComponentBoardBase componentBoard, ComponentType componentType, EntityBoardContainer entityBoard, GameEntity entity)

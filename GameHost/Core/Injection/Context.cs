@@ -1,16 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using DryIoc;
 
 namespace GameHost.Injection
 {
-    public class Context
+    public class Context : IDisposable
     {
         private HashSet<object> registeredObjects;
 
         private List<Context> childs;
 
         public IContainer Container { get; }
-        public Context Parent { get; }
+        public Context    Parent    { get; }
 
         public Context(Context parent, Rules rules = null)
         {
@@ -45,10 +46,20 @@ namespace GameHost.Injection
             Register(o);
             Container.UseInstance<TIn>(o);
         }
-        
+
         public void BindExisting<TInOut>(TInOut o)
         {
             BindExisting<TInOut, TInOut>(o);
+        }
+
+        public void Dispose()
+        {
+            Container?.Dispose();
+            registeredObjects.Clear();
+            foreach (var child in childs)
+                child.Dispose();
+
+            childs.Clear();
         }
     }
 }

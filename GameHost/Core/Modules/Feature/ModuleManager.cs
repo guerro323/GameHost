@@ -30,7 +30,7 @@ namespace GameHost.Core.Modules.Feature
         {
             if (ModuleMap != null)
                 throw new Exception("yooooooo");
-            
+
             ModuleMap = new Dictionary<string, GameHostModule>(8);
 
             // Add existing assemblies to modules...
@@ -42,8 +42,8 @@ namespace GameHost.Core.Modules.Feature
                 {
                     moduleAsmBag.Add((asm, new GameHostModuleDescription
                     {
-                        DisplayName = attr.DisplayName, 
-                        Author      = attr.Author, 
+                        DisplayName = attr.DisplayName,
+                        Author      = attr.Author,
                         NameId      = asm.GetName().Name
                     }));
                 }
@@ -57,6 +57,7 @@ namespace GameHost.Core.Modules.Feature
                 // these components are used for when the assembly get unloaded and if we need them back...
                 rm.Set(asm);
                 rm.Set(asm.GetName());
+                rm.Set(loadContext);
 
                 LoadModule(rm);
             }
@@ -68,14 +69,20 @@ namespace GameHost.Core.Modules.Feature
             Debug.Assert(entity.Has<RegisteredModule>(), "entity.Has<RegisteredModule>()");
         }
 
-        private Assembly GetAssembly(Entity entity)
+        private Assembly GetAssembly(Entity entity, out AssemblyLoadContext asmLoadCtx)
         {
+            asmLoadCtx = loadContext;
             if (entity.Has<Assembly>())
                 return entity.Get<Assembly>();
+
+            asmLoadCtx = entity.Has<AssemblyLoadContext>() 
+                ? entity.Get<AssemblyLoadContext>() 
+                : new ModuleAssemblyLoadContext();
+            
             if (entity.Has<AssemblyName>())
-                return loadContext.LoadFromAssemblyName(entity.Get<AssemblyName>());
+                return asmLoadCtx.LoadFromAssemblyName(entity.Get<AssemblyName>());
             if (entity.Has<IFile>())
-                return loadContext.LoadFromAssemblyPath(entity.Get<IFile>().FullName);
+                return asmLoadCtx.LoadFromAssemblyPath(entity.Get<IFile>().FullName);
             Console.WriteLine(":(");
 
             return null;
@@ -90,7 +97,7 @@ namespace GameHost.Core.Modules.Feature
 
             module.State = ModuleState.IsLoading;
 
-            var asm = GetAssembly(entity);
+            var asm = GetAssembly(entity, out var asmLoadCtx);
             if (asm == null)
                 throw new FileLoadException("could not load module: " + module.Description.NameId);
 
@@ -106,6 +113,7 @@ namespace GameHost.Core.Modules.Feature
             ModuleMap[module.Description.NameId] = (GameHostModule) cmod;
             entity.Set(asm);
             entity.Set(cmod);
+            entity.Set(asmLoadCtx);
         }
 
         public void UnloadModule(Entity entity)

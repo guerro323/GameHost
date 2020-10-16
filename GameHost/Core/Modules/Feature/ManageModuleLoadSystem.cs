@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Runtime.Loader;
 using DefaultEcs;
 using GameHost.Applications;
@@ -12,13 +13,13 @@ namespace GameHost.Core.Modules.Feature
 	[UpdateAfter(typeof(ModuleManager))]
 	public class ManageModuleLoadSystem : AppSystemWithFeature<ModuleLoaderFeature>
 	{
-		private IStorage            storage;
+		private ModuleStorage            moduleStorage;
 		private AssemblyLoadContext assemblyLoadContext;
 		private ModuleManager       moduleMgr;
 
 		public ManageModuleLoadSystem(WorldCollection collection) : base(collection)
 		{
-			DependencyResolver.Add(() => ref storage);
+			DependencyResolver.Add(() => ref moduleStorage);
 			DependencyResolver.Add(() => ref assemblyLoadContext);
 			DependencyResolver.Add(() => ref moduleMgr);
 		}
@@ -32,12 +33,11 @@ namespace GameHost.Core.Modules.Feature
 			unloadSet = World.Mgr.GetEntities().With<RequestUnloadModule>().AsSet();
 		}
 
-		protected override async void OnFeatureAdded(ModuleLoaderFeature obj)
+		protected override void OnFeatureAdded(ModuleLoaderFeature obj)
 		{
-			storage = new ModuleStorage(await storage.GetOrCreateDirectoryAsync("Modules"));
 		}
 
-		public override bool CanUpdate() => base.CanUpdate() && storage is ModuleStorage;
+		public override bool CanUpdate() => base.CanUpdate() && Features.Any();
 
 		protected override void OnUpdate()
 		{

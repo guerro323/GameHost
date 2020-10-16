@@ -35,6 +35,23 @@ namespace GameHost.Simulation.TabEcs
 			return Boards.Entity.GetComponentColumn(componentType.Id)[(int) entity.Id];
 		}
 
+		public ComponentReference GetComponentReference<T>(GameEntity entity)
+			where T : struct, IEntityComponent
+		{
+			var componentType = AsComponentType<T>();
+			return new ComponentReference(componentType, Boards.Entity.GetComponentColumn(componentType.Id)[(int) entity.Id].Id);
+		}
+
+		public GameEntity GetComponentOwner(ComponentReference component)
+		{
+			return GameWorldLL.GetOwner(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type), component);
+		}
+
+		public Span<GameEntity> GetReferencedEntities(ComponentReference component)
+		{
+			return GameWorldLL.GetReferences(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type), component);
+		}
+
 		/// <summary>
 		/// Check whether or not an entity has a component
 		/// </summary>

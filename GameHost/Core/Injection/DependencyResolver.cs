@@ -98,10 +98,10 @@ namespace GameHost.Injection
                 if (Dependencies.Count > 0)
                     allResolved = false;
 
-                Console.WriteLine($"completed {source}");
+                //Console.WriteLine($"completed {source}");
                 unresolvedFrames = 0;
             }
-            else if (unresolvedFrames++ > 10)
+            else if (unresolvedFrames++ > 100)
             {
                 var str = Dependencies.Aggregate(source, (current, dep) => current + $"\n\t{dep}; {dep.IsResolved}");
                 Console.WriteLine(str);

@@ -6,25 +6,28 @@ using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
 using GameHost.Core.IO;
 using GameHost.Core.Threading;
+using Microsoft.Extensions.Logging;
 using NetFabric.Hyperlinq;
+using ZLogger;
 
 namespace GameHost.Core.Modules.Feature
 {
     [RestrictToApplication(typeof(ExecutiveEntryApplication))]
     public class GatherAvailableModuleSystem : AppSystemWithFeature<ModuleLoaderFeature>
     {
-        private IStorage   storage;
-        private IScheduler scheduler;
+        private ILogger       logger;
+        private ModuleStorage moduleStorage;
+        private IScheduler    scheduler;
 
         public GatherAvailableModuleSystem(WorldCollection worldCollection) : base(worldCollection)
         {
-            DependencyResolver.Add(() => ref storage);
+            DependencyResolver.Add(() => ref logger);
+            DependencyResolver.Add(() => ref moduleStorage);
             DependencyResolver.Add(() => ref scheduler);
         }
 
         protected override async void OnFeatureAdded(ModuleLoaderFeature obj)
         {
-            storage = new ModuleStorage(await storage.GetOrCreateDirectoryAsync("Modules"));
         }
 
         private EntitySet refreshSet, moduleSet;
@@ -48,30 +51,31 @@ namespace GameHost.Core.Modules.Feature
 
         public override bool CanUpdate() =>
             base.CanUpdate()
-            && !isTaskRunning           // can not update if there is already a task running 
-            && storage is ModuleStorage // can not update if we have an invalid or non-existant storage
-            && refreshSet.Count > 0;    // can not update if there are no request...
+            && Features.Any()        // can not update if there are no features...
+            && !isTaskRunning        // can not update if there is already a task running 
+            && refreshSet.Count > 0; // can not update if there are no request...
 
         protected override async void OnUpdate()
         {
             base.OnUpdate();
 
             isTaskRunning = true;
-            var files = (await storage.GetFilesAsync("*.dll")).ToList();
+            var files = (await moduleStorage.GetFilesAsync("*.dll")).ToList();
             // Destroy unloaded modules...
             scheduler.Schedule(DestroyUnloadedModules, SchedulingParameters.AsOnce);
 
             foreach (var file in files)
             {
                 var assemblyName = file.Name.Replace(".dll", "");
-                var rm           = FindOrCreateEntity(assemblyName);
+                var rm           = FindOrCreateEntity(assemblyName, out var wasCreated);
                 // We have found an already existing module, does not do further operation on it...
                 if (rm.Has<RegisteredModule>() && rm.Get<RegisteredModule>().State != ModuleState.None)
                     continue;
 
-                Console.WriteLine($"Discovered {assemblyName}");
                 scheduler.Schedule(moduleEntity =>
                 {
+                    logger.ZLogInformation($"Discovered Module {assemblyName}.dll (fullPath={file.FullName})");
+                    
                     moduleEntity.Set(new RegisteredModule {Description = {NameId = assemblyName, DisplayName = assemblyName, Author = "not-loaded"}});
                     moduleEntity.Set(file);
                 }, rm, default);
@@ -88,12 +92,17 @@ namespace GameHost.Core.Modules.Feature
         /// </summary>
         /// <param name="assemblyName"></param>
         /// <returns>An existing or new entity.</returns>
-        private Entity FindOrCreateEntity(string assemblyName)
+        private Entity FindOrCreateEntity(string assemblyName, out bool wasCreated)
         {
-            return moduleSet.GetEntities()
-                            .Where(e => e.Get<RegisteredModule>().Description.NameId == assemblyName)
-                            .First()
-                            .Match(e => e, World.Mgr.CreateEntity);
+            wasCreated = false;
+            foreach (var entity in moduleSet.GetEntities())
+            {
+                if (entity.Get<RegisteredModule>().Description.NameId == assemblyName)
+                    return entity;
+            }
+
+            wasCreated = true;
+            return World.Mgr.CreateEntity();
         }
 
         /// <summary>

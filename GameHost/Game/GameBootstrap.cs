@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Threading;
@@ -8,6 +9,7 @@ using Cysharp.Text;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
+using GameHost.Core.Modules.Feature;
 using GameHost.IO;
 using GameHost.Threading;
 using GameHost.Worlds;
@@ -89,10 +91,22 @@ namespace GameHost.Game
 				Global.Context.BindExisting(GameEntity.Get<GameLogger>().Value);
 				Global.Context.BindExisting(GameEntity.Get<GameLoggerFactory>().Value);
 				Global.Context.BindExisting(new AssemblyLoadContext("DefaultContext"));
-				
+
+				var moduleStorageCollection = new StorageCollection();
+
 				if (GameEntity.TryGet(out GameUserStorage userStorage))
+				{
 					Global.Context.BindExisting(userStorage.Value);
-				
+					moduleStorageCollection.Add(userStorage.Value);
+				}
+
+				if (GameEntity.TryGet(out GameExecutingStorage executingStorage))
+				{
+					moduleStorageCollection.Add(executingStorage.Value);
+				}
+
+				if (moduleStorageCollection.Any())
+					Global.Context.BindExisting(new ModuleStorage(moduleStorageCollection.GetOrCreateDirectoryAsync("Modules").Result));
 			}
 
 			void AddExecutiveSystems()
