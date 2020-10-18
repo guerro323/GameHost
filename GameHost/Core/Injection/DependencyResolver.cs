@@ -104,7 +104,7 @@ namespace GameHost.Injection
             else if (unresolvedFrames++ > 100)
             {
                 var str = Dependencies.Aggregate(source, (current, dep) => current + $"\n\t{dep}; {dep.IsResolved}");
-                Console.WriteLine(str);
+                //Console.WriteLine(str);
             }
 
             // Be sure to set the result right after onComplete has been called (in case new deps has been added)
@@ -195,7 +195,7 @@ namespace GameHost.Injection
             
             public override string ToString()
             {
-                return $"Dependency(type={Type}, completed={IsResolved})";
+                return $"Dependency(type={Type}, strategy={Strategy}, completed={IsResolved})";
             }
         }
     }

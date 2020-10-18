@@ -72,6 +72,12 @@ namespace GameHost.Core.Ecs
 
         public virtual void Dispose()
         {
+            lock (Synchronization)
+            {
+                if (IsDisposed)
+                    Console.WriteLine("Disposing an already disposed AppObject " + GetType());
+            }
+
             Console.WriteLine("Disposing: " + GetType());
             foreach (var d in ReferencedDisposables)
             {

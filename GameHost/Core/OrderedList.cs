@@ -238,5 +238,11 @@ namespace GameHost.Core
         {
             return Elements.GetEnumerator();
         }
+
+        public void Clear()
+        {
+            dirtyElements.Clear();
+            orderedElements.Clear();
+        }
     }
 }

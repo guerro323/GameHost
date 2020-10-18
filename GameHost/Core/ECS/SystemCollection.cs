@@ -39,8 +39,22 @@ namespace GameHost.Core.Ecs
 
 		public PassRegisterBase ExecutingRegister { get; private set; }
 
+		private List<object> disposedToUnregister = new List<object>();
 		public void LoopPasses()
 		{
+			disposedToUnregister.Clear();
+			foreach (var system in systemList)
+			{
+				if (system is AppObject appObject
+				    && appObject.IsDisposed)
+				{
+					disposedToUnregister.Add(appObject);
+				}
+			}
+			
+			foreach (var toUnregister in disposedToUnregister)
+				Unregister(toUnregister);
+			
 			foreach (var register in availablePasses)
 			{
 				ExecutingRegister = register;
@@ -137,6 +151,7 @@ namespace GameHost.Core.Ecs
 
 		public void Unregister(object obj)
 		{
+			Console.WriteLine("unregister " + obj);
 			if (systemMap.TryGetValue(obj.GetType(), out var currInMap) && currInMap == obj)
 			{
 				systemMap.Remove(obj.GetType());
@@ -147,6 +162,8 @@ namespace GameHost.Core.Ecs
 
 		public void Dispose()
 		{
+			disposedToUnregister.Clear();
+			
 			foreach (var sys in systemList)
 			{
 				if (sys is IDisposable disposable)
@@ -155,6 +172,7 @@ namespace GameHost.Core.Ecs
 				}
 			}
 
+			systemList.Clear();
 			systemList = null;
 		}
 	}

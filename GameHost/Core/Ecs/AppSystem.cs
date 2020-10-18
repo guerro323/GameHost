@@ -84,6 +84,8 @@ namespace GameHost.Core.Ecs
                 DependencyResolver.Dependencies.AddRange(inheritedDependencies);
         }
 
+        bool IInitializePass.HasBeenInitialized { get; set; }
+
         protected virtual void OnInit()
         {
 
@@ -109,6 +111,9 @@ namespace GameHost.Core.Ecs
         /// <summary>
         /// Disposing the system and its internal resources.
         /// </summary>
+        /// <remarks>
+        /// A disposed system will be automatically removed from the World at the next update pass.
+        /// </remarks>
         public override void Dispose()
         {
             base.Dispose();

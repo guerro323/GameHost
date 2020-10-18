@@ -58,6 +58,7 @@ namespace GameHost.Core.RPC.AvailableRpcCommands
 			{
 				ConnectionMap = connectionMap
 			}));
+			Console.WriteLine("send display");
 		}
 
 		protected override void OnReceiveReply(GameHostCommandResponse response)
