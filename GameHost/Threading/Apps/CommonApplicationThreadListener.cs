@@ -6,7 +6,6 @@ using GameHost.Core.Threading;
 using GameHost.Injection;
 using GameHost.Utility;
 using GameHost.Worlds;
-using NetFabric.Hyperlinq;
 
 namespace GameHost.Threading.Apps
 {

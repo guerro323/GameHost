@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
-using GameHost.Applications;
 using GameHost.Core.Ecs.Passes;
 using GameHost.Injection;
 
@@ -111,7 +109,7 @@ namespace GameHost.Core.Ecs
 				return (T) obj;
 
 			obj = createFunction(WorldCollection);
-			new InjectPropertyStrategy(Ctx, true).Inject(obj);
+			//new InjectPropertyStrategy(Ctx, true).Inject(obj);
 			Add(obj, updateBefore, updateAfter);
 			return (T) obj;
 		}
@@ -122,7 +120,7 @@ namespace GameHost.Core.Ecs
 				return obj;
 
 			obj = Activator.CreateInstance(type, args: WorldCollection);
-			new InjectPropertyStrategy(Ctx, true).Inject(obj);
+			//new InjectPropertyStrategy(Ctx, true).Inject(obj);
 			Add(obj, OrderedList.GetBefore(obj.GetType()), OrderedList.GetAfter(obj.GetType()));
 			return obj;
 		}
@@ -142,11 +140,6 @@ namespace GameHost.Core.Ecs
 			systemMap[obj.GetType()] = obj;
 			systemList.Set(obj, updateAfter, updateBefore);
 			Ctx.Register(obj);
-
-			var prefix = $"Thread({Thread.CurrentThread.Name})";
-			if (new ContextBindingStrategy(Ctx, false).Resolve<IApplication>() != null)
-				prefix = $"App({new ContextBindingStrategy(Ctx, false).Resolve<IApplication>().GetType()})";
-			//Console.WriteLine($"System for '{prefix}' --> {obj.GetType()}");
 		}
 
 		public void Unregister(object obj)

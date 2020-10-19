@@ -5,7 +5,6 @@ using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
-using GameHost.Core.IO;
 
 namespace GameHost.Core.Modules.Feature
 {
@@ -55,11 +54,27 @@ namespace GameHost.Core.Modules.Feature
 				{
 					Console.WriteLine(ex);
 				}
-				finally
+			}
+			
+			loadSet.DisposeAllEntities();
+
+			foreach (var entity in unloadSet.GetEntities())
+			{
+				var request = entity.Get<RequestUnloadModule>();
+				if (request.Module.Get<RegisteredModule>().State != ModuleState.Loaded)
+					continue; // should we report that?
+				
+				try
 				{
-					entity.Dispose();
+					moduleMgr.UnloadModule(request.Module);
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex);
 				}
 			}
+			
+			unloadSet.DisposeAllEntities();
 		}
 	}
 }

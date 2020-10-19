@@ -17,7 +17,8 @@ namespace GameHost.Core.Modules.Feature
 		None,
 		IsLoading,
 		Loaded,
-		Unloading
+		Unloading,
+		Zombie
 	}
 	
 	public struct RequestLoadModule

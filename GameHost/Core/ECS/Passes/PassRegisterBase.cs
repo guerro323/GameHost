@@ -31,6 +31,7 @@ namespace GameHost.Core.Ecs.Passes
 		protected override void OnRegisterCollectionAndFilter(IEnumerable<object> collection)
 		{
 			temporaryObjects.Clear();
+			finalObjects.Clear();
 			foreach (var obj in collection)
 			{
 				if (obj is TActOn actOn)

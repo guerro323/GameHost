@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using DryIoc;
 using GameHost.Core.Threading;
 using GameHost.Injection;
 
@@ -41,7 +40,7 @@ namespace GameHost.Core.Ecs
 
             DependencyResolver = new DependencyResolver(new ContextBindingStrategy(Context, true).Resolve<IScheduler>(), context, $"AppObject[{GetType().Name}]")
             {
-                DefaultStrategy = new DefaultAppObjectStrategy(this, context.Container.Resolve<WorldCollection>(IfUnresolved.ReturnDefault))
+                DefaultStrategy = new DefaultAppObjectStrategy(this, context.Container.GetOrDefault<WorldCollection>())
             };
 
             if (inheritedDependencies != null)
@@ -76,25 +75,23 @@ namespace GameHost.Core.Ecs
             {
                 if (IsDisposed)
                     Console.WriteLine("Disposing an already disposed AppObject " + GetType());
-            }
 
-            Console.WriteLine("Disposing: " + GetType());
-            foreach (var d in ReferencedDisposables)
-            {
-                try
+                Console.WriteLine("Disposing: " + GetType());
+                foreach (var d in ReferencedDisposables)
                 {
-                    d.Dispose();
+                    try
+                    {
+                        d.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                }
-            }
 
-            ReferencedDisposables = null;
-
-            lock (Synchronization)
+                ReferencedDisposables.Clear();
                 IsDisposed = true;
+            }
         }
     }
 }

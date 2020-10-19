@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
-using DryIoc;
+using System.Reflection;
 
 namespace GameHost.Core
 {
@@ -36,7 +35,13 @@ namespace GameHost.Core
     {
         [ThreadStatic]
         private static List<Type> _TemporaryList;
-        
+
+        private static IEnumerable<Attribute> GetAttributes(Type type, Type attributeType, bool inherit = false)
+        {
+            return type.GetTypeInfo().GetCustomAttributes(attributeType ?? typeof(Attribute), inherit)
+                       .Cast<Attribute>();
+        }
+
         private static Type[] Get<T>(Type toCheck)
             where T : UpdateOrderBaseAttribute
         {
@@ -46,7 +51,7 @@ namespace GameHost.Core
             var tab = 0;
             while (toCheck != null)
             {
-                foreach (var attribute in toCheck.GetAttributes(typeof(T), true))
+                foreach (var attribute in GetAttributes(toCheck, typeof(T), true))
                 {
                     var attr = (T) attribute;
                     _TemporaryList.AddRange(attr.Types);

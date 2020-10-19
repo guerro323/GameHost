@@ -78,7 +78,7 @@ namespace GameHost.Core.Modules
 				}
 			}
 
-			ReferencedDisposables = null;
+			ReferencedDisposables.Clear();
 
 			Storage.Dispose();
 			Ctx.Dispose();

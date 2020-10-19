@@ -1,5 +1,4 @@
 ﻿using System;
-using DryIoc;
 
 namespace GameHost.Injection
 {
@@ -16,11 +15,11 @@ namespace GameHost.Injection
     public struct ContextBindingStrategy : IStrategy
     {
         private Context ctx;
-        private bool resolveInParent;
+        private bool    resolveInParent;
 
         public ContextBindingStrategy(Context ctx, bool resolveInParent)
         {
-            this.ctx = ctx;
+            this.ctx             = ctx;
             this.resolveInParent = resolveInParent;
         }
 
@@ -31,45 +30,18 @@ namespace GameHost.Injection
 
         public object Resolve(Type type)
         {
-            var result = ctx.Container.Resolve(type, IfUnresolved.ReturnDefault);
+            var result = ctx.Container.GetOrDefault(type);
             if (!resolveInParent || result != null)
                 return result;
 
             var inner = ctx.Parent;
             while (result == null && inner != null)
             {
-                result = inner.Container.Resolve(type, IfUnresolved.ReturnDefault);
+                result = inner.Container.GetOrDefault(type);
                 inner  = inner.Parent;
             }
 
             return result;
-        }
-    }
-    
-    public struct InjectPropertyStrategy : IStrategy
-    {
-        private Context ctx;
-        private bool    resolveInParent;
-
-        public InjectPropertyStrategy(Context ctx, bool resolveInParent)
-        {
-            this.ctx             = ctx;
-            this.resolveInParent = resolveInParent;
-        }
-
-        public void Inject(object instance)
-        {
-            if (resolveInParent)
-            {
-                var inner = ctx.Parent;
-                while (inner != null)
-                {
-                    inner.Container.InjectPropertiesAndFields(instance);
-                    inner  = inner.Parent;
-                }
-            }
-
-            ctx.Container.InjectPropertiesAndFields(instance);
         }
     }
 }

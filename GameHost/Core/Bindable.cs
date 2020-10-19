@@ -5,6 +5,31 @@ namespace GameHost.Core
 {
     public delegate void ValueChanged<in T>(T previous, T next);
 
+    public abstract class BindableListener : IDisposable
+    {
+        public abstract void Dispose();
+    }
+    
+    public class BindableListener<T> : BindableListener
+    {
+        private readonly ValueChanged<T> valueChanged;
+        private readonly WeakReference  bindableReference;
+
+        public BindableListener(WeakReference bindableReference, ValueChanged<T> valueChanged)
+        {
+            this.valueChanged      = valueChanged;
+            this.bindableReference = bindableReference;
+        }
+
+        public override void Dispose()
+        {
+            if (bindableReference.IsAlive)
+            {
+                ((Bindable<T>) bindableReference.Target).Unsubscribe(valueChanged);
+            }
+        }
+    }
+
     public class Bindable<T> : IDisposable
     {
         public T Value
@@ -77,7 +102,12 @@ namespace GameHost.Core
                 ((List<ValueChanged<T>>) SubscribedListeners).Remove(currentListener);
         }
 
-        public virtual void Subscribe(in ValueChanged<T> listener, bool invokeNow = false)
+        public bool Unsubscribe(ValueChanged<T> listener)
+        {
+            return ((List<ValueChanged<T>>) SubscribedListeners).Remove(listener);
+        }
+
+        public virtual BindableListener Subscribe(in ValueChanged<T> listener, bool invokeNow = false)
         {
             if (SubscribedListeners is List<ValueChanged<T>> list)
             {
@@ -89,6 +119,8 @@ namespace GameHost.Core
 
             if (invokeNow)
                 listener(value, value);
+
+            return new BindableListener<T>(new WeakReference(this, true), listener);
         }
 
         public void SetDefault() => Value = Default;

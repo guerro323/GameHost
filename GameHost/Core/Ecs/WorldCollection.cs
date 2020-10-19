@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using DefaultEcs;
-using DryIoc;
 using GameHost.Core.Ecs.Passes;
 using GameHost.Injection;
 
@@ -28,22 +26,13 @@ namespace GameHost.Core.Ecs
         {
             Mgr = mgr;
 
-            Ctx = new Context(parentContext, Rules.Default.With(SelectPropertiesAndFieldsWithImportAttribute));
+            Ctx = new Context(parentContext);
             Ctx.BindExisting<WorldCollection, WorldCollection>(this);
             Ctx.BindExisting<World, World>(mgr);
 
             DefaultSystemCollection = new SystemCollection(Ctx, this);
             DefaultSystemCollection.AddPass(initializePassRegister = new InitializePassRegister(), null, null);
             DefaultSystemCollection.AddPass(updatePassRegister     = new UpdatePassRegister(), new[] {typeof(InitializePassRegister)}, null);
-        }
-
-        public static readonly PropertiesAndFieldsSelector SelectPropertiesAndFieldsWithImportAttribute =
-            PropertiesAndFields.All(serviceInfo: GetImportedPropertiesAndFields);
-
-        private static PropertyOrFieldServiceInfo GetImportedPropertiesAndFields(MemberInfo m, Request req)
-        {
-            var import = (DependencyStrategyAttribute) m.GetAttributes(typeof(DependencyStrategyAttribute)).FirstOrDefault();
-            return import == null ? null : PropertyOrFieldServiceInfo.Of(m).WithDetails(ServiceDetails.IfUnresolvedReturnDefaultIfNotRegistered);
         }
 
         public bool TryGet(Type type, out object obj) => DefaultSystemCollection.TryGet(type, out obj);
