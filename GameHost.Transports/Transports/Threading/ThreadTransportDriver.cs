@@ -23,7 +23,6 @@ namespace GameHost.Transports
 
 		private readonly int[] m_ConnectionVersions;
 
-		private readonly List<SendPacket> m_PacketsToSend;
 		private readonly Queue<uint>      m_QueuedConnections;
 
 		private readonly IScheduler scheduler;
@@ -34,7 +33,6 @@ namespace GameHost.Transports
 
 			SelfId = (uint) Interlocked.Increment(ref MContinuousId);
 
-			m_PacketsToSend      = new List<SendPacket>();
 			m_ConnectionVersions = new int[maxConnections];
 			m_Connections        = new Dictionary<uint, Connection>();
 			m_QueuedConnections  = new Queue<uint>();
@@ -107,10 +105,6 @@ namespace GameHost.Transports
 
 				// UPDATE
 				scheduler.Run();
-
-				//foreach (var info in m_PacketsToSend) info.Peer.Send(info.Channel, info.Packet);
-
-				m_PacketsToSend.Clear();
 			}
 		}
 

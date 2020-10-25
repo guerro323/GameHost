@@ -53,7 +53,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				var originalCapacity = compressedBuffer.Capacity;
 				var encoder          = LZ4Level.L04_HC;
 				var size = LZ4Codec.Encode(dataBuffer.Span,
-					new Span<byte>((byte*) compressedBuffer.GetSafePtr() + sizeof(int) * 2, compressedBuffer.Capacity - sizeof(int) * 2));
+					new Span<byte>((byte*) compressedBuffer.GetSafePtr() + sizeof(int) * 2, compressedBuffer.Capacity - sizeof(int) * 2), encoder);
 				compressedBuffer.WriteInt(size);
 				compressedBuffer.WriteInt(dataBuffer.Length);
 				compressedBuffer.Length += size;

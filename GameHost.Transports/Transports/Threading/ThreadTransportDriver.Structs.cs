@@ -20,12 +20,5 @@ namespace GameHost.Transports
 			public int                  StreamOffset;
 			public int                  Length;
 		}
-
-		private struct SendPacket
-		{
-			public byte[]       Packet;
-			public ThreadedPeer Peer;
-			public byte         Channel;
-		}
 	}
 }

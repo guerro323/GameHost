@@ -71,7 +71,7 @@ namespace GameHost.Simulation.TabEcs
 		{
 			throw new NotImplementedException("This feature is not yet finished.");
 			
-			var componentBoard = Boards.ComponentType.ComponentBoardColumns[(int) componentType.Id];
+			/*var componentBoard = Boards.ComponentType.ComponentBoardColumns[(int) componentType.Id];
 
 			var previousComponentId = Boards.Entity.AssignSharedComponent(entity.Id, componentType.Id, target.Id);
 			if (previousComponentId > 0)
@@ -83,7 +83,7 @@ namespace GameHost.Simulation.TabEcs
 					componentBoard.DeleteRow(previousComponentId);
 			}
 
-			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);*/
 		}
 		
 		/// <summary>

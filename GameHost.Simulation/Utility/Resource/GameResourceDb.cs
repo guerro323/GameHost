@@ -63,9 +63,5 @@ namespace GameHost.Simulation.Utility.Resource
 		{
 			return entityToKey[resource.Entity];
 		}
-
-		public void Dispose()
-		{
-		}
 	}
 }

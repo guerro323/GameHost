@@ -71,7 +71,6 @@ namespace GameHost.Audio.Systems
 			toLoadSet.GetEntities().CopyTo(entities);
 			foreach (ref var entity in entities)
 			{
-				Span<byte> fileData = default;
 				if (entity.Has<LoadResourceViaStorage>())
 				{
 					var r     = entity.Get<LoadResourceViaStorage>();

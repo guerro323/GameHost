@@ -24,7 +24,7 @@ namespace GameHost.Core.Modules.Feature
             DependencyResolver.Add(() => ref scheduler);
         }
 
-        protected override async void OnFeatureAdded(ModuleLoaderFeature obj)
+        protected override void OnFeatureAdded(ModuleLoaderFeature obj)
         {
         }
 

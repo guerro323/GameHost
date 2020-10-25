@@ -109,7 +109,7 @@ namespace GameHost.Simulation.TabEcs
 
 			return ref componentColumn.AsSpan<T>()[Boards.Entity.GetComponentColumn(componentType)[(int) entity.Id].Assigned];
 			
-			var recursionLeft  = RecursionLimit;
+			/*var recursionLeft  = RecursionLimit;
 			var originalEntity = entity;
 			while (recursionLeft-- > 0)
 			{
@@ -123,7 +123,7 @@ namespace GameHost.Simulation.TabEcs
 				return ref componentColumn.Read<T>(link.Id);
 			}
 
-			throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{originalEntity}' and component <{typeof(T)}> (backing: {componentType})");
+			throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{originalEntity}' and component <{typeof(T)}> (backing: {componentType})");*/
 		}
 
 		/// <summary>

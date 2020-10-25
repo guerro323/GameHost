@@ -14,8 +14,6 @@ namespace GameHost.Inputs.Systems
 	{
 		private EntitySet pushInputSet;
 
-		private int maxId = 1;
-		
 		private readonly Dictionary<ClientInputFeature, int> clientLastMaxId;
 
 		public SendPushedInputLayoutsToBackend(WorldCollection collection) : base(collection)

@@ -253,5 +253,5 @@ namespace GameHost.Simulation.Utility.InterTick
 			//return (int) math.round(ms / delta);
 			return (int) (ms / (delta * 1000));
 		}
-	}
+    }
 }

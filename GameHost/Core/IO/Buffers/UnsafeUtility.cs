@@ -17,8 +17,10 @@ namespace RevolutionSnapshot.Core.Buffers
 			return ptr;
 		}
 
+#if DEBUG
 		[ThreadStatic]
 		private static void* lastFreedAddress;
+#endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Free(void* addr)
