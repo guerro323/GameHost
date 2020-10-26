@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
 using GameHost.Simulation.TabEcs.Interfaces;
 using NetFabric.Hyperlinq;
 using StormiumTeam.GameBase.Utility.Misc;
@@ -55,6 +56,13 @@ namespace GameHost.Simulation.TabEcs
 					onNewWorld(maxWorldId);
 				}
 			}
+
+			public static void RemoveType(Type type)
+			{
+				typeNewWorldMap.Remove(type);
+				typeNewComponentMap.Remove(type);
+				typeGetComponentMap.Remove(type);
+			}
 		}
 
 		private static class TypedComponent<T>
@@ -72,12 +80,25 @@ namespace GameHost.Simulation.TabEcs
 					},
 					(world, ct) => mappedComponentType[world] = ct,
 					world => mappedComponentType[world]);
+
+				// We need to remove ourselves when this assembly get unloaded, so that GC can collect this static type.
+				AssemblyLoadContext.GetLoadContext(typeof(T).Assembly).Unloading += ctx =>
+				{
+					Remove();
+				};
 			}
 
 			// This function does nothing but call the static function
 			public static void Register()
 			{
 				
+			}
+
+			// Remove instances of this type in the register.
+			// We keep mappedComponentType in case this was an error or couldn't be unloaded...
+			public static void Remove()
+			{
+				TypedComponentRegister.RemoveType(typeof(T));
 			}
 		}
 
