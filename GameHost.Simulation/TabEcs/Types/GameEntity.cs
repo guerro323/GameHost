@@ -14,6 +14,22 @@ namespace GameHost.Simulation.TabEcs
 			return !left.Equals(right);
 		}
 
+		// Special syntax, return the first non-default entity.
+		public static GameEntity operator |(GameEntity left, GameEntity right)
+		{
+			if (left != default)
+				return left;
+			return right;
+		}
+
+		// Special syntax, return the last non-default entity.
+		public static GameEntity operator&(GameEntity left, GameEntity right)
+		{
+			if (right != default)
+				return right;
+			return left;
+		}
+
 		public readonly uint Id;
 
 		public GameEntity(uint id)
