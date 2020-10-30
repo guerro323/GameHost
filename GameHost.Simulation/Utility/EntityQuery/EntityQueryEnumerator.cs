@@ -13,9 +13,17 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		public int                    InnerIndex;
 		public int                    InnerSize;
 
-		public bool* Swapback;
-
-		public GameEntity Current { get; private set; }
+		private    GameEntity current;
+		public ref GameEntity Current
+		{
+			get
+			{
+				fixed (GameEntity* e = &current)
+				{
+					return ref *e;
+				}
+			}
+		}
 
 		private int  index;
 		private bool canMove;
@@ -34,12 +42,9 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		{
 			while (true)
 			{
-				ref var swap = ref Unsafe.AsRef<bool>(Swapback);
-				if (swap) 
-				{
+				// If the user set Current to default, this mean we need to decrease the index
+				if (current == default)
 					index--;
-					swap = false;
-				}
 
 				if (!canMove && !MoveInnerNext())
 					return false;
@@ -51,7 +56,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 					continue;
 				}
 
-				Current = new GameEntity(entitySpan[index++]);
+				current = new GameEntity(entitySpan[index++]);
 				return true;
 			}
 		}

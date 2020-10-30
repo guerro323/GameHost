@@ -30,7 +30,9 @@ namespace GameHost.Simulation.Utility.Resource
 				if (stateEntity.IsAlive)
 					stateEntity.Dispose();
 
-				if (!StateEntity.Has<BiMap<GameEntity, TResourceDescription>>())
+				stateEntity = value;
+				
+				if (!stateEntity.Has<BiMap<GameEntity, TResourceDescription>>())
 					stateEntity.Set(new BiMap<GameEntity, TResourceDescription>());
 			}
 		}

@@ -90,19 +90,9 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		}
 
 		/// <summary>
-		/// Get the entities from valid archetypes
-		/// </summary>
-		/// <returns></returns>
-		public unsafe EntityQueryEnumerator GetEnumerator()
-		{
-			var _ = false;
-			return GetEnumerator(ref _);
-		}
-
-		/// <summary>
 		/// Get the entities from valid archetypes, with an option to swapback entities
 		/// </summary>
-		public unsafe EntityQueryEnumerator GetEnumerator(ref bool swapback) // If you delete an entity when foreach'ing, you'll need to set 'swapback' to true.
+		public unsafe EntityQueryEnumerator GetEnumerator()
 		{
 			CheckForNewArchetypes();
 
@@ -112,8 +102,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 				Board       = GameWorld.Boards.Archetype,
 				Inner       = (uint*) Unsafe.AsPointer(ref r),
 				InnerIndex  = -1,
-				InnerSize   = matchedArchetypes.Count,
-				Swapback    = (bool*) Unsafe.AsPointer(ref swapback) 
+				InnerSize   = matchedArchetypes.Count
 			};
 		}
 
