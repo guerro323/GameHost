@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using GameHost.Simulation.TabEcs;
 
@@ -11,6 +12,8 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		public uint*                   Inner;
 		public int                    InnerIndex;
 		public int                    InnerSize;
+
+		public bool* Swapback;
 
 		public GameEntity Current { get; private set; }
 
@@ -31,6 +34,13 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		{
 			while (true)
 			{
+				ref var swap = ref Unsafe.AsRef<bool>(Swapback);
+				if (swap) 
+				{
+					index--;
+					swap = false;
+				}
+
 				if (!canMove && !MoveInnerNext())
 					return false;
 

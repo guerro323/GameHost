@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using BidirectionalMap;
+using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Injection;
 using GameHost.Simulation.TabEcs;
@@ -9,26 +11,39 @@ using GameHost.Simulation.Utility.Resource.Interfaces;
 
 namespace GameHost.Simulation.Utility.Resource
 {
-	public class GameResourceDb<TResourceDescription, TKey> : AppObject
-		where TResourceDescription : IGameResourceDescription
-		where TKey : struct, IEquatable<TKey>, IGameResourceKeyDescription
+	public class GameResourceDb<TResourceDescription> : AppObject
+		where TResourceDescription : struct, IGameResourceDescription, IEquatable<TResourceDescription>
 	{
 		private GameWorld gameWorldRef;
-		
+
 		public GameWorld GameWorld => gameWorldRef;
 
-		private readonly Dictionary<GameEntity, TKey> entityToKey;
-		private readonly Dictionary<TKey, GameEntity> keyToEntity;
+		private BiMap<GameEntity, TResourceDescription> GetResourceMap() => stateEntity.Get<BiMap<GameEntity, TResourceDescription>>();
+
+		private Entity stateEntity;
+
+		public Entity StateEntity
+		{
+			get => stateEntity;
+			set
+			{
+				if (stateEntity.IsAlive)
+					stateEntity.Dispose();
+
+				if (!StateEntity.Has<BiMap<GameEntity, TResourceDescription>>())
+					stateEntity.Set(new BiMap<GameEntity, TResourceDescription>());
+			}
+		}
 
 		public GameResourceDb(Context context) : base(context)
 		{
-			entityToKey = new Dictionary<GameEntity, TKey>(0);
-			keyToEntity = new Dictionary<TKey, GameEntity>(0);
-			
+			StateEntity = new ContextBindingStrategy(context, true).Resolve<World>()
+			                                                       .CreateEntity();
+
 			if (context != null)
 			{
 				DependencyResolver.Add(() => ref gameWorldRef);
-				DependencyResolver.OnComplete(objs => { });
+				DependencyResolver.OnComplete(_ => { });
 			}
 		}
 
@@ -37,31 +52,35 @@ namespace GameHost.Simulation.Utility.Resource
 			gameWorldRef = gameWorld;
 		}
 
-		public GameResource<TResourceDescription> GetOrCreate(TKey key)
+		public GameResource<TResourceDescription> GetOrCreate(TResourceDescription resourceDesc)
 		{
 			if (DependencyResolver != null)
 				Debug.Assert(DependencyResolver.Dependencies.Count == 0, "DependencyResolver.Dependencies.Count == 0");
 
-			if (!keyToEntity.TryGetValue(key, out var entity))
-			{
-				keyToEntity[key] = entity = GameWorld.CreateEntity();
-			}
+			var entityResourceMap = GetResourceMap();
 
-			GameWorld.AddComponent(entity, new GameResourceKey<TKey> {Value = key});
+			GameEntity entity;
+			if (!entityResourceMap.Reverse.ContainsKey(resourceDesc))
+				entityResourceMap.Add(entity = GameWorld.CreateEntity(), resourceDesc);
+			else
+				entity = entityResourceMap.Reverse[resourceDesc];
+
+			GameWorld.AddComponent(entity, resourceDesc);
 			GameWorld.AddComponent(entity, new IsResourceEntity());
 			return new GameResource<TResourceDescription>(entity);
 		}
 
-		public bool TryGet(TKey key, out GameResource<TResourceDescription> resource)
+		public bool TryGet(TResourceDescription key, out GameResource<TResourceDescription> resource)
 		{
-			var result = keyToEntity.TryGetValue(key, out var entity);
-			resource = new GameResource<TResourceDescription>(entity);
-			return result;
-		}
+			var entityResourceMap = GetResourceMap();
+			if (entityResourceMap.Reverse.ContainsKey(key))
+			{
+				resource = new GameResource<TResourceDescription>(entityResourceMap.Reverse[key]);
+				return true;
+			}
 
-		public TKey GetKey(in GameResource<TResourceDescription> resource)
-		{
-			return entityToKey[resource.Entity];
+			resource = default;
+			return false;
 		}
 	}
 }
