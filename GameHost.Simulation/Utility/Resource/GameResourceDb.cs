@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using BidirectionalMap;
 using DefaultEcs;
 using GameHost.Core.Ecs;
@@ -8,17 +9,22 @@ using GameHost.Injection;
 using GameHost.Simulation.TabEcs;
 using GameHost.Simulation.Utility.Resource.Components;
 using GameHost.Simulation.Utility.Resource.Interfaces;
+using GameHost.Utility;
 
 namespace GameHost.Simulation.Utility.Resource
 {
 	public class GameResourceDb<TResourceDescription> : AppObject
 		where TResourceDescription : struct, IGameResourceDescription, IEquatable<TResourceDescription>
 	{
+		public class Defaults : BiMap<GameEntity, TResourceDescription>
+		{
+		}
+
 		private GameWorld gameWorldRef;
 
 		public GameWorld GameWorld => gameWorldRef;
 
-		private BiMap<GameEntity, TResourceDescription> GetResourceMap() => stateEntity.Get<BiMap<GameEntity, TResourceDescription>>();
+		private BiMap<GameEntity, TResourceDescription> GetResourceMap() => stateEntity.Get<Defaults>();
 
 		private Entity stateEntity;
 
@@ -31,21 +37,25 @@ namespace GameHost.Simulation.Utility.Resource
 					stateEntity.Dispose();
 
 				stateEntity = value;
-				
-				if (!stateEntity.Has<BiMap<GameEntity, TResourceDescription>>())
-					stateEntity.Set(new BiMap<GameEntity, TResourceDescription>());
+
+				if (!stateEntity.Has<Defaults>())
+					stateEntity.Set(new Defaults());
 			}
 		}
 
 		public GameResourceDb(Context context) : base(context)
 		{
-			StateEntity = new ContextBindingStrategy(context, true).Resolve<World>()
-			                                                       .CreateEntity();
+			DependencyResolver.Add<DefaultEntity<Defaults>>();
+			DependencyResolver.OnComplete(deps =>
+			{
+				StateEntity = deps.OfType<DefaultEntity<Defaults>>()
+				                  .First()
+				                  .Entity;
+			});
 
 			if (context != null)
 			{
 				DependencyResolver.Add(() => ref gameWorldRef);
-				DependencyResolver.OnComplete(_ => { });
 			}
 		}
 

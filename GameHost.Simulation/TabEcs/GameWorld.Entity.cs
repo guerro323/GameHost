@@ -26,6 +26,12 @@ namespace GameHost.Simulation.TabEcs
 					RemoveEntity(linkedEntity);
 			}
 
+			foreach (ref readonly var parent in Boards.Entity.GetLinkedParents(entity.Id))
+			{
+				if (Contains(parent))
+					Boards.Entity.RemoveLinked(parent.Id, entity.Id);
+			}
+
 			var archetype = GetArchetype(entity);
 			if (archetype.Id > 0)
 				Boards.Archetype.RemoveEntity(archetype.Id, entity.Id);
@@ -50,7 +56,7 @@ namespace GameHost.Simulation.TabEcs
 		/// <param name="owner"></param>
 		/// <param name="isLinked"></param>
 		/// <returns>Return if the linking state has been changed</returns>
-		public bool SetLinkedTo(GameEntity child, GameEntity owner, bool isLinked = true)
+		public bool Link(GameEntity child, GameEntity owner, bool isLinked)
 		{
 			return isLinked
 				? Boards.Entity.AddLinked(owner.Id, child.Id)

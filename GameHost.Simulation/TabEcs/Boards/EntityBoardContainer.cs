@@ -48,14 +48,15 @@ using System.Collections.Generic;
 			 }
 		 }
 
-		 private (uint[] archetype, PooledList<uint>[] linkedEntities) column;
+		 private (uint[] archetype, PooledList<uint>[] linkedEntities, PooledList<uint>[] linkParents) column;
 
 		 public EntityBoardContainer(int capacity) : base(capacity)
 		 {
 			 p_componentColumn = new ComponentMetadata[0][];
-			 
+
 			 column.archetype      = new uint[0];
 			 column.linkedEntities = new PooledList<uint>[0];
+			 column.linkParents    = new PooledList<uint>[0];
 		 }
 
 		 private void OnResize()
@@ -64,9 +65,11 @@ using System.Collections.Generic;
 
 			 var previousLength = column.linkedEntities.Length;
 			 GetColumn(board.MaxId, ref column.linkedEntities);
+			 GetColumn(board.MaxId, ref column.linkParents);
 			 for (var i = previousLength; i < column.linkedEntities.Length; i++)
 			 {
 				 column.linkedEntities[i] = new PooledList<uint>();
+				 column.linkParents[i]    = new PooledList<uint>();
 			 }
 
 			 for (var i = 0; i < p_componentColumn.Length; i++)
@@ -116,11 +119,17 @@ using System.Collections.Generic;
 			 return ref p_componentColumn[type];
 		 }
 
-		 public Span<GameEntity> GetLinkedEntities(uint entity) => getLinkedColumn(entity);
+		 public Span<GameEntity> GetLinkedEntities(uint entity) => getLinkedEntitiesColumn(entity);
+		 public Span<GameEntity> GetLinkedParents(uint  entity) => getLinkedParentsColumn(entity);
 
-		 private Span<GameEntity> getLinkedColumn(uint entity)
+		 private Span<GameEntity> getLinkedEntitiesColumn(uint entity)
 		 {
 			 return MemoryMarshal.Cast<uint, GameEntity>(column.linkedEntities[entity].Span);
+		 }
+
+		 private Span<GameEntity> getLinkedParentsColumn(uint entity)
+		 {
+			 return MemoryMarshal.Cast<uint, GameEntity>(column.linkParents[entity].Span);
 		 }
 
 		 /// <summary>
@@ -170,6 +179,7 @@ using System.Collections.Generic;
 			 if (!current.Contains(child))
 			 {
 				 current.Add(child);
+				 GetColumn(child, ref column.linkParents).Add(row);
 				 return true;
 			 }
 
@@ -178,6 +188,8 @@ using System.Collections.Generic;
 
 		 public bool RemoveLinked(uint row, uint child)
 		 {
+			 GetColumn(child, ref column.linkParents).Remove(row);
+
 			 var current = GetColumn(row, ref column.linkedEntities);
 			 return current.Remove(child);
 		 }
@@ -188,6 +200,7 @@ using System.Collections.Generic;
 				 return false;
 
 			 column.linkedEntities[row].Clear();
+			 column.linkParents[row].Clear();
 			 return true;
 		 }
 
