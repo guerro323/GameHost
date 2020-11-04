@@ -105,14 +105,22 @@ namespace GameHost.Simulation.TabEcs
 		{
 			column.entity[row].Add(entity);
 		}
-		
+
 		public void RemoveEntity(uint row, uint entity)
 		{
 			column.entity[row].Remove(entity);
 		}
 
 		public Span<uint> GetComponentTypes(uint row) => column.componentTypes[row];
-		public Span<uint> GetEntities(uint       row) => column.entity[row].Span;
+
+		public Span<uint> GetEntities(uint row)
+		{
+#if DEBUG
+			if (row >= column.entity.Length)
+				throw new IndexOutOfRangeException($"{row} > {column.entity.Length}");
+#endif
+			return column.entity[row].Span;
+		}
 
 		public Span<EntityArchetype> Registered => MemoryMarshal.Cast<uint, EntityArchetype>(board.UsedRows);
 	}

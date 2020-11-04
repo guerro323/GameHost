@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Collections.Pooled;
 using GameHost.Simulation.TabEcs;
 
 namespace GameHost.Simulation.Utility.EntityQuery
@@ -9,11 +10,12 @@ namespace GameHost.Simulation.Utility.EntityQuery
 	public unsafe struct EntityQueryEnumerator
 	{
 		public ArchetypeBoardContainer Board;
-		public uint*                   Inner;
-		public int                    InnerIndex;
-		public int                    InnerSize;
+		public PooledList<uint>        Inner;
+		public int                     InnerIndex;
+		public int                     InnerSize;
 
-		private    GameEntity current;
+		private GameEntity current;
+
 		public ref GameEntity Current
 		{
 			get
@@ -40,6 +42,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 
 		public bool MoveNext()
 		{
+			var inner = Inner.Span;
 			while (true)
 			{
 				// If the user set Current to default, this mean we need to decrease the index
@@ -49,7 +52,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 				if (!canMove && !MoveInnerNext())
 					return false;
 
-				var entitySpan = Board.GetEntities(Inner[InnerIndex]);
+				var entitySpan = Board.GetEntities(inner[InnerIndex]);
 				if (entitySpan.Length <= index)
 				{
 					canMove = false;

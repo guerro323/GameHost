@@ -105,6 +105,31 @@ namespace GameHost.Simulation.TabEcs
 
 			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
 		}
+		
+		/// <summary>
+		/// Add and remove multiple component to an entity
+		/// </summary>
+		/// <param name="entity"></param>
+		/// <param name="componentType"></param>
+		/// <returns></returns>
+		public void AddRemoveMultipleComponent(GameEntity entity, Span<ComponentType> addSpan, Span<ComponentType> removeSpan)
+		{
+			foreach (ref readonly var componentType in addSpan)
+			{
+				var componentBoard = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);
+				var cRef           = new ComponentReference(componentType, GameWorldLL.CreateComponent(componentBoard));
+
+				GameWorldLL.AssignComponent(componentBoard, cRef, Boards.Entity, entity);
+				GameWorldLL.SetOwner(componentBoard, cRef, entity);
+			}
+			
+			foreach (ref readonly var componentType in removeSpan)
+			{
+				GameWorldLL.RemoveComponentReference(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType), componentType, Boards.Entity, entity);
+			}
+
+			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+		}
 
 		/// <summary>
 		/// Add a component to an entity

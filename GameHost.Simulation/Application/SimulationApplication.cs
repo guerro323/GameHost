@@ -63,7 +63,7 @@ namespace GameHost.Simulation.Application
 			}
 
 			//Console.WriteLine("DeltaMs : " + worker.Delta.TotalMilliseconds + ", perf: " + worker.Performance);
-			
+
 			var timeToSleep = TimeSpan.FromTicks(Math.Max(targetFrequency.Ticks - worker.Delta.Ticks, 0));
 			if (timeToSleep.Ticks > 0)
 				worker.Delta += timeToSleep;

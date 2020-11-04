@@ -100,7 +100,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			return new EntityQueryEnumerator
 			{
 				Board       = GameWorld.Boards.Archetype,
-				Inner       = (uint*) Unsafe.AsPointer(ref r),
+				Inner       = matchedArchetypes,
 				InnerIndex  = -1,
 				InnerSize   = matchedArchetypes.Count
 			};

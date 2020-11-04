@@ -34,8 +34,13 @@ namespace GameHost.Simulation.TabEcs
 
 			var archetype = GetArchetype(entity);
 			if (archetype.Id > 0)
+			{
 				Boards.Archetype.RemoveEntity(archetype.Id, entity.Id);
-
+				// Reset archetype of this ID.
+				// Since we share the total entity span on clients, the client should know that the entity is deleted via its archetype
+				Boards.Entity.ArchetypeColumn[(int) entity.Id] = default;
+			}
+			
 			Boards.Entity.DeleteRow(entity.Id);
 		}
 

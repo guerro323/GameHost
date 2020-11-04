@@ -9,6 +9,8 @@ namespace GameHost.Simulation.TabEcs
 	public partial struct ComponentBuffer<T> : IList<T>
 		where T : struct
 	{
+		public bool IsCreated => backing != null;
+		
 		private PooledList<byte> backing;
 
 		public ComponentBuffer(PooledList<byte> backing)
