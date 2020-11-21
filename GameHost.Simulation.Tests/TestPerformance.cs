@@ -11,7 +11,7 @@ namespace GameHost.Simulation.Tests
 		[Test]
 		public void Test()
 		{
-			for (var iteration = 0; iteration != 2; iteration++)
+			for (var iteration = 0; iteration != 4; iteration++)
 			{
 				var world = new GameWorld();
 				var sw    = new Stopwatch();

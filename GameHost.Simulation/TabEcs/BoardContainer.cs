@@ -3,10 +3,18 @@
 
  namespace GameHost.Simulation.TabEcs
  {
-	 public abstract class BoardContainer
+	 public static class BoardContainerExt
 	 {
-		 protected UIntBoardBase board;
-
+		 public static ref UIntBoardBase GetBoard(BoardContainer container)
+		 {
+			 return ref container.board;
+		 }
+	 }
+	 
+	 public abstract class BoardContainer : IDisposable
+	 {
+		 protected internal UIntBoardBase board;
+		 
 		 public BoardContainer(int capacity)
 		 {
 			 board = new UIntBoardBase(capacity);
@@ -30,6 +38,12 @@
 		 public virtual bool DeleteRow(uint row)
 		 {
 			 return board.TrySetUnusedRow(row);
+		 }
+
+		 public virtual void Dispose()
+		 {
+			 while (board.Count > 0)
+				 DeleteRow(board.UsedRows[0]);
 		 }
 	 }
  }

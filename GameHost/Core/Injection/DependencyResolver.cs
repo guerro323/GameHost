@@ -103,6 +103,8 @@ namespace GameHost.Injection
             }
             else if (unresolvedFrames++ > 100)
             {
+                unresolvedFrames = 0;
+            
                 var str = Dependencies.Aggregate(source, (current, dep) => current + $"\n\t{dep}; {dep.IsResolved}");
                 Console.WriteLine(str);
             }

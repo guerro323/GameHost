@@ -5,6 +5,7 @@ namespace GameHost.Core.Ecs.Passes
 {
 	public abstract class PassRegisterBase
 	{
+		public          bool  ManualTrigger     { get; set; }
 		public abstract IList RegisteredObjects { get; }
 
 		public void RegisterCollectionAndFilter(IEnumerable<object> objects)

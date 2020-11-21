@@ -18,6 +18,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameHost.Audio.Tests", "Gam
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameHost.Inputs", "GameHost.Inputs\GameHost.Inputs.csproj", "{919E430B-EE21-45F8-B36A-64AA0E5E9ED3}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Templates", "Templates", "{532664F6-EE07-4D26-80FF-89A15988CB93}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloWorldTemplate", "Templates\HelloWorldTemplate\HelloWorldTemplate.csproj", "{C3E9F7C5-F02C-4558-9835-88926AEC4BB8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,5 +64,12 @@ Global
 		{919E430B-EE21-45F8-B36A-64AA0E5E9ED3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{919E430B-EE21-45F8-B36A-64AA0E5E9ED3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{919E430B-EE21-45F8-B36A-64AA0E5E9ED3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3E9F7C5-F02C-4558-9835-88926AEC4BB8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3E9F7C5-F02C-4558-9835-88926AEC4BB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3E9F7C5-F02C-4558-9835-88926AEC4BB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3E9F7C5-F02C-4558-9835-88926AEC4BB8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C3E9F7C5-F02C-4558-9835-88926AEC4BB8} = {532664F6-EE07-4D26-80FF-89A15988CB93}
 	EndGlobalSection
 EndGlobal

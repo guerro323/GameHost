@@ -33,5 +33,15 @@
 		 }
 
 		 public Span<ComponentType> Registered => MemoryMarshal.Cast<uint, ComponentType>(board.UsedRows);
+
+		 public override void Dispose()
+		 {
+			 base.Dispose();
+
+			 column.name = null;
+			 column.size = null;
+			 foreach (var componentBoardBase in column.componentBoard)
+				 componentBoardBase.Dispose();
+		 }
 	 }
  }

@@ -42,8 +42,10 @@ namespace GameHost.Simulation.TabEcs
 		public ComponentBuffer<TToReinterpret> Reinterpret<TToReinterpret>()
 			where TToReinterpret : struct
 		{
+#if DEBUG
 			if (Unsafe.SizeOf<TToReinterpret>() != Unsafe.SizeOf<T>())
 				throw new InvalidOperationException("Invalid size");
+#endif
 			return new ComponentBuffer<TToReinterpret>(backing);
 		}
 

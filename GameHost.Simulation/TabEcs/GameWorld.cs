@@ -13,97 +13,8 @@ namespace GameHost.Simulation.TabEcs
 {
 	public partial class GameWorld : IDisposable
 	{
-		private static class TypedComponentRegister
-		{
-			private static Dictionary<Type, Action<int>>                typeNewWorldMap     = new Dictionary<Type, Action<int>>();
-			private static Dictionary<Type, Action<int, ComponentType>> typeNewComponentMap = new Dictionary<Type, Action<int, ComponentType>>();
-			private static Dictionary<Type, Func<int, ComponentType>> typeGetComponentMap = new Dictionary<Type, Func<int, ComponentType>>();
-
-			private static int maxWorldId;
-			
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void AddWorld(GameWorld world)
-			{
-				foreach (var action in typeNewWorldMap.Values)
-					action(world.WorldId);
-
-				maxWorldId = Math.Max(maxWorldId, world.WorldId);
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void AddComponent(int worldId, Type original, ComponentType componentType)
-			{
-				typeNewComponentMap[original](worldId, componentType);
-			}
-
-			public static ComponentType GetComponentType(int worldId, Type original)
-			{
-				if (!typeGetComponentMap.ContainsKey(original))
-					return default;
-				return typeGetComponentMap[original](worldId);
-			}
-
-			public static void RegisterType(Type type, Action<int> onNewWorld, Action<int, ComponentType> onNewComponentType, Func<int, ComponentType> getComponentType)
-			{
-				var had = typeNewComponentMap.ContainsKey(type);
-				
-				typeNewWorldMap[type]     = onNewWorld;
-				typeNewComponentMap[type] = onNewComponentType;
-				typeGetComponentMap[type] = getComponentType;
-
-				if (!had)
-				{
-					onNewWorld(maxWorldId);
-				}
-			}
-
-			public static void RemoveType(Type type)
-			{
-				typeNewWorldMap.Remove(type);
-				typeNewComponentMap.Remove(type);
-				typeGetComponentMap.Remove(type);
-			}
-		}
-
-		private static class TypedComponent<T>
-		{
-			public static ComponentType[] mappedComponentType = Array.Empty<ComponentType>();
-
-			static TypedComponent()
-			{
-				TypedComponentRegister.RegisterType(typeof(T),
-					world =>
-					{
-						if (world < mappedComponentType.Length)
-							return;
-						Array.Resize(ref mappedComponentType, world + 1);
-					},
-					(world, ct) => mappedComponentType[world] = ct,
-					world => mappedComponentType[world]);
-
-				// We need to remove ourselves when this assembly get unloaded, so that GC can collect this static type.
-				AssemblyLoadContext.GetLoadContext(typeof(T).Assembly).Unloading += ctx =>
-				{
-					Remove();
-				};
-			}
-
-			// This function does nothing but call the static function
-			public static void Register()
-			{
-				
-			}
-
-			// Remove instances of this type in the register.
-			// We keep mappedComponentType in case this was an error or couldn't be unloaded...
-			public static void Remove()
-			{
-				TypedComponentRegister.RemoveType(typeof(T));
-			}
-		}
-
 		private static int s_WorldIdCounter = 1;
-		
+
 		public struct __Boards
 		{
 			public EntityBoardContainer        Entity;
@@ -114,17 +25,17 @@ namespace GameHost.Simulation.TabEcs
 		public readonly __Boards Boards;
 		public readonly int      WorldId;
 
-		public GameWorld()
+		public GameWorld(__Boards baseBoards = default)
 		{
-			WorldId            = s_WorldIdCounter++;
+			WorldId = s_WorldIdCounter++;
 
 			TypedComponentRegister.AddWorld(this);
-			
+
 			Boards = new __Boards
 			{
-				Entity        = new EntityBoardContainer(0),
-				Archetype     = new ArchetypeBoardContainer(0),
-				ComponentType = new ComponentTypeBoardContainer(0)
+				Entity        = baseBoards.Entity ?? new EntityBoardContainer(0),
+				Archetype     = baseBoards.Archetype ?? new ArchetypeBoardContainer(0),
+				ComponentType = baseBoards.ComponentType ?? new ComponentTypeBoardContainer(0)
 			};
 		}
 
@@ -151,7 +62,7 @@ namespace GameHost.Simulation.TabEcs
 		public ComponentType AsComponentType<T>()
 			where T : struct, IEntityComponent
 		{
-			var componentType = TypedComponent<T>.mappedComponentType[WorldId];
+			var componentType = TypedComponent<T>.MappedComponentType[WorldId];
 			if (componentType.Id > 0)
 				return componentType;
 
@@ -185,6 +96,11 @@ namespace GameHost.Simulation.TabEcs
 
 		public void Dispose()
 		{
+			Boards.Entity.Dispose();
+			Boards.Archetype.Dispose();
+			Boards.ComponentType.Dispose();
+
+			TypedComponentRegister.RemoveWorld(this);
 		}
 	}
 }

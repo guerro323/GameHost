@@ -158,7 +158,7 @@ namespace GameHost.Core
                 
                 OnOrderUpdate?.Invoke();
 
-                return orderedElements.AsReadOnly();
+                return orderedElements;
             }
         }
 
@@ -234,7 +234,12 @@ namespace GameHost.Core
             public Type[] UpdateBefore;
         }
 
-        public IEnumerator<T> GetEnumerator()
+        public List<T>.Enumerator GetEnumerator()
+        {
+            return (Elements as List<T>).GetEnumerator();
+        }
+        
+        IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
             return Elements.GetEnumerator();
         }

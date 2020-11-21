@@ -37,7 +37,8 @@ namespace GameHost.Core.Ecs
 
 		public PassRegisterBase ExecutingRegister { get; private set; }
 
-		private List<object> disposedToUnregister = new List<object>();
+		private List<object>           disposedToUnregister = new List<object>();
+		private List<PassRegisterBase> passToLoop           = new List<PassRegisterBase>();
 		public void LoopPasses()
 		{
 			disposedToUnregister.Clear();
@@ -53,8 +54,15 @@ namespace GameHost.Core.Ecs
 			foreach (var toUnregister in disposedToUnregister)
 				Unregister(toUnregister);
 			
+			passToLoop.Clear();
 			foreach (var register in availablePasses)
+				passToLoop.Add(register);
+			
+			foreach (var register in passToLoop)
 			{
+				if (register.ManualTrigger)
+					continue;
+					
 				ExecutingRegister = register;
 				register.Trigger();
 			}

@@ -123,5 +123,16 @@ namespace GameHost.Simulation.TabEcs
 		}
 
 		public Span<EntityArchetype> Registered => MemoryMarshal.Cast<uint, EntityArchetype>(board.UsedRows);
+
+		public override void Dispose()
+		{
+			base.Dispose();
+
+			foreach (var list in column.entity)
+				list.Dispose();
+			column.entity         = null;
+			column.sum            = null;
+			column.componentTypes = null;
+		}
 	}
 }
