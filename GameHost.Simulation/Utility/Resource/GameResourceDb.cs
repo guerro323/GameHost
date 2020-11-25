@@ -73,12 +73,12 @@ namespace GameHost.Simulation.Utility.Resource
 
 			GameEntity entity;
 			if (!entityResourceMap.Reverse.ContainsKey(resourceDesc))
-				entityResourceMap.Add(entity = GameWorld.CreateEntity(), resourceDesc);
+				entityResourceMap.Add(entity = GameWorld.Safe(GameWorld.CreateEntity()), resourceDesc);
 			else
 				entity = entityResourceMap.Reverse[resourceDesc];
 
-			GameWorld.AddComponent(entity, resourceDesc);
-			GameWorld.AddComponent(entity, new IsResourceEntity());
+			GameWorld.AddComponent(entity.Handle, resourceDesc);
+			GameWorld.AddComponent(entity.Handle, new IsResourceEntity());
 			return new GameResource<TResourceDescription>(entity);
 		}
 

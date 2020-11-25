@@ -17,16 +17,16 @@ namespace GameHost.Simulation.Utility.Resource
 			return !left.Equals(right);
 		}
 		
-		public readonly GameEntity Entity;
+		public readonly GameEntity EntityHandle;
 
 		public GameResource(GameEntity target)
 		{
-			Entity = target;
+			EntityHandle = target;
 		}
 
 		public bool Equals(GameResource<T> other)
 		{
-			return Entity.Equals(other.Entity);
+			return EntityHandle.Equals(other.EntityHandle);
 		}
 
 		public override bool Equals(object obj)
@@ -36,7 +36,7 @@ namespace GameHost.Simulation.Utility.Resource
 
 		public override int GetHashCode()
 		{
-			return Entity.GetHashCode();
+			return EntityHandle.GetHashCode();
 		}
 	}
 }

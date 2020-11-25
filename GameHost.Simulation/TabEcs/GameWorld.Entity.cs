@@ -5,53 +5,84 @@ namespace GameHost.Simulation.TabEcs
 {
 	public partial class GameWorld
 	{
-		public GameEntity CreateEntity()
+		public GameEntityHandle CreateEntity()
 		{
-			return new GameEntity(Boards.Entity.CreateRow());
+			return new GameEntityHandle(Boards.Entity.CreateRow());
 		}
 
-		public void CreateEntityBulk(Span<GameEntity> entities)
+		public void CreateEntityBulk(Span<GameEntityHandle> entities)
 		{
-			Boards.Entity.CreateRowBulk(MemoryMarshal.Cast<GameEntity, uint>(entities));
+			Boards.Entity.CreateRowBulk(MemoryMarshal.Cast<GameEntityHandle, uint>(entities));
 		}
 
-		public void RemoveEntity(GameEntity entity)
+		public void RemoveEntity(GameEntityHandle entityHandle)
 		{
 			foreach (ref readonly var componentType in Boards.ComponentType.Registered)
-				RemoveComponent(entity, componentType);
+				RemoveComponent(entityHandle, componentType);
 
-			foreach (ref readonly var linkedEntity in Boards.Entity.GetLinkedEntities(entity.Id))
+			foreach (ref readonly var linkedEntity in Boards.Entity.GetLinkedEntities(entityHandle.Id))
 			{
 				if (Contains(linkedEntity))
 					RemoveEntity(linkedEntity);
 			}
 
-			foreach (ref readonly var parent in Boards.Entity.GetLinkedParents(entity.Id))
+			foreach (ref readonly var parent in Boards.Entity.GetLinkedParents(entityHandle.Id))
 			{
 				if (Contains(parent))
-					Boards.Entity.RemoveLinked(parent.Id, entity.Id);
+					Boards.Entity.RemoveLinked(parent.Id, entityHandle.Id);
 			}
 
-			var archetype = GetArchetype(entity);
+			var archetype = GetArchetype(entityHandle);
 			if (archetype.Id > 0)
 			{
-				Boards.Archetype.RemoveEntity(archetype.Id, entity.Id);
+				Boards.Archetype.RemoveEntity(archetype.Id, entityHandle.Id);
 				// Reset archetype of this ID.
 				// Since we share the total entity span on clients, the client should know that the entity is deleted via its archetype
-				Boards.Entity.ArchetypeColumn[(int) entity.Id] = default;
+				Boards.Entity.ArchetypeColumn[(int) entityHandle.Id] = default;
 			}
-			
-			Boards.Entity.DeleteRow(entity.Id);
+
+			Boards.Entity.DeleteRow(entityHandle.Id);
 		}
 
-		public EntityArchetype GetArchetype(GameEntity entity)
+		public EntityArchetype GetArchetype(GameEntityHandle entityHandle)
 		{
-			return Boards.Entity.ArchetypeColumn[(int) entity.Id];
+			return Boards.Entity.ArchetypeColumn[(int) entityHandle.Id];
 		}
 
-		public bool Contains(GameEntity entity)
+		/// <summary>
+		/// Whether or not this entity handle is valid in the boards.
+		/// </summary>
+		/// <param name="entityHandle"></param>
+		/// <returns></returns>
+		public bool Contains(GameEntityHandle entityHandle)
 		{
-			return Boards.Entity.ArchetypeColumn[(int) entity.Id].Id > 0;
+			return Boards.Entity.ArchetypeColumn[(int) entityHandle.Id].Id > 0;
+		}
+
+		/// <summary>
+		/// Whether or not this entity currently exist (handle & version)
+		/// </summary>
+		/// <param name="entity"></param>
+		/// <returns></returns>
+		public bool Exists(GameEntity entity)
+		{
+			unchecked
+			{
+				return Contains(entity.Handle) && Boards.Entity.VersionColumn[(int) entity.Id] == entity.Version;
+			}
+		}
+
+		/// <summary>
+		/// Get a safe version of the handle (aka with version)
+		/// </summary>
+		/// <param name="handle"></param>
+		/// <returns></returns>
+		public GameEntity Safe(GameEntityHandle handle)
+		{
+			unchecked
+			{
+				return new GameEntity(handle.Id, Boards.Entity.VersionColumn[(int) handle.Id]);
+			}
 		}
 
 		/// <summary>
@@ -61,7 +92,7 @@ namespace GameHost.Simulation.TabEcs
 		/// <param name="owner"></param>
 		/// <param name="isLinked"></param>
 		/// <returns>Return if the linking state has been changed</returns>
-		public bool Link(GameEntity child, GameEntity owner, bool isLinked)
+		public bool Link(GameEntityHandle child, GameEntityHandle owner, bool isLinked)
 		{
 			return isLinked
 				? Boards.Entity.AddLinked(owner.Id, child.Id)

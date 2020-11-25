@@ -48,13 +48,14 @@ using System.Collections.Generic;
 			 }
 		 }
 
-		 private (uint[] archetype, PooledList<uint>[] linkedEntities, PooledList<uint>[] linkParents) column;
+		 private (uint[] archetype, uint[] versions, PooledList<uint>[] linkedEntities, PooledList<uint>[] linkParents) column;
 
 		 public EntityBoardContainer(int capacity) : base(capacity)
 		 {
 			 p_componentColumn = new ComponentMetadata[0][];
 
 			 column.archetype      = new uint[0];
+			 column.versions       = new uint[0];
 			 column.linkedEntities = new PooledList<uint>[0];
 			 column.linkParents    = new PooledList<uint>[0];
 		 }
@@ -62,6 +63,7 @@ using System.Collections.Generic;
 		 private void OnResize()
 		 {
 			 GetColumn(board.MaxId, ref column.archetype);
+			 GetColumn(board.MaxId, ref column.versions);
 
 			 var previousLength = column.linkedEntities.Length;
 			 GetColumn(board.MaxId, ref column.linkedEntities);
@@ -119,17 +121,17 @@ using System.Collections.Generic;
 			 return ref p_componentColumn[type];
 		 }
 
-		 public Span<GameEntity> GetLinkedEntities(uint entity) => getLinkedEntitiesColumn(entity);
-		 public Span<GameEntity> GetLinkedParents(uint  entity) => getLinkedParentsColumn(entity);
+		 public Span<GameEntityHandle> GetLinkedEntities(uint entity) => getLinkedEntitiesColumn(entity);
+		 public Span<GameEntityHandle> GetLinkedParents(uint  entity) => getLinkedParentsColumn(entity);
 
-		 private Span<GameEntity> getLinkedEntitiesColumn(uint entity)
+		 private Span<GameEntityHandle> getLinkedEntitiesColumn(uint entity)
 		 {
-			 return MemoryMarshal.Cast<uint, GameEntity>(column.linkedEntities[entity].Span);
+			 return MemoryMarshal.Cast<uint, GameEntityHandle>(column.linkedEntities[entity].Span);
 		 }
 
-		 private Span<GameEntity> getLinkedParentsColumn(uint entity)
+		 private Span<GameEntityHandle> getLinkedParentsColumn(uint entity)
 		 {
-			 return MemoryMarshal.Cast<uint, GameEntity>(column.linkParents[entity].Span);
+			 return MemoryMarshal.Cast<uint, GameEntityHandle>(column.linkParents[entity].Span);
 		 }
 
 		 /// <summary>
@@ -201,10 +203,12 @@ using System.Collections.Generic;
 
 			 column.linkedEntities[row].Clear();
 			 column.linkParents[row].Clear();
+			 column.versions[row]++;
 			 return true;
 		 }
 
-		 public Span<GameEntity>      Alive           => MemoryMarshal.Cast<uint, GameEntity>(board.UsedRows);
+		 public Span<GameEntityHandle>      Alive           => MemoryMarshal.Cast<uint, GameEntityHandle>(board.UsedRows);
 		 public Span<EntityArchetype> ArchetypeColumn => MemoryMarshal.Cast<uint, EntityArchetype>(column.archetype);
+		 public Span<uint>            VersionColumn   => column.versions;
 	 }
  }

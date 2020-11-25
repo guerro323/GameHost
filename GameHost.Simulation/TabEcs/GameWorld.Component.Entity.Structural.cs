@@ -9,18 +9,18 @@ namespace GameHost.Simulation.TabEcs
 		/// <summary>
 		/// Remove a component from an entity.
 		/// </summary>
-		/// <param name="entity">The entity</param>
+		/// <param name="entityHandle">The entity</param>
 		/// <param name="componentType">The component type</param>
 		/// <returns>True if the component was removed, false if it did not exist.</returns>
-		public bool RemoveMultipleComponent(GameEntity entity, Span<ComponentType> componentTypeSpan)
+		public bool RemoveMultipleComponent(GameEntityHandle entityHandle, Span<ComponentType> componentTypeSpan)
 		{
 			var b = true;
 			foreach (ref readonly var componentType in componentTypeSpan)
 			{
-				b &= GameWorldLL.RemoveComponentReference(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType), componentType, Boards.Entity, entity);
+				b &= GameWorldLL.RemoveComponentReference(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType), componentType, Boards.Entity, entityHandle);
 			}
 
-			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
 
 			return b;
 		}
@@ -28,14 +28,14 @@ namespace GameHost.Simulation.TabEcs
 		/// <summary>
 		/// Remove a component from an entity.
 		/// </summary>
-		/// <param name="entity">The entity</param>
+		/// <param name="entityHandle">The entity</param>
 		/// <param name="componentType">The component type</param>
 		/// <returns>True if the component was removed, false if it did not exist.</returns>
-		public bool RemoveComponent(GameEntity entity, ComponentType componentType)
+		public bool RemoveComponent(GameEntityHandle entityHandle, ComponentType componentType)
 		{
-			if (GameWorldLL.RemoveComponentReference(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType), componentType, Boards.Entity, entity))
+			if (GameWorldLL.RemoveComponentReference(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType), componentType, Boards.Entity, entityHandle))
 			{
-				GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+				GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
 				return true;
 			}
 
@@ -45,29 +45,29 @@ namespace GameHost.Simulation.TabEcs
 		/// <summary>
 		/// Assign an existing component to an entity
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <param name="component"></param>
-		public void AssignComponent(GameEntity entity, ComponentReference component)
+		public void AssignComponent(GameEntityHandle entityHandle, ComponentReference component)
 		{
 			var board = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type);
-			GameWorldLL.AssignComponent(board, component, Boards.Entity, entity);
-			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+			GameWorldLL.AssignComponent(board, component, Boards.Entity, entityHandle);
+			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
 		}
 
 		/// <summary>
 		/// Assign and set as a owner a component to an entity
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <param name="component"></param>
-		public void AssignComponentAsOwner(GameEntity entity, ComponentReference component)
+		public void AssignComponentAsOwner(GameEntityHandle entityHandle, ComponentReference component)
 		{
 			var board = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type);
-			GameWorldLL.AssignComponent(board, component, Boards.Entity, entity);
-			GameWorldLL.SetOwner(board, component, entity);
-			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+			GameWorldLL.AssignComponent(board, component, Boards.Entity, entityHandle);
+			GameWorldLL.SetOwner(board, component, entityHandle);
+			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
 		}
 
-		public void DependOnEntityComponent(GameEntity entity, GameEntity target, ComponentType componentType)
+		public void DependOnEntityComponent(GameEntityHandle entityHandle, GameEntityHandle target, ComponentType componentType)
 		{
 			throw new NotImplementedException("This feature is not yet finished.");
 			
@@ -89,62 +89,62 @@ namespace GameHost.Simulation.TabEcs
 		/// <summary>
 		/// Add multiple component to an entity
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <param name="componentType"></param>
 		/// <returns></returns>
-		public void AddMultipleComponent(GameEntity entity, Span<ComponentType> componentTypeSpan)
+		public void AddMultipleComponent(GameEntityHandle entityHandle, Span<ComponentType> componentTypeSpan)
 		{
 			foreach (ref readonly var componentType in componentTypeSpan)
 			{
 				var componentBoard = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);
 				var cRef           = new ComponentReference(componentType, GameWorldLL.CreateComponent(componentBoard));
 
-				GameWorldLL.AssignComponent(componentBoard, cRef, Boards.Entity, entity);
-				GameWorldLL.SetOwner(componentBoard, cRef, entity);
+				GameWorldLL.AssignComponent(componentBoard, cRef, Boards.Entity, entityHandle);
+				GameWorldLL.SetOwner(componentBoard, cRef, entityHandle);
 			}
 
-			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
 		}
 		
 		/// <summary>
 		/// Add and remove multiple component to an entity
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <param name="componentType"></param>
 		/// <returns></returns>
-		public void AddRemoveMultipleComponent(GameEntity entity, Span<ComponentType> addSpan, Span<ComponentType> removeSpan)
+		public void AddRemoveMultipleComponent(GameEntityHandle entityHandle, Span<ComponentType> addSpan, Span<ComponentType> removeSpan)
 		{
 			foreach (ref readonly var componentType in addSpan)
 			{
 				var componentBoard = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);
 				var cRef           = new ComponentReference(componentType, GameWorldLL.CreateComponent(componentBoard));
 
-				GameWorldLL.AssignComponent(componentBoard, cRef, Boards.Entity, entity);
-				GameWorldLL.SetOwner(componentBoard, cRef, entity);
+				GameWorldLL.AssignComponent(componentBoard, cRef, Boards.Entity, entityHandle);
+				GameWorldLL.SetOwner(componentBoard, cRef, entityHandle);
 			}
 			
 			foreach (ref readonly var componentType in removeSpan)
 			{
-				GameWorldLL.RemoveComponentReference(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType), componentType, Boards.Entity, entity);
+				GameWorldLL.RemoveComponentReference(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType), componentType, Boards.Entity, entityHandle);
 			}
 
-			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
 		}
 
 		/// <summary>
 		/// Add a component to an entity
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <param name="componentType"></param>
 		/// <returns></returns>
-		public ComponentReference AddComponent(GameEntity entity, ComponentType componentType)
+		public ComponentReference AddComponent(GameEntityHandle entityHandle, ComponentType componentType)
 		{
 			var componentBoard = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);
 			var cRef           = new ComponentReference(componentType, GameWorldLL.CreateComponent(componentBoard));
 
-			GameWorldLL.AssignComponent(componentBoard, cRef, Boards.Entity, entity);
-			GameWorldLL.SetOwner(componentBoard, cRef, entity);
-			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+			GameWorldLL.AssignComponent(componentBoard, cRef, Boards.Entity, entityHandle);
+			GameWorldLL.SetOwner(componentBoard, cRef, entityHandle);
+			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
 
 			return cRef;
 		}
@@ -152,16 +152,16 @@ namespace GameHost.Simulation.TabEcs
 		/// <summary>
 		/// Add a component to an entity
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <param name="data"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public ComponentReference AddComponent<T>(GameEntity entity, in T data = default)
+		public ComponentReference AddComponent<T>(GameEntityHandle entityHandle, in T data = default)
 			where T : struct, IComponentData
 		{
 			var componentType = AsComponentType<T>();
-			var cRef          = AddComponent(entity, componentType);
-			GetComponentData<T>(entity) = data;
+			var cRef          = AddComponent(entityHandle, componentType);
+			GetComponentData<T>(entityHandle) = data;
 
 			return cRef;
 		}
@@ -169,41 +169,41 @@ namespace GameHost.Simulation.TabEcs
 		/// <summary>
 		/// Add a component to an entity
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public ComponentBuffer<T> AddBuffer<T>(GameEntity entity)
+		public ComponentBuffer<T> AddBuffer<T>(GameEntityHandle entityHandle)
 			where T : struct, IComponentBuffer
 		{
 			var componentType = AsComponentType<T>();
-			AddComponent(entity, componentType);
+			AddComponent(entityHandle, componentType);
 
-			return GetBuffer<T>(entity);
+			return GetBuffer<T>(entityHandle);
 		}
 
 		/// <summary>
 		/// Update a component of an entity if it is owned, or create an owned component.
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <param name="componentType"></param>
 		/// <returns></returns>
-		public ComponentReference UpdateOwnedComponent(GameEntity entity, ComponentType componentType)
+		public ComponentReference UpdateOwnedComponent(GameEntityHandle entityHandle, ComponentType componentType)
 		{
-			var componentMetadata = Boards.Entity.GetComponentColumn(componentType.Id)[(int) entity.Id];
+			var componentMetadata = Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id];
 			var componentBoard    = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);
 
 			if (!componentMetadata.IsShared)
 			{
 				var currentOwner = componentBoard.OwnerColumn[(int) componentMetadata.Id];
-				if (currentOwner.Id == entity.Id)
+				if (currentOwner.Id == entityHandle.Id)
 					return new ComponentReference(componentType, componentMetadata.Id);
 			}
 
 			// Same signature as AddComponent, but inlined for max performance
 			var cRef = new ComponentReference(componentType, GameWorldLL.CreateComponent(componentBoard));
-			GameWorldLL.AssignComponent(componentBoard, cRef, Boards.Entity, entity);
-			GameWorldLL.SetOwner(componentBoard, cRef, entity);
-			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);
+			GameWorldLL.AssignComponent(componentBoard, cRef, Boards.Entity, entityHandle);
+			GameWorldLL.SetOwner(componentBoard, cRef, entityHandle);
+			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
 
 			return cRef;
 		}
@@ -211,34 +211,34 @@ namespace GameHost.Simulation.TabEcs
 		/// <summary>
 		/// Update a component of an entity if it is owned, or create an owned component.
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <param name="value"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public ComponentReference UpdateOwnedComponent<T>(GameEntity entity, T value = default)
+		public ComponentReference UpdateOwnedComponent<T>(GameEntityHandle entityHandle, T value = default)
 			where T : struct, IComponentData
 		{
 			var componentType = AsComponentType<T>();
 			var linkColumn    = Boards.Entity.GetComponentColumn(componentType.Id);
 
-			var componentMetadata = linkColumn[(int) entity.Id];
+			var componentMetadata = linkColumn[(int) entityHandle.Id];
 			var componentColumn = Boards.ComponentType
 			                            .ComponentBoardColumns[(int) componentType.Id];
 
 			if (!(componentColumn is SingleComponentBoard componentBoard))
 				throw new InvalidOperationException();
 
-			if (!componentMetadata.IsShared)
+			if (!componentMetadata.IsShared && componentMetadata.Valid)
 			{
 				var currentOwner = componentBoard.OwnerColumn[(int) componentMetadata.Id];
-				if (currentOwner.Id == entity.Id)
+				if (currentOwner.Id == entityHandle.Id)
 				{
 					componentBoard.SetValue(componentMetadata.Id, value);
 					return new ComponentReference(componentType, componentMetadata.Id);
 				}
 			}
 
-			return AddComponent(entity, value);
+			return AddComponent(entityHandle, value);
 		}
 	}
 }

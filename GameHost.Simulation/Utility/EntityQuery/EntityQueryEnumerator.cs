@@ -14,13 +14,13 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		public int                     InnerIndex;
 		public int                     InnerSize;
 
-		private GameEntity current;
+		private GameEntityHandle current;
 
-		public ref GameEntity Current
+		public ref GameEntityHandle Current
 		{
 			get
 			{
-				fixed (GameEntity* e = &current)
+				fixed (GameEntityHandle* e = &current)
 				{
 					return ref *e;
 				}
@@ -59,14 +59,14 @@ namespace GameHost.Simulation.Utility.EntityQuery
 					continue;
 				}
 
-				current = new GameEntity(entitySpan[index++]);
+				current = new GameEntityHandle(entitySpan[index++]);
 				return true;
 			}
 		}
 
 		public EntityQueryEnumerator GetEnumerator() => this;
 
-		public GameEntity First
+		public GameEntityHandle First
 		{
 			get
 			{

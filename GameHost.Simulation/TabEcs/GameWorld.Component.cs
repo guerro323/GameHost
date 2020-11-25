@@ -30,24 +30,24 @@ namespace GameHost.Simulation.TabEcs
 			return new ComponentReference(componentType, GameWorldLL.CreateComponent(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType)));
 		}
 		
-		public EntityBoardContainer.ComponentMetadata GetComponentMetadata(GameEntity entity, ComponentType componentType)
+		public EntityBoardContainer.ComponentMetadata GetComponentMetadata(GameEntityHandle entityHandle, ComponentType componentType)
 		{
-			return Boards.Entity.GetComponentColumn(componentType.Id)[(int) entity.Id];
+			return Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id];
 		}
 
-		public ComponentReference GetComponentReference<T>(GameEntity entity)
+		public ComponentReference GetComponentReference<T>(GameEntityHandle entityHandle)
 			where T : struct, IEntityComponent
 		{
 			var componentType = AsComponentType<T>();
-			return new ComponentReference(componentType, Boards.Entity.GetComponentColumn(componentType.Id)[(int) entity.Id].Id);
+			return new ComponentReference(componentType, Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id].Id);
 		}
 
-		public GameEntity GetComponentOwner(ComponentReference component)
+		public GameEntityHandle GetComponentOwner(ComponentReference component)
 		{
 			return GameWorldLL.GetOwner(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type), component);
 		}
 
-		public Span<GameEntity> GetReferencedEntities(ComponentReference component)
+		public Span<GameEntityHandle> GetReferencedEntities(ComponentReference component)
 		{
 			return GameWorldLL.GetReferences(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type), component);
 		}
@@ -55,19 +55,19 @@ namespace GameHost.Simulation.TabEcs
 		/// <summary>
 		/// Check whether or not an entity has a component
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <param name="componentType"></param>
 		/// <returns></returns>
-		public bool HasComponent(GameEntity entity, ComponentType componentType)
+		public bool HasComponent(GameEntityHandle entityHandle, ComponentType componentType)
 		{
 			var recursionLeft  = RecursionLimit;
-			var originalEntity = entity;
+			var originalEntity = entityHandle;
 			while (recursionLeft-- > 0)
 			{
-				var link = Boards.Entity.GetComponentColumn(componentType.Id)[(int) entity.Id];
+				var link = Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id];
 				if (link.IsShared)
 				{
-					entity = new GameEntity(link.Entity);
+					entityHandle = new GameEntityHandle(link.Entity);
 					continue;
 				}
 
@@ -80,23 +80,23 @@ namespace GameHost.Simulation.TabEcs
 		/// <summary>
 		/// Check whether or not an entity has a component
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public bool HasComponent<T>(GameEntity entity)
+		public bool HasComponent<T>(GameEntityHandle entityHandle)
 			where T : struct, IEntityComponent
 		{
-			return HasComponent(entity, AsComponentType<T>());
+			return HasComponent(entityHandle, AsComponentType<T>());
 		}
 
 		/// <summary>
 		/// Get the reference to a component data from an entity
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
 		/// <exception cref="InvalidOperationException"></exception>
-		public ref T GetComponentData<T>(GameEntity entity)
+		public ref T GetComponentData<T>(GameEntityHandle entityHandle)
 			where T : struct, IComponentData
 		{
 			var componentType = AsComponentType<T>().Id;
@@ -107,7 +107,7 @@ namespace GameHost.Simulation.TabEcs
 			if (!(board is SingleComponentBoard componentColumn))
 				throw new InvalidOperationException($"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
 
-			return ref componentColumn.AsSpan<T>()[Boards.Entity.GetComponentColumn(componentType)[(int) entity.Id].Assigned];
+			return ref componentColumn.AsSpan<T>()[Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id].Assigned];
 			
 			/*var recursionLeft  = RecursionLimit;
 			var originalEntity = entity;
@@ -129,24 +129,24 @@ namespace GameHost.Simulation.TabEcs
 		/// <summary>
 		/// Get a component buffer from an entity
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="entityHandle"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
 		/// <exception cref="InvalidOperationException"></exception>
-		public ComponentBuffer<T> GetBuffer<T>(GameEntity entity) where T : struct, IComponentBuffer
+		public ComponentBuffer<T> GetBuffer<T>(GameEntityHandle entityHandle) where T : struct, IComponentBuffer
 		{
 			var componentType = AsComponentType<T>().Id;
 			if (!(Boards.ComponentType.ComponentBoardColumns[(int) componentType] is BufferComponentBoard componentColumn))
 				throw new InvalidOperationException($"A board made from an {nameof(IComponentBuffer)} should be a {nameof(BufferComponentBoard)}");
 
 			var recursionLeft  = RecursionLimit;
-			var originalEntity = entity;
+			var originalEntity = entityHandle;
 			while (recursionLeft-- > 0)
 			{
-				var link = Boards.Entity.GetComponentColumn(componentType)[(int) entity.Id];
+				var link = Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id];
 				if (link.IsShared)
 				{
-					entity = new GameEntity(link.Entity);
+					entityHandle = new GameEntityHandle(link.Entity);
 					continue;
 				}
 

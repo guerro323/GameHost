@@ -18,14 +18,14 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void AssignComponent(ComponentBoardBase componentBoard, ComponentReference componentReference, EntityBoardContainer entityBoard, GameEntity entity)
+		public static void AssignComponent(ComponentBoardBase componentBoard, ComponentReference componentReference, EntityBoardContainer entityBoard, GameEntityHandle entityHandle)
 		{
-			componentBoard.AddReference(componentReference.Id, entity);
+			componentBoard.AddReference(componentReference.Id, entityHandle);
 
-			var previousComponentId = entityBoard.AssignComponentReference(entity.Id, componentReference.Type.Id, componentReference.Id);
+			var previousComponentId = entityBoard.AssignComponentReference(entityHandle.Id, componentReference.Type.Id, componentReference.Id);
 			if (previousComponentId > 0)
 			{
-				var refs = componentBoard.RemoveReference(previousComponentId, entity);
+				var refs = componentBoard.RemoveReference(previousComponentId, entityHandle);
 
 				// nobody reference this component anymore, let's remove the row
 				if (refs == 0)
@@ -34,30 +34,30 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SetOwner(ComponentBoardBase componentBoard, ComponentReference componentReference, GameEntity entity)
+		public static void SetOwner(ComponentBoardBase componentBoard, ComponentReference componentReference, GameEntityHandle entityHandle)
 		{
-			componentBoard.OwnerColumn[(int) componentReference.Id] = entity;
+			componentBoard.OwnerColumn[(int) componentReference.Id] = entityHandle;
 		}
 		
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static GameEntity GetOwner(ComponentBoardBase componentBoard, ComponentReference componentReference)
+		public static GameEntityHandle GetOwner(ComponentBoardBase componentBoard, ComponentReference componentReference)
 		{
 			return componentBoard.OwnerColumn[(int) componentReference.Id];
 		}
 
-		public static Span<GameEntity> GetReferences(ComponentBoardBase componentBoard, ComponentReference componentReference)
+		public static Span<GameEntityHandle> GetReferences(ComponentBoardBase componentBoard, ComponentReference componentReference)
 		{
 			return componentBoard.GetReferences(componentReference.Id);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool RemoveComponentReference(ComponentBoardBase componentBoard, ComponentType componentType, EntityBoardContainer entityBoard, GameEntity entity)
+		public static bool RemoveComponentReference(ComponentBoardBase componentBoard, ComponentType componentType, EntityBoardContainer entityBoard, GameEntityHandle entityHandle)
 		{
 			// todo: we need to have a real method for removing the component metadata on the column.
-			var previousComponentId = entityBoard.AssignComponentReference(entity.Id, componentType.Id, 0);
+			var previousComponentId = entityBoard.AssignComponentReference(entityHandle.Id, componentType.Id, 0);
 			if (previousComponentId > 0)
 			{
-				var refs = componentBoard.RemoveReference(previousComponentId, entity);
+				var refs = componentBoard.RemoveReference(previousComponentId, entityHandle);
 
 				// nobody reference this component anymore, let's remove the row
 				if (refs == 0)
@@ -68,7 +68,7 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 			return false;
 		}
 
-		public static uint UpdateArchetype(ArchetypeBoardContainer archetypeBoard, ComponentTypeBoardContainer componentTypeBoard, EntityBoardContainer entityBoard, GameEntity entity)
+		public static uint UpdateArchetype(ArchetypeBoardContainer archetypeBoard, ComponentTypeBoardContainer componentTypeBoard, EntityBoardContainer entityBoard, GameEntityHandle entityHandle)
 		{
 			var typeSpan   = componentTypeBoard.Registered;
 			var foundIndex = 0;
@@ -78,22 +78,22 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 			for (var i = 0; i != typeSpan.Length; i++)
 			{
 				var metadataSpan = entityBoard.GetComponentColumn(typeSpan[i].Id);
-				if (metadataSpan.Length <= entity.Id)
+				if (metadataSpan.Length <= entityHandle.Id)
 					continue;
 
-				var metadata = metadataSpan[(int) entity.Id];
+				var metadata = metadataSpan[(int) entityHandle.Id];
 				if (metadata.Valid)
 					founds[foundIndex++] = typeSpan[i].Id;
 			}
 
 			var archetype        = archetypeBoard.GetOrCreateRow(founds.Slice(0, foundIndex), true);
-			var currentArchetype = entityBoard.ArchetypeColumn[(int) entity.Id];
+			var currentArchetype = entityBoard.ArchetypeColumn[(int) entityHandle.Id];
 			if (currentArchetype.Id != archetype)
 			{
-				entityBoard.AssignArchetype(entity.Id, archetype);
+				entityBoard.AssignArchetype(entityHandle.Id, archetype);
 				if (currentArchetype.Id > 0)
-					archetypeBoard.RemoveEntity(currentArchetype.Id, entity.Id);
-				archetypeBoard.AddEntity(archetype, entity.Id);
+					archetypeBoard.RemoveEntity(currentArchetype.Id, entityHandle.Id);
+				archetypeBoard.AddEntity(archetype, entityHandle.Id);
 			}
 
 			return archetype;

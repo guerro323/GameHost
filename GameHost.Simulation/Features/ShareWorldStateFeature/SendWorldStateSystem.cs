@@ -200,7 +200,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			return dataBuffer;
 		}
 
-		private unsafe void Inner(ref DataBufferWriter buffer, GameWorld world, uint row, Span<GameEntity> entities)
+		private unsafe void Inner(ref DataBufferWriter buffer, GameWorld world, uint row, Span<GameEntityHandle> entities)
 		{
 			byte* ptr<T>(Span<T> span)
 			{
@@ -246,7 +246,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 								var link = linkColumnSpan[(int) entity.Id];
 								if (link.IsShared)
 								{
-									entity = new GameEntity(link.Entity);
+									entity = new GameEntityHandle(link.Entity);
 									continue;
 								}
 
@@ -287,7 +287,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 								var link = linkColumnSpan[(int) entity.Id];
 								if (link.IsShared)
 								{
-									entity = new GameEntity(link.Entity);
+									entity = new GameEntityHandle(link.Entity);
 									continue;
 								}
 

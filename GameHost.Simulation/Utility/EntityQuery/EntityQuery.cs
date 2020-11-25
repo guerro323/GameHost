@@ -124,18 +124,18 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			{
 				// This work on a swapback basis, so we need to decrement by one at each delete
 				while (GameWorld.Boards.Archetype.GetEntities(arch).Length > 0)
-					GameWorld.RemoveEntity(new GameEntity(GameWorld.Boards.Archetype.GetEntities(arch)[0]));
+					GameWorld.RemoveEntity(new GameEntityHandle(GameWorld.Boards.Archetype.GetEntities(arch)[0]));
 			}
 		}
 
 		/// <summary>
 		/// Check if this entity can be contained in this query
 		/// </summary>
-		/// <param name="entity">The entity</param>
+		/// <param name="entityHandle">The entity</param>
 		/// <returns></returns>
-		public bool MatchAgainst(GameEntity entity)
+		public bool MatchAgainst(GameEntityHandle entityHandle)
 		{
-			return archetypeIsValid[GameWorld.GetArchetype(entity).Id];
+			return archetypeIsValid[GameWorld.GetArchetype(entityHandle).Id];
 		}
 
 		public void Dispose()

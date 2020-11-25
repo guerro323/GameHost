@@ -7,7 +7,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		public ArchetypeEnumerator Inner;
 		public GameWorld World;
 
-		public GameEntity Current { get; private set; }
+		public GameEntityHandle Current { get; private set; }
 
 		private int  index;
 		private bool canMove;
@@ -33,14 +33,14 @@ namespace GameHost.Simulation.Utility.EntityQuery
 					continue;
 				}
 
-				Current = new GameEntity(entitySpan[index++]);
+				Current = new GameEntityHandle(entitySpan[index++]);
 				return true;
 			}
 		}
 
 		public EntityEnumerator GetEnumerator() => this;
 
-		public GameEntity First
+		public GameEntityHandle First
 		{
 			get
 			{
@@ -50,15 +50,15 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			}
 		}
 
-		public bool TryGetFirst(out GameEntity entity)
+		public bool TryGetFirst(out GameEntityHandle entityHandle)
 		{
 			if (World.Contains(First))
 			{
-				entity = Current;
+				entityHandle = Current;
 				return true;
 			}
 
-			entity = default;
+			entityHandle = default;
 			return false;
 		}
 	}
