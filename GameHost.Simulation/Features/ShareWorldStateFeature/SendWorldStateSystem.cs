@@ -67,7 +67,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				feature.Transport.Broadcast(default, compressedBuffer.Span);
 			}
 		}
-
+	
 		public override void Dispose()
 		{
 			base.Dispose();
@@ -151,6 +151,8 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				// 3.2 archetypes
 				dataBuffer.WriteInt(world.Boards.Entity.ArchetypeColumn.Length); // the length of the column is important since it can be bigger than the alive entities.
 				dataBuffer.WriteSpan(world.Boards.Entity.ArchetypeColumn);
+				// 3.3 versions
+				dataBuffer.WriteSpan(world.Boards.Entity.VersionColumn);
 			}
 			else
 			{
@@ -223,10 +225,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 					case SingleComponentBoard singleComponentBoard:
 					{
 						var linkColumnSpan = world.Boards.Entity.GetComponentColumn(row);
-
-						buffer.WriteInt(linkColumnSpan.Length);
-						buffer.WriteDataSafe(ptr(linkColumnSpan), linkColumnSpan.Length * sizeof(EntityBoardContainer.ComponentMetadata), default);
-
+						
 						var countMarker = buffer.WriteInt(0);
 						var count       = 0;
 						for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
@@ -264,10 +263,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 					case BufferComponentBoard bufferComponentBoard:
 					{
 						var linkColumnSpan = world.Boards.Entity.GetComponentColumn(row);
-
-						buffer.WriteInt(linkColumnSpan.Length);
-						buffer.WriteDataSafe(ptr(linkColumnSpan), linkColumnSpan.Length * sizeof(EntityBoardContainer.ComponentMetadata), default);
-
+						
 						var countMarker = buffer.WriteInt(0);
 						var count       = 0;
 						for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
