@@ -84,7 +84,7 @@ namespace GameHost.Audio.Features
 				
 				entity.Set(new AudioStartTime {Value = worldTime.Total + delay});
 
-				foreach (var feature in Features)
+				foreach (var (_, feature) in Features)
 				{
 					unsafe
 					{
@@ -109,7 +109,7 @@ namespace GameHost.Audio.Features
 					Delay  = delay
 				});
 				
-				foreach (var feature in Features)
+				foreach (var (_, feature) in Features)
 				{
 					unsafe
 					{

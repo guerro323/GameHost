@@ -19,7 +19,7 @@ namespace GameHost.Audio
 			writer.WriteInt(resource);
 			writer.WriteValue((double) wav.getLength());
 
-			foreach (var feature in Features)
+			foreach (var (_, feature) in Features)
 			{
 				feature.Driver.Send(default, connection, writer.Span);
 			}

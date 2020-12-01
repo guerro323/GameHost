@@ -1,4 +1,5 @@
-﻿using GameHost.Core.Ecs;
+﻿using DefaultEcs;
+using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
 using Microsoft.Extensions.Logging;
 using ZLogger;
@@ -15,9 +16,9 @@ namespace GameHost.Audio
 			DependencyResolver.Add(() => ref logger);
 		}
 
-		protected override void OnFeatureAdded(SoLoudBackendFeature feature)
+		protected override void OnFeatureAdded(Entity entity, SoLoudBackendFeature feature)
 		{
-			base.OnFeatureAdded(feature);
+			base.OnFeatureAdded(entity, feature);
 
 			if (soloud != null)
 			{
@@ -32,9 +33,9 @@ namespace GameHost.Audio
 			     .Set(soloud);
 		}
 
-		protected override void OnFeatureRemoved(SoLoudBackendFeature feature)
+		protected override void OnFeatureRemoved(Entity entity, SoLoudBackendFeature feature)
 		{
-			base.OnFeatureRemoved(feature);
+			base.OnFeatureRemoved(entity, feature);
 
 			soloud.deinit();
 			soloud = null;

@@ -55,7 +55,7 @@ namespace GameHost.Audio.Features.Systems
 
 			// for memory usage, don't put this call into the foreach since stackalloc is only freed when this method itself is finished
 			Span<Entity> clientUpdated = stackalloc Entity[playerSet.Count];
-			foreach (var feature in Features)
+			foreach (var (featureEntity, feature) in Features)
 			{
 				var update     = false;
 				var previousId = 0;

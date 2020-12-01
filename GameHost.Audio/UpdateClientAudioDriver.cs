@@ -20,7 +20,7 @@ namespace GameHost.Audio
 		protected override void OnUpdate()
 		{
 			// Update first...
-			foreach (var feature in Features)
+			foreach (var (featureEntity, feature) in Features)
 			{
 				feature.Driver.Update();
 

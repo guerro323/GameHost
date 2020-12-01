@@ -45,7 +45,7 @@ namespace GameHost.Inputs.Systems
 			if (entitySpan.Length == 0)
 				return;
 			
-			foreach (var feature in Features)
+			foreach (var (_, feature) in Features)
 			{
 				var update     = false;
 				foreach (var ent in entitySpan)

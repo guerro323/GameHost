@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace GameHost.Simulation.TabEcs
 {
@@ -115,6 +116,11 @@ namespace GameHost.Simulation.TabEcs
 			return $"(GameEntity Row={Id} Ver={Version})";
 		}
 
-		public GameEntityHandle Handle => new(Id);
+
+		public GameEntityHandle Handle
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => new(Id);
+		}
 	}
 }

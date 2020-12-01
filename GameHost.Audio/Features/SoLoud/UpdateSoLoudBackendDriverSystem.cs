@@ -25,7 +25,7 @@ namespace GameHost.Audio
 		{
 			base.OnUpdate();
 
-			foreach (var feature in Features)
+			foreach (var (_, feature) in Features)
 			{
 				feature.Driver.Update();
 
