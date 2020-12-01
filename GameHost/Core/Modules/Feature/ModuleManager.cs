@@ -33,7 +33,7 @@ namespace GameHost.Core.Modules.Feature
             DependencyResolver.Add(() => ref scheduler);
         }
 
-        protected override void OnFeatureAdded(ModuleLoaderFeature obj)
+        protected override void OnFeatureAdded(Entity entity, ModuleLoaderFeature obj)
         {
             if (ModuleMap != null)
                 throw new Exception("yooooooo");

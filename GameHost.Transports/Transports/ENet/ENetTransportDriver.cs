@@ -68,6 +68,15 @@ namespace GameHost.Transports
 
 		public bool Listening { get; private set; }
 
+		public override void GetConnections(Span<TransportConnection> span)
+		{
+			var i = 0;
+			foreach (var (id, con) in m_Connections)
+			{
+				span[i++] = new TransportConnection {Id = id, Version = (uint) m_ConnectionVersions[id]};
+			}
+		}
+
 		public override void Dispose()
 		{
 			if (IsCreated)
@@ -305,6 +314,11 @@ namespace GameHost.Transports
 			}
 
 			return 0;
+		}
+
+		public override int GetConnectionCount()
+		{
+			return m_Connections.Count;
 		}
 
 		public override TransportEvent PopEvent()

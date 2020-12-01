@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
 
@@ -34,15 +35,15 @@ namespace GameHost.Core.Features.Systems
 			Features.OnFeatureAdded   += OnFeatureAdded;
 			Features.OnFeatureRemoved += OnFeatureRemoved;
 			
-			foreach (var feature in Features)
-				OnFeatureAdded(feature);
+			foreach (var (entity, feature) in Features)
+				OnFeatureAdded(entity, feature);
 		}
 
-		protected virtual void OnFeatureAdded(T obj)
+		protected virtual void OnFeatureAdded(Entity entity, T obj)
 		{
 		}
 
-		protected virtual void OnFeatureRemoved(T obj)
+		protected virtual void OnFeatureRemoved(Entity entity, T obj)
 		{
 		}
 	}

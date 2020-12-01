@@ -39,7 +39,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 		protected override void OnUpdate()
 		{
 			base.OnUpdate();
-			
+
 			GetDataParallel(gameWorld);
 
 			compressedBuffer.Length = 0;
@@ -61,13 +61,10 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				if (originalCapacity < compressedBuffer.Capacity)
 					throw new InvalidOperationException("The capacity shouldn't have been modified. This does remove the compression data.");
 			}
-			
-			foreach (var feature in Features)
+
+			foreach (var (entity, feature) in Features)
 			{
-				unsafe
-				{
-					feature.Transport.Broadcast(default, compressedBuffer.Span);
-				}
+				feature.Transport.Broadcast(default, compressedBuffer.Span);
 			}
 		}
 

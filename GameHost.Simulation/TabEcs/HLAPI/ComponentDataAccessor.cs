@@ -59,7 +59,7 @@ namespace GameHost.Simulation.TabEcs.HLAPI
 
 		public ComponentBuffer<T> this[GameEntityHandle gameEntity]
 		{
-#if DEBUG1
+#if DEBUG
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => new ComponentBuffer<T>(Source[Links[(int) gameEntity.Id].Assigned]);
 #else

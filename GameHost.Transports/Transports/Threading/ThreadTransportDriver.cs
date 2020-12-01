@@ -180,6 +180,26 @@ namespace GameHost.Transports
 			return 0;
 		}
 
+		public override int GetConnectionCount()
+		{
+			lock (m_Connections)
+			{
+				return m_Connections.Count;
+			}
+		}
+
+		public override void GetConnections(Span<TransportConnection> span)
+		{
+			lock (m_Connections)
+			{
+				var i = 0;
+				foreach (var (id, con) in m_Connections)
+				{
+					span[i++] = new TransportConnection {Id = id, Version = 1};
+				}
+			}
+		}
+
 		public override TransportEvent PopEvent()
 		{
 			lock (m_Connections)

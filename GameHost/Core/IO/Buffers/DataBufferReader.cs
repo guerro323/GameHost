@@ -203,7 +203,7 @@ namespace RevolutionSnapshot.Core.Buffers
             where T : struct
         {
             var length = ReadValue<int>();
-            return new Span<T>(DataPtr + GetReadIndexAndSetNew(marker, length + Unsafe.SizeOf<T>()), length);
+            return new Span<T>(DataPtr + GetReadIndexAndSetNew(marker, length * Unsafe.SizeOf<T>()), length);
         }
 
         public string ReadString(DataBufferMarker marker = default)

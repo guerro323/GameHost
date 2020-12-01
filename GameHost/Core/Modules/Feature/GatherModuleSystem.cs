@@ -24,10 +24,6 @@ namespace GameHost.Core.Modules.Feature
             DependencyResolver.Add(() => ref scheduler);
         }
 
-        protected override void OnFeatureAdded(ModuleLoaderFeature obj)
-        {
-        }
-
         private EntitySet refreshSet, moduleSet;
 
         protected override void OnInit()

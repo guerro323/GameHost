@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace GameHost.Simulation.TabEcs
@@ -52,8 +53,6 @@ namespace GameHost.Simulation.TabEcs
 		/// <summary>
 		/// Whether or not this entity handle is valid in the boards.
 		/// </summary>
-		/// <param name="entityHandle"></param>
-		/// <returns></returns>
 		public bool Contains(GameEntityHandle entityHandle)
 		{
 			return Boards.Entity.ArchetypeColumn[(int) entityHandle.Id].Id > 0;
@@ -77,6 +76,11 @@ namespace GameHost.Simulation.TabEcs
 		/// </summary>
 		/// <param name="handle"></param>
 		/// <returns></returns>
+		/// <remarks>
+		///	It may also be possible that you have an invalid handle, and that you want to check for an updated one.
+		/// For example: oldEntity.Version != gameWorld.Safe(oldEntity.Handle).Version
+		/// </remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public GameEntity Safe(GameEntityHandle handle)
 		{
 			unchecked

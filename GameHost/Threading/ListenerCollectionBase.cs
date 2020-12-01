@@ -80,6 +80,8 @@ namespace GameHost.Threading
 		{
 			using (SynchronizeThread())
 			{
+				if (key == null)
+					return Listeners;
 				if (!ListenersMap.ContainsKey(key))
 					return null;
 				return ListenersMap[key];

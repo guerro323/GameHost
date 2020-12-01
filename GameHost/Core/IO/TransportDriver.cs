@@ -96,7 +96,7 @@ namespace GameHost.Core.IO
 		/// <param name="data"></param>
 		/// <returns></returns>
 		public abstract int Send(TransportChannel chan, TransportConnection con, Span<byte> data);
-		
+
 		/// <summary>
 		/// Broadcast to all connections
 		/// </summary>
@@ -105,6 +105,9 @@ namespace GameHost.Core.IO
 		/// <param name="data"></param>
 		/// <returns></returns>
 		public abstract int Broadcast(TransportChannel chan, Span<byte> data);
+
+		public abstract int  GetConnectionCount();
+		public abstract void GetConnections(Span<TransportConnection> span);
 
 		/// <summary>
 		/// Dispose driver's resources.

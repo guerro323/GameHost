@@ -32,10 +32,6 @@ namespace GameHost.Core.Modules.Feature
 			unloadSet = World.Mgr.GetEntities().With<RequestUnloadModule>().AsSet();
 		}
 
-		protected override void OnFeatureAdded(ModuleLoaderFeature obj)
-		{
-		}
-
 		public override bool CanUpdate() => base.CanUpdate() && Features.Any();
 
 		protected override void OnUpdate()

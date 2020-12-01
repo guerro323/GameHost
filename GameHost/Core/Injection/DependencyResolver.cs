@@ -56,6 +56,15 @@ namespace GameHost.Injection
         }
 
         private int unresolvedFrames;
+        
+        public bool TryComplete()
+        {
+            if (Dependencies.Count == 0)
+                return false;
+            
+            Update();
+            return Dependencies.Count == 0;
+        }
 
         private void Update()
         {

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
@@ -51,9 +52,9 @@ namespace GameHost.Core.Client
 				Server.Value.PollEvents();
 		}
 
-		protected override void OnFeatureAdded(ReceiveGameHostClientFeature obj)
+		protected override void OnFeatureAdded(Entity entity, ReceiveGameHostClientFeature obj)
 		{
-			base.OnFeatureAdded(obj);
+			base.OnFeatureAdded(entity, obj);
 			if (featureCount++ != 0)
 				return;
 
@@ -67,9 +68,9 @@ namespace GameHost.Core.Client
 			logger.Log(LogLevel.Information, "RPC Server started on port: " + Server.Value.LocalPort);
 		}
 
-		protected override void OnFeatureRemoved(ReceiveGameHostClientFeature obj)
+		protected override void OnFeatureRemoved(Entity entity, ReceiveGameHostClientFeature obj)
 		{
-			base.OnFeatureRemoved(obj);
+			base.OnFeatureRemoved(entity, obj);
 			featureCount--;
 			if (featureCount == 0)
 				Server.Value.Stop();

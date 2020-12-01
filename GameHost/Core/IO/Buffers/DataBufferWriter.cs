@@ -61,8 +61,9 @@ namespace RevolutionSnapshot.Core.Buffers
             }
         }
 
-        public IntPtr GetSafePtr() => (IntPtr) m_Data->buffer;
-        public Span<byte> Span => new Span<byte>(m_Data->buffer, m_Data->length);
+        public IntPtr     GetSafePtr() => (IntPtr) m_Data->buffer;
+        public Span<byte> Span         => new Span<byte>(m_Data->buffer, m_Data->length);
+        public Span<byte> CapacitySpan => new Span<byte>(m_Data->buffer, m_Data->capacity);
 
 
         public DataBufferWriter(int capacity)
