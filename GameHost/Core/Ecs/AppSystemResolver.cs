@@ -34,7 +34,8 @@ namespace GameHost.Core.Ecs
             {
                 if (!type.IsAbstract
                     && !type.ContainsGenericParameters
-                    && type.GetCustomAttribute<InjectSystemToWorldAttribute>() != null)
+                    && type.GetCustomAttribute<InjectSystemToWorldAttribute>() != null
+                    && type.GetCustomAttribute<DontInjectSystemToWorldAttribute>() == null)
                 {
                     if (isSystemValid(type))
                     {

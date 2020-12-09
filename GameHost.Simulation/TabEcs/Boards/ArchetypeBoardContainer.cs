@@ -61,7 +61,7 @@ namespace GameHost.Simulation.TabEcs
 				sum += componentTypes[i];
 			}
 
-			for (var i = 0; i != column.componentTypes.Length; i++)
+			for (var i = 1; i < column.componentTypes.Length; i++)
 			{
 				if (column.sum[i] != sum)
 					continue;

@@ -12,4 +12,11 @@ namespace GameHost.Applications
 		public GlobalWorld     Global         { get; }
 		public ApplicationData Data           { get; }
 	}
+
+	public readonly struct ApplicationName
+	{
+		public readonly string Value;
+
+		public ApplicationName(string value) => Value = value;
+	}
 }

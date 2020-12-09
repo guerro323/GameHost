@@ -59,7 +59,7 @@ namespace GameHost.IO
                 {
                     // todo: we need a better way to display this error, the user may think it would make the application crash
 #if DEBUG
-                    Console.WriteLine("Minimal Impact Exception: " + ex);
+                   // Console.WriteLine("Minimal Impact Exception: " + ex);
 #endif
                 }
             }

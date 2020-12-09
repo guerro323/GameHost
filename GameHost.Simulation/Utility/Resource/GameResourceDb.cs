@@ -24,7 +24,14 @@ namespace GameHost.Simulation.Utility.Resource
 
 		public GameWorld GameWorld => gameWorldRef;
 
-		private BiMap<GameEntity, TResourceDescription> GetResourceMap() => stateEntity.Get<Defaults>();
+		private BiMap<GameEntity, TResourceDescription> GetResourceMap()
+		{
+			Debug.Assert(stateEntity.IsAlive, "stateEntity.IsAlive");
+			Debug.Assert(stateEntity.Has<Defaults>(), "stateEntity.Has<Defaults>()");
+			Debug.Assert(stateEntity.Get<Defaults>() != null, "stateEntity.Get<Defaults>() != null");
+			
+			return stateEntity.Get<Defaults>();
+		}
 
 		private Entity stateEntity;
 

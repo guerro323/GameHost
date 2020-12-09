@@ -14,7 +14,7 @@ namespace GameHost.Injection
         public IDependencyStrategy  DefaultStrategy;
 
         private readonly IScheduler scheduler;
-        private readonly string source;
+        public readonly string Source;
 
         private ConcurrentBag<TaskCompletionSource<bool>> dependencyCompletion;
 
@@ -36,7 +36,7 @@ namespace GameHost.Injection
             dependencyCompletion = new ConcurrentBag<TaskCompletionSource<bool>>();
             
             this.scheduler = scheduler;
-            this.source = source;
+            this.Source = source;
         }
 
         public void AddDependency(DependencyBase dependency)
@@ -82,7 +82,7 @@ namespace GameHost.Injection
                 catch (Exception ex)
                 {
                     dep.ResolveException = ex;
-                    Console.WriteLine($"Resolving on item '{dep}' for '{source}' dependencies has failed!\n{ex}");
+                    Console.WriteLine($"Resolving on item '{dep}' for '{Source}' dependencies has failed!\n{ex}");
                 }
 
                 if (!dep.IsResolved)
@@ -114,7 +114,7 @@ namespace GameHost.Injection
             {
                 unresolvedFrames = 0;
             
-                var str = Dependencies.Aggregate(source, (current, dep) => current + $"\n\t{dep}; {dep.IsResolved}");
+                var str = Dependencies.Aggregate(Source, (current, dep) => current + $"\n\t{dep}; {dep.IsResolved}");
                 Console.WriteLine(str);
             }
 

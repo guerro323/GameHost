@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using ENet;
 using GameHost.Core.IO;
 
@@ -174,11 +175,12 @@ namespace GameHost.Transports
 
 		public int Bind(Address address)
 		{
-			m_DidBind      = m_Host.Create(address, (int) MaxConnections, 32);
+			m_DidBind = m_Host.Create(address, (int) MaxConnections, 32);
+			if (!m_DidBind)
+				return -1;
+
 			BindingAddress = m_Host.Address;
-			if (m_DidBind)
-				return 0;
-			return -1;
+			return 0;
 		}
 
 		public int Listen()
@@ -217,8 +219,8 @@ namespace GameHost.Transports
 
 			var peer = m_Host.Connect(address, 32);
 			AddConnection(peer);
-			
-			peer.Timeout(0, 5000, 7500);
+
+			//peer.Timeout(0, 5000, 7500);
 
 			return new TransportConnection {Id = peer.ID, Version = 1};
 		}

@@ -14,6 +14,8 @@ namespace GameHost.Simulation.TabEcs
 		/// <returns>True if the component was removed, false if it did not exist.</returns>
 		public bool RemoveMultipleComponent(GameEntityHandle entityHandle, Span<ComponentType> componentTypeSpan)
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			var b = true;
 			foreach (ref readonly var componentType in componentTypeSpan)
 			{
@@ -33,6 +35,8 @@ namespace GameHost.Simulation.TabEcs
 		/// <returns>True if the component was removed, false if it did not exist.</returns>
 		public bool RemoveComponent(GameEntityHandle entityHandle, ComponentType componentType)
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			if (GameWorldLL.RemoveComponentReference(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType), componentType, Boards.Entity, entityHandle))
 			{
 				GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
@@ -49,6 +53,8 @@ namespace GameHost.Simulation.TabEcs
 		/// <param name="component"></param>
 		public void AssignComponent(GameEntityHandle entityHandle, ComponentReference component)
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			var board = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type);
 			GameWorldLL.AssignComponent(board, component, Boards.Entity, entityHandle);
 			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
@@ -61,6 +67,8 @@ namespace GameHost.Simulation.TabEcs
 		/// <param name="component"></param>
 		public void AssignComponentAsOwner(GameEntityHandle entityHandle, ComponentReference component)
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			var board = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type);
 			GameWorldLL.AssignComponent(board, component, Boards.Entity, entityHandle);
 			GameWorldLL.SetOwner(board, component, entityHandle);
@@ -94,6 +102,8 @@ namespace GameHost.Simulation.TabEcs
 		/// <returns></returns>
 		public void AddMultipleComponent(GameEntityHandle entityHandle, Span<ComponentType> componentTypeSpan)
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			foreach (ref readonly var componentType in componentTypeSpan)
 			{
 				var componentBoard = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);
@@ -114,6 +124,8 @@ namespace GameHost.Simulation.TabEcs
 		/// <returns></returns>
 		public void AddRemoveMultipleComponent(GameEntityHandle entityHandle, Span<ComponentType> addSpan, Span<ComponentType> removeSpan)
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			foreach (ref readonly var componentType in addSpan)
 			{
 				var componentBoard = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);
@@ -139,6 +151,8 @@ namespace GameHost.Simulation.TabEcs
 		/// <returns></returns>
 		public ComponentReference AddComponent(GameEntityHandle entityHandle, ComponentType componentType)
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			var componentBoard = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);
 			var cRef           = new ComponentReference(componentType, GameWorldLL.CreateComponent(componentBoard));
 
@@ -189,6 +203,8 @@ namespace GameHost.Simulation.TabEcs
 		/// <returns></returns>
 		public ComponentReference UpdateOwnedComponent(GameEntityHandle entityHandle, ComponentType componentType)
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			var componentMetadata = Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id];
 			var componentBoard    = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);
 
@@ -218,6 +234,8 @@ namespace GameHost.Simulation.TabEcs
 		public ComponentReference UpdateOwnedComponent<T>(GameEntityHandle entityHandle, T value = default)
 			where T : struct, IComponentData
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			var componentType = AsComponentType<T>();
 			var linkColumn    = Boards.Entity.GetComponentColumn(componentType.Id);
 

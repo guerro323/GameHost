@@ -32,12 +32,16 @@ namespace GameHost.Simulation.TabEcs
 		
 		public EntityBoardContainer.ComponentMetadata GetComponentMetadata(GameEntityHandle entityHandle, ComponentType componentType)
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			return Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id];
 		}
 
 		public ComponentReference GetComponentReference<T>(GameEntityHandle entityHandle)
 			where T : struct, IEntityComponent
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			var componentType = AsComponentType<T>();
 			return new ComponentReference(componentType, Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id].Id);
 		}
@@ -60,6 +64,8 @@ namespace GameHost.Simulation.TabEcs
 		/// <returns></returns>
 		public bool HasComponent(GameEntityHandle entityHandle, ComponentType componentType)
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			var recursionLeft  = RecursionLimit;
 			var originalEntity = entityHandle;
 			while (recursionLeft-- > 0)
@@ -99,6 +105,8 @@ namespace GameHost.Simulation.TabEcs
 		public ref T GetComponentData<T>(GameEntityHandle entityHandle)
 			where T : struct, IComponentData
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			var componentType = AsComponentType<T>().Id;
 			var board = Boards.ComponentType.ComponentBoardColumns[(int) componentType];
 			if (board is TagComponentBoard)
@@ -135,6 +143,8 @@ namespace GameHost.Simulation.TabEcs
 		/// <exception cref="InvalidOperationException"></exception>
 		public ComponentBuffer<T> GetBuffer<T>(GameEntityHandle entityHandle) where T : struct, IComponentBuffer
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			var componentType = AsComponentType<T>().Id;
 			if (!(Boards.ComponentType.ComponentBoardColumns[(int) componentType] is BufferComponentBoard componentColumn))
 				throw new InvalidOperationException($"A board made from an {nameof(IComponentBuffer)} should be a {nameof(BufferComponentBoard)}");

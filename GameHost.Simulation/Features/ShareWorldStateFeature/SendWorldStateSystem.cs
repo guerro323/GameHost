@@ -58,6 +58,8 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				compressedBuffer.WriteInt(dataBuffer.Length);
 				compressedBuffer.Length += size;
 
+				//Console.WriteLine($"compressed={size}b original={dataBuffer.Length}b");
+
 				if (originalCapacity < compressedBuffer.Capacity)
 					throw new InvalidOperationException("The capacity shouldn't have been modified. This does remove the compression data.");
 			}
@@ -190,9 +192,21 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				capacityIncrease += buffer.Capacity;
 
 			dataBuffer.Capacity = Math.Max(dataBuffer.Capacity, dataBuffer.Length + capacityIncrease + 1);
-			foreach (var buffer in componentBuffers)
+
+			var biggestIdx = 0;
+			var biggest    = 0;
+			for (var index = 0; index < componentBuffers.Length; index++)
 			{
+				var buffer = componentBuffers[index];
 				dataBuffer.WriteBuffer(buffer);
+				if (buffer.Length > biggest)
+				{
+					biggest    = buffer.Length;
+					biggestIdx = index;
+					
+					//Console.WriteLine($"  Biggest Buffer Name={gameWorld.Boards.ComponentType.NameColumns[(int) componentTypeSpan[biggestIdx].Id]} Size={biggest}");
+				}
+
 				buffer.Dispose();
 			}
 

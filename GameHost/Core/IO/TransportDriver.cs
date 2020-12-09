@@ -24,7 +24,7 @@ namespace GameHost.Core.IO
 	/// <summary>
 	/// Contain data about a connection
 	/// </summary>
-	public struct TransportConnection
+	public struct TransportConnection : IEquatable<TransportConnection>
 	{
 		public enum State : byte
 		{
@@ -38,6 +38,36 @@ namespace GameHost.Core.IO
 		public uint Version;
 
 		public bool IsCreated => Version > 0;
+
+		public bool Equals(TransportConnection other)
+		{
+			return Id == other.Id;
+		}
+
+		public override bool Equals(object obj)
+		{
+			return obj is TransportConnection other && Equals(other);
+		}
+
+		public override int GetHashCode()
+		{
+			return (int) Id;
+		}
+
+		public static bool operator ==(TransportConnection left, TransportConnection right)
+		{
+			return left.Equals(right);
+		}
+
+		public static bool operator !=(TransportConnection left, TransportConnection right)
+		{
+			return !left.Equals(right);
+		}
+
+		public override string ToString()
+		{
+			return $"Con(Id={Id}, Ver={Version})";
+		}
 	}
 
 	/// <summary>

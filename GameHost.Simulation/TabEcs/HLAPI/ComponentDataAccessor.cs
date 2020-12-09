@@ -61,7 +61,15 @@ namespace GameHost.Simulation.TabEcs.HLAPI
 		{
 #if DEBUG
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => new ComponentBuffer<T>(Source[Links[(int) gameEntity.Id].Assigned]);
+			get
+			{
+				if (Links.Length < gameEntity.Id + 1)
+					throw new IndexOutOfRangeException($"<{typeof(T).Name}> Links smaller! Length={Links.Length} < Index={gameEntity.Id}");
+				if (Source.Length < Links[(int) gameEntity.Id].Assigned + 1)
+					throw new IndexOutOfRangeException($"<{typeof(T).Name}> Source smaller! Length={Source.Length} < Index={Links[(int) gameEntity.Id].Assigned}");
+				
+				return new(Source[Links[(int) gameEntity.Id].Assigned]);
+			}
 #else
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get

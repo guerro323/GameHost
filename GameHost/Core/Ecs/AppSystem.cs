@@ -21,7 +21,6 @@ namespace GameHost.Core.Ecs
     /// Children that use <see cref="InjectSystemToWorldAttribute"/> will ignore this attribute.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
-    [Obsolete("This attribute is not yet implemented.")]
     public class DontInjectSystemToWorldAttribute : Attribute
     {
     }

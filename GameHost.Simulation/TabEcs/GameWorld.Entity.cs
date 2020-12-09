@@ -1,23 +1,39 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using GameHost.Simulation.TabEcs.LLAPI;
 
 namespace GameHost.Simulation.TabEcs
 {
 	public partial class GameWorld
 	{
+		[System.Diagnostics.Conditional("DEBUG")]
+		public void ThrowOnInvalidHandle(GameEntityHandle handle)
+		{
+			if (handle.Id == 0)
+				throw new InvalidOperationException("You've passed an invalid handle");
+			if (Boards.Entity.ArchetypeColumn[(int) handle.Id].Id == 0)
+				throw new InvalidOperationException($"The GameWorld does not contains a handle with id '{handle.Id}'");
+		}
+		
 		public GameEntityHandle CreateEntity()
 		{
-			return new GameEntityHandle(Boards.Entity.CreateRow());
+			var handle = new GameEntityHandle(Boards.Entity.CreateRow());
+			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, handle);
+			return handle;
 		}
 
 		public void CreateEntityBulk(Span<GameEntityHandle> entities)
 		{
 			Boards.Entity.CreateRowBulk(MemoryMarshal.Cast<GameEntityHandle, uint>(entities));
+			foreach (var ent in entities)
+				GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, ent);
 		}
 
 		public void RemoveEntity(GameEntityHandle entityHandle)
 		{
+			ThrowOnInvalidHandle(entityHandle);
+			
 			foreach (ref readonly var componentType in Boards.ComponentType.Registered)
 				RemoveComponent(entityHandle, componentType);
 
@@ -83,6 +99,8 @@ namespace GameHost.Simulation.TabEcs
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public GameEntity Safe(GameEntityHandle handle)
 		{
+			ThrowOnInvalidHandle(handle);
+			
 			unchecked
 			{
 				return new GameEntity(handle.Id, Boards.Entity.VersionColumn[(int) handle.Id]);
@@ -98,6 +116,9 @@ namespace GameHost.Simulation.TabEcs
 		/// <returns>Return if the linking state has been changed</returns>
 		public bool Link(GameEntityHandle child, GameEntityHandle owner, bool isLinked)
 		{
+			ThrowOnInvalidHandle(child);
+			ThrowOnInvalidHandle(owner);
+
 			return isLinked
 				? Boards.Entity.AddLinked(owner.Id, child.Id)
 				: Boards.Entity.RemoveLinked(owner.Id, child.Id);

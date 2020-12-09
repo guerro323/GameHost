@@ -13,9 +13,10 @@ namespace GameHost.Simulation.Utility.EntityQuery
 	{
 		public readonly GameWorld       GameWorld;
 		public readonly ComponentType[] All;
+		public readonly ComponentType[] Or;
 		public readonly ComponentType[] None;
 
-		public FinalizedQuery AsFinalized => new FinalizedQuery {All = All, None = None};
+		public FinalizedQuery AsFinalized => new FinalizedQuery {All = All, Or = Or, None = None};
 
 		// Since archetypes can't be deleted, we can just check if an archetype has been added with the length
 		private int lastArchetypeCount;
@@ -28,6 +29,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			GameWorld = gameWorld;
 			All       = query.All.ToArray();
 			None      = query.None.ToArray();
+			Or        = query.Or.ToArray();
 
 			matchedArchetypes = new PooledList<uint>();
 			archetypeIsValid  = Array.Empty<bool>();
@@ -41,6 +43,12 @@ namespace GameHost.Simulation.Utility.EntityQuery
 
 		public EntityQuery(GameWorld gameWorld, Span<ComponentType> all, Span<ComponentType> none)
 			: this(gameWorld, new FinalizedQuery {All = all, None = none})
+		{
+
+		}
+
+		public EntityQuery(GameWorld gameWorld, Span<ComponentType> all, Span<ComponentType> none, Span<ComponentType> or)
+			: this(gameWorld, new FinalizedQuery {All = all, None = none, Or = or})
 		{
 
 		}
@@ -61,6 +69,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			{
 				var archetype     = archetypeBoard.Registered[i];
 				var matches       = 0;
+				var orMatches     = 0;
 				var componentSpan = archetypeBoard.GetComponentTypes(archetype.Id);
 				for (var comp = 0; comp != All.Length; comp++)
 				{
@@ -68,7 +77,13 @@ namespace GameHost.Simulation.Utility.EntityQuery
 						matches++;
 				}
 
-				if (matches != All.Length)
+				for (var comp = 0; comp != Or.Length; comp++)
+				{
+					if (componentSpan.Contains(Or[comp].Id))
+						orMatches++;
+				}
+
+				if (matches != All.Length || (Or.Length > 0 && orMatches == 0))
 					continue;
 
 				matches = 0;
