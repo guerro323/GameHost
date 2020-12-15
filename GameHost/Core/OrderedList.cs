@@ -156,6 +156,8 @@ namespace GameHost.Core
                     }
                 }
                 
+                listIsDirty = false;
+                
                 OnOrderUpdate?.Invoke();
 
                 return orderedElements;

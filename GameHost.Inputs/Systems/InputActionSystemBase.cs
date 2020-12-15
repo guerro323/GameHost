@@ -72,14 +72,9 @@ namespace GameHost.Inputs.Systems
 	}
 
 	public abstract class InputActionSystemBase<TAction, TLayout> : InputActionSystemBase, IUpdateInputPass
-		where TAction : IInputAction
+		where TAction : struct, IInputAction
 		where TLayout : InputLayoutBase
 	{
-		protected override void OnUpdate()
-		{
-			base.OnUpdate();
-		}
-
 		protected InputBackendSystem Backend;
 		
 		public override Entity CreateEntityAction()
@@ -149,22 +144,20 @@ namespace GameHost.Inputs.Systems
 			var entityCount = buffer.ReadValue<int>();
 			for (var i = 0; i < entityCount; i++)
 			{
-				var replId      = buffer.ReadValue<int>();
-				var hasBeenRead = false;
+				var replId = buffer.ReadValue<int>();
+				var data   = default(TAction);
+				data.Deserialize(ref buffer);
+				
 				foreach (ref readonly var entity in InputQuery.GetEntities())
 				{
 					if (entity.Get<InputEntityId>().Value != replId)
 						continue;
 
 					ref var current = ref entity.Get<TAction>();
-					current.Deserialize(ref buffer);
-					hasBeenRead = true;
+					current = data;
 
 					break;
 				}
-				
-				if (!hasBeenRead)
-					throw new InvalidOperationException($"Input data not read for {GetType()} --> repl={replId}");
 			}
 		}
 		

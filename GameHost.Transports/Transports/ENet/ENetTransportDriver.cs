@@ -93,6 +93,11 @@ namespace GameHost.Transports
 
 		public override void Update()
 		{
+			if (!IsCreated)
+			{
+				throw new NotImplementedException("Host not created. Can not update");
+			}
+			
 			// CLEAN
 			foreach (var connection in m_Connections.Values)
 			{
@@ -120,25 +125,17 @@ namespace GameHost.Transports
 			}
 
 			// UPDATE
-			foreach (var info in m_PacketsToSend) info.Peer.Send(info.Channel, info.Packet);
+			foreach (var info in m_PacketsToSend)
+			{
+				info.Peer.Send(info.Channel, info.Packet);
+			}
 
 			m_PacketsToSend.Clear();
-
-			const int maxEventPerFrame = 32;
-			for (var i = 0; i != maxEventPerFrame; i++)
+			
+			if (m_Host.Service(0, out var netEvent) > 0)
 			{
-				var polled = false;
-				while (!polled)
+				do
 				{
-					Event netEvent;
-					if (m_Host.CheckEvents(out netEvent) <= 0)
-					{
-						if (m_Host.Service(0, out netEvent) <= 0)
-							break;
-
-						polled = true;
-					}
-
 					var peerId                                                                       = (int) netEvent.Peer.ID;
 					if (!m_Connections.TryGetValue(netEvent.Peer.ID, out var connection)) connection = AddConnection(netEvent.Peer);
 
@@ -169,7 +166,7 @@ namespace GameHost.Transports
 						default:
 							throw new ArgumentOutOfRangeException();
 					}
-				}
+				} while (m_Host.CheckEvents(out netEvent) > 0);
 			}
 		}
 

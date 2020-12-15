@@ -34,6 +34,18 @@ namespace RevolutionSnapshot.Core.Buffers
 			Marshal.FreeHGlobal((IntPtr) addr);
 		}
 
+		public static bool SameData<T>(T left, T right)
+		{
+			var size     = Unsafe.SizeOf<T>();
+			var leftPtr  = (byte*) Unsafe.AsPointer(ref left);
+			var rightPtr = (byte*) Unsafe.AsPointer(ref right);
+
+			for (var i = 0; i < size; i++)
+				if (leftPtr[i] != rightPtr[i])
+					return false;
+			return true;
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void MemCpy(byte* dest, byte* source, int size)
 		{

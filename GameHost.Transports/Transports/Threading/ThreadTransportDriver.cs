@@ -127,6 +127,8 @@ namespace GameHost.Transports
 				if (!m_QueuedConnections.TryDequeue(out var id))
 					return default;
 
+				Console.WriteLine("accept()");
+
 				var conSource = m_Connections[id].Peer.Source;
 				lock (conSource.m_Connections)
 				{
