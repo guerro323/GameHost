@@ -127,8 +127,6 @@ namespace GameHost.Transports
 				if (!m_QueuedConnections.TryDequeue(out var id))
 					return default;
 
-				Console.WriteLine("accept()");
-
 				var conSource = m_Connections[id].Peer.Source;
 				lock (conSource.m_Connections)
 				{
@@ -137,7 +135,9 @@ namespace GameHost.Transports
 						default);
 				}
 
-				scheduler.Schedule(() => { m_Connections[id].AddEvent(TransportEvent.EType.Connect); }, default);
+				scheduler.Schedule(foreignCon => foreignCon.AddEvent(TransportEvent.EType.Connect),
+					m_Connections[id],
+					default);
 
 				return new TransportConnection {Id = id, Version = 1};
 			}
