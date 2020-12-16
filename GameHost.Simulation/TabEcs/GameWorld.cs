@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
+using System.Threading;
 using GameHost.Simulation.TabEcs.Interfaces;
 using NetFabric.Hyperlinq;
 using StormiumTeam.GameBase.Utility.Misc;
@@ -42,7 +43,7 @@ namespace GameHost.Simulation.TabEcs
 		public ComponentType RegisterComponent(string name, ComponentBoardBase componentBoard, Type optionalManagedType = null)
 		{
 			if (Boards.ComponentType.Registered.Where(row => Boards.ComponentType.NameColumns[(int) row.Id] == name).Count() > 0)
-				throw new InvalidOperationException($"A component named '{name}' already exist");
+				throw new InvalidOperationException($"[{WorldId}] A component named '{name}' already exist");
 
 			return new ComponentType(Boards.ComponentType.CreateRow(name, componentBoard));
 		}

@@ -29,11 +29,11 @@ namespace GameHost.Simulation.TabEcs
 			var componentType = AsComponentType<T>();
 			return new ComponentReference(componentType, GameWorldLL.CreateComponent(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType)));
 		}
-		
+
 		public EntityBoardContainer.ComponentMetadata GetComponentMetadata(GameEntityHandle entityHandle, ComponentType componentType)
 		{
 			ThrowOnInvalidHandle(entityHandle);
-			
+
 			return Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id];
 		}
 
@@ -41,7 +41,7 @@ namespace GameHost.Simulation.TabEcs
 			where T : struct, IEntityComponent
 		{
 			ThrowOnInvalidHandle(entityHandle);
-			
+
 			var componentType = AsComponentType<T>();
 			return new ComponentReference(componentType, Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id].Id);
 		}
@@ -64,8 +64,6 @@ namespace GameHost.Simulation.TabEcs
 		/// <returns></returns>
 		public bool HasComponent(GameEntityHandle entityHandle, ComponentType componentType)
 		{
-			ThrowOnInvalidHandle(entityHandle);
-			
 			var recursionLeft  = RecursionLimit;
 			var originalEntity = entityHandle;
 			while (recursionLeft-- > 0)
@@ -106,32 +104,30 @@ namespace GameHost.Simulation.TabEcs
 			where T : struct, IComponentData
 		{
 			ThrowOnInvalidHandle(entityHandle);
-			
+
 			var componentType = AsComponentType<T>().Id;
-			var board = Boards.ComponentType.ComponentBoardColumns[(int) componentType];
+			var board         = Boards.ComponentType.ComponentBoardColumns[(int) componentType];
 			if (board is TagComponentBoard)
 				return ref TagComponentBoard.Default<T>.V;
-			
+
 			if (!(board is SingleComponentBoard componentColumn))
 				throw new InvalidOperationException($"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
 
-			return ref componentColumn.AsSpan<T>()[Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id].Assigned];
-			
-			/*var recursionLeft  = RecursionLimit;
-			var originalEntity = entity;
-			while (recursionLeft-- > 0)
+#if DEBUG
+			if (!HasComponent(entityHandle, new ComponentType(componentType)))
 			{
-				var link = Boards.Entity.GetComponentColumn(componentType)[(int) entity.Id];
-				if (link.IsShared)
+				var msg           = $"{Safe(entityHandle)} has no {Boards.ComponentType.NameColumns[(int) componentType]}. Existing:\n";
+				var componentList = Boards.Archetype.GetComponentTypes(GetArchetype(entityHandle).Id);
+				foreach (var comp in componentList)
 				{
-					entity = new GameEntity(link.Entity);
-					continue;
+					msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int) comp]}\n";
 				}
-
-				return ref componentColumn.Read<T>(link.Id);
+				
+				throw new InvalidOperationException(msg);
 			}
+#endif
 
-			throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{originalEntity}' and component <{typeof(T)}> (backing: {componentType})");*/
+			return ref componentColumn.AsSpan<T>()[Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id].Assigned];
 		}
 
 		/// <summary>
@@ -144,10 +140,17 @@ namespace GameHost.Simulation.TabEcs
 		public ComponentBuffer<T> GetBuffer<T>(GameEntityHandle entityHandle) where T : struct, IComponentBuffer
 		{
 			ThrowOnInvalidHandle(entityHandle);
-			
+
 			var componentType = AsComponentType<T>().Id;
 			if (!(Boards.ComponentType.ComponentBoardColumns[(int) componentType] is BufferComponentBoard componentColumn))
 				throw new InvalidOperationException($"A board made from an {nameof(IComponentBuffer)} should be a {nameof(BufferComponentBoard)}");
+
+#if DEBUG
+			if (!HasComponent(entityHandle, new ComponentType(componentType)))
+			{
+				throw new InvalidOperationException($"{Safe(entityHandle)} has no {Boards.ComponentType.NameColumns[(int) componentType]}.");
+			}
+#endif
 
 			var recursionLeft  = RecursionLimit;
 			var originalEntity = entityHandle;

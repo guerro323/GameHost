@@ -51,5 +51,10 @@ namespace GameHost.Simulation.Utility.InterTick
 		{
 			return new RangeTick(tick, tick);
 		}
+
+		public override string ToString()
+		{
+			return $"({Begin}, {End} ({Length}))";
+		}
 	}
 }

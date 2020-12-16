@@ -145,19 +145,22 @@ namespace GameHost.Inputs.Systems
 			for (var i = 0; i < entityCount; i++)
 			{
 				var replId = buffer.ReadValue<int>();
-				var data   = default(TAction);
-				data.Deserialize(ref buffer);
-				
+
+				var found = false;
 				foreach (ref readonly var entity in InputQuery.GetEntities())
 				{
 					if (entity.Get<InputEntityId>().Value != replId)
 						continue;
 
 					ref var current = ref entity.Get<TAction>();
-					current = data;
+					current.Deserialize(ref buffer);
+					found   = true;
 
 					break;
 				}
+
+				if (!found)
+					Console.WriteLine($"No input <{typeof(TAction).Name}> entity found for replId={replId}");
 			}
 		}
 		

@@ -97,7 +97,7 @@ namespace GameHost.Transports
 			{
 				throw new NotImplementedException("Host not created. Can not update");
 			}
-			
+
 			// CLEAN
 			foreach (var connection in m_Connections.Values)
 			{
@@ -131,42 +131,45 @@ namespace GameHost.Transports
 			}
 
 			m_PacketsToSend.Clear();
-			
-			if (m_Host.Service(0, out var netEvent) > 0)
+
+			for (var i = 0; i < 4; i++)
 			{
-				do
+				if (m_Host.Service(0, out var netEvent) > 0)
 				{
-					var peerId                                                                       = (int) netEvent.Peer.ID;
-					if (!m_Connections.TryGetValue(netEvent.Peer.ID, out var connection)) connection = AddConnection(netEvent.Peer);
-
-					switch (netEvent.Type)
+					do
 					{
-						case NetEventType.None:
-							break;
-						case NetEventType.Connect:
-							m_QueuedConnections.Enqueue(netEvent.Peer.ID);
-							break;
-						case NetEventType.Receive:
-							connection.AddMessage(netEvent.Packet.Data, netEvent.Packet.Length);
-							netEvent.Packet.Dispose();
-							break;
-						case NetEventType.Disconnect:
-						case NetEventType.Timeout:
+						var peerId                                                                       = (int) netEvent.Peer.ID;
+						if (!m_Connections.TryGetValue(netEvent.Peer.ID, out var connection)) connection = AddConnection(netEvent.Peer);
+
+						switch (netEvent.Type)
 						{
-							connection.AddEvent(TransportEvent.EType.Disconnect);
-							connection.QueuedForDisconnection = true;
+							case NetEventType.None:
+								break;
+							case NetEventType.Connect:
+								m_QueuedConnections.Enqueue(netEvent.Peer.ID);
+								break;
+							case NetEventType.Receive:
+								connection.AddMessage(netEvent.Packet.Data, netEvent.Packet.Length);
+								netEvent.Packet.Dispose();
+								break;
+							case NetEventType.Disconnect:
+							case NetEventType.Timeout:
+							{
+								connection.AddEvent(TransportEvent.EType.Disconnect);
+								connection.QueuedForDisconnection = true;
 
-							// increment version
-							var ver = m_ConnectionVersions[peerId];
-							ver++;
-							m_ConnectionVersions[peerId] = ver;
-							break;
+								// increment version
+								var ver = m_ConnectionVersions[peerId];
+								ver++;
+								m_ConnectionVersions[peerId] = ver;
+								break;
+							}
+
+							default:
+								throw new ArgumentOutOfRangeException();
 						}
-
-						default:
-							throw new ArgumentOutOfRangeException();
-					}
-				} while (m_Host.CheckEvents(out netEvent) > 0);
+					} while (m_Host.CheckEvents(out netEvent) > 0);
+				}
 			}
 		}
 
