@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using DefaultEcs;
 using GameHost.Audio.Players;
 using GameHost.Core.Ecs;
 using GameHost.Core.IO;
 using GameHost.IO;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace GameHost.Audio.Systems
 {
@@ -53,7 +56,9 @@ namespace GameHost.Audio.Systems
 		private Dictionary<Key__, Entity> resourceMap;
 		private int                       currentId;
 
-		private EntitySet toLoadSet;
+		private ILogger logger;
+
+		private EntitySet toLoadSet, loadingSet;
 
 		public LoadAudioResourceSystem(WorldCollection collection) : base(collection)
 		{
@@ -62,14 +67,26 @@ namespace GameHost.Audio.Systems
 
 			toLoadSet = World.Mgr.GetEntities()
 			                 .With<AskLoadResource<AudioResource>>()
+			                 .Without<IsLoadingFile>()
 			                 .AsSet();
+
+			loadingSet = World.Mgr.GetEntities()
+			                  .With<IsLoadingFile>()
+			                  .AsSet();
+			
+			DependencyResolver.Add(() => ref logger);
+		}
+
+		private struct IsLoadingFile
+		{
+			public Task<byte[]> AttachedTask;
 		}
 
 		protected override void OnUpdate()
 		{
 			Span<Entity> entities = stackalloc Entity[toLoadSet.Count];
 			toLoadSet.GetEntities().CopyTo(entities);
-			foreach (ref var entity in entities)
+			foreach (var entity in entities)
 			{
 				if (entity.Has<LoadResourceViaStorage>())
 				{
@@ -83,27 +100,45 @@ namespace GameHost.Audio.Systems
 					}
 
 					var file = files.First();
-					// todo: async
-					entity.Set(new AudioBytesData {Value = file.GetContentAsync().Result});
+					entity.Set(new IsLoadingFile {AttachedTask = Task.Run(() => file.GetContentAsync())});
 				}
 				else if (entity.Has<LoadResourceViaFile>())
 				{
 					// todo: async
-					entity.Set(new AudioBytesData
+					entity.Set(new IsLoadingFile
 					{
-						Value = entity
-						        .Get<LoadResourceViaFile>().File
-						        .GetContentAsync().Result
+						AttachedTask = Task.Run(() => entity
+						                              .Get<LoadResourceViaFile>().File
+						                              .GetContentAsync())
 					});
 				}
 				else
 				{
 					continue;
 				}
-
-				entity.Set(new AudioResource {Id = currentId++});
-				entity.Set(new IsResourceLoaded<AudioResource>());
+				
 				entity.Remove<AskLoadResource<AudioResource>>();
+			}
+
+			entities = stackalloc Entity[loadingSet.Count];
+			loadingSet.GetEntities().CopyTo(entities);
+			foreach (var entity in entities)
+			{
+				var loadingTask = entity.Get<IsLoadingFile>().AttachedTask;
+				if (loadingTask.IsFaulted)
+				{
+					logger.ZLogError(loadingTask.Exception, "Error when loading file content");
+					entity.Dispose();
+					continue;
+				}
+
+				if (!loadingTask.IsCompleted)
+					continue;
+
+				entity.Set(new AudioResource {Id     = currentId++});
+				entity.Set(new AudioBytesData {Value = loadingTask.Result});
+				entity.Set(new IsResourceLoaded<AudioResource>());
+				entity.Remove<IsLoadingFile>();
 			}
 		}
 
