@@ -33,7 +33,7 @@ namespace GameHost.Injection
             }
 
             // todo: maybe we should have an option to create the system if it does not exist?
-            Console.WriteLine($"System {type} isn't created");
+            //Console.WriteLine($"System {type} isn't created");
             return null;
         }
 

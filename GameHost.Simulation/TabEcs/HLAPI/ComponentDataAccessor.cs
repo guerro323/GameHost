@@ -54,6 +54,11 @@ namespace GameHost.Simulation.TabEcs.HLAPI
 		public readonly Span<PooledList<byte>>                       Source;
 		public readonly Span<EntityBoardContainer.ComponentMetadata> Links;
 
+		#if DEBUG
+		private GameWorld     gameWorld;
+		private ComponentType ct;
+		#endif
+		
 		public ComponentBufferAccessor(GameWorld gameWorld)
 		{
 			var componentType = gameWorld.AsComponentType<T>();
@@ -62,6 +67,11 @@ namespace GameHost.Simulation.TabEcs.HLAPI
 			                                 .ComponentType
 			                                 .ComponentBoardColumns[(int) componentType.Id]).AsSpan();
 			Links = gameWorld.Boards.Entity.GetComponentColumn(componentType.Id);
+			
+			#if DEBUG
+			this.gameWorld = gameWorld;
+			this.ct        = componentType;
+#endif
 		}
 
 
@@ -71,6 +81,20 @@ namespace GameHost.Simulation.TabEcs.HLAPI
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get
 			{
+				if (!gameWorld.Contains(gameEntity))
+					throw new InvalidOperationException($"<{typeof(T).Name}> {gameEntity} does not exist.");
+				if (!gameWorld.HasComponent(gameEntity, ct))
+				{
+					var msg           = $"{gameWorld.Safe(gameEntity)} has no {gameWorld.Boards.ComponentType.NameColumns[(int) ct.Id]}. Existing:\n";
+					var componentList = gameWorld.Boards.Archetype.GetComponentTypes(gameWorld.GetArchetype(gameEntity).Id);
+					foreach (var comp in componentList)
+					{
+						msg += $"  [{comp}] {gameWorld.Boards.ComponentType.NameColumns[(int) comp]}\n";
+					}
+				
+					throw new InvalidOperationException(msg);
+				}
+
 				if (Links.Length < gameEntity.Id + 1)
 					throw new IndexOutOfRangeException($"<{typeof(T).Name}> Links smaller! Length={Links.Length} < Index={gameEntity.Id}");
 				if (Source.Length < Links[(int) gameEntity.Id].Assigned + 1)
