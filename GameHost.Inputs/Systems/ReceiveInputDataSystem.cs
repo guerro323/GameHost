@@ -4,7 +4,9 @@ using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
 using GameHost.Inputs.Components;
 using GameHost.Inputs.Features;
+using Microsoft.Extensions.Logging;
 using RevolutionSnapshot.Core.Buffers;
+using ZLogger;
 
 namespace GameHost.Inputs.Systems
 {
@@ -13,6 +15,8 @@ namespace GameHost.Inputs.Systems
 		private EntitySet              inputSet;
 		private InputActionSystemGroup actionSystemGroup;
 
+		private ILogger logger;
+
 		public ReceiveInputDataSystem(WorldCollection collection) : base(collection)
 		{
 			inputSet = collection.Mgr.GetEntities()
@@ -20,6 +24,7 @@ namespace GameHost.Inputs.Systems
 			                     .AsSet();
 
 			DependencyResolver.Add(() => ref actionSystemGroup);
+			DependencyResolver.Add(() => ref logger);
 		}
 
 		public void ReceiveData(ref DataBufferReader data)
@@ -36,7 +41,10 @@ namespace GameHost.Inputs.Systems
 				var start = data.CurrReadIndex;
 				system.CallDeserialize(ref data);
 				if (data.CurrReadIndex != (start + length))
-					throw new InvalidOperationException($"Invalid reading for '{actionType}' (expected_length={length}, actual_length={data.CurrReadIndex - start})");
+				{
+					logger.ZLogError($"Invalid reading for '{actionType}' (expected_length={length}, actual_length={data.CurrReadIndex - start})");
+					data.CurrReadIndex = start + length;
+				}
 			}
 		}
 

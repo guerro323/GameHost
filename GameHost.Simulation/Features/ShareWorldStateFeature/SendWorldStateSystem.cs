@@ -7,6 +7,8 @@ using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
 using GameHost.Simulation.Application;
 using GameHost.Simulation.TabEcs;
+using GameHost.Simulation.Utility.EntityQuery;
+using GameHost.Simulation.Utility.Time;
 using K4os.Compression.LZ4;
 using RevolutionSnapshot.Core.Buffers;
 using Array = System.Array;
@@ -39,7 +41,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 		protected override void OnUpdate()
 		{
 			base.OnUpdate();
-
+			
 			GetDataParallel(gameWorld);
 
 			compressedBuffer.Length = 0;
@@ -245,30 +247,14 @@ namespace GameHost.Simulation.Features.ShareWorldState
 						for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
 						{
 							var entity = entities[ent];
-							if (linkColumnSpan[(int) entity.Id].Null)
+							var link   = linkColumnSpan[(int) entity.Id];
+							if (link.Null)
 								continue;
 
-							// Recursive support for shared components.
+							count++;
 
-							var recursionLeft = GameWorld.RecursionLimit;
-							while (recursionLeft-- > 0)
-							{
-								var link = linkColumnSpan[(int) entity.Id];
-								if (link.IsShared)
-								{
-									entity = new GameEntityHandle(link.Entity);
-									continue;
-								}
-
-								count++;
-
-								var componentData = singleComponentBoard.ReadRaw(link.Id);
-								buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentData.GetPinnableReference()), componentBoard.Size, default);
-								break;
-							}
-
-							if (recursionLeft == 0)
-								throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{entities[ent]}' and component (backing: {row})");
+							var componentData = singleComponentBoard.ReadRaw(link.Id);
+							buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentData.GetPinnableReference()), componentBoard.Size, default);
 						}
 
 						buffer.WriteInt(count, countMarker);
@@ -283,31 +269,15 @@ namespace GameHost.Simulation.Features.ShareWorldState
 						for (var ent = 0; ent != entities.Length && ent < linkColumnSpan.Length; ent++)
 						{
 							var entity = entities[ent];
-							if (linkColumnSpan[(int) entity.Id].Null)
+							var link   = linkColumnSpan[(int) entity.Id];
+							if (link.Null)
 								continue;
 
-							// Recursive support for shared components.
+							count++;
 
-							var recursionLeft = GameWorld.RecursionLimit;
-							while (recursionLeft-- > 0)
-							{
-								var link = linkColumnSpan[(int) entity.Id];
-								if (link.IsShared)
-								{
-									entity = new GameEntityHandle(link.Entity);
-									continue;
-								}
-
-								count++;
-
-								var rawBufferData = bufferComponentBoard.AsSpan()[(int) link.Id];
-								buffer.WriteInt(rawBufferData.Count);
-								buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref rawBufferData.Span.GetPinnableReference()), rawBufferData.Count, default);
-								break;
-							}
-
-							if (recursionLeft == 0)
-								throw new InvalidOperationException($"GetComponentData - Recursion limit reached with '{entities[ent]}' and component (backing: {row})");
+							var rawBufferData = bufferComponentBoard.AsSpan()[(int) link.Id];
+							buffer.WriteInt(rawBufferData.Count);
+							buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref rawBufferData.Span.GetPinnableReference()), rawBufferData.Count, default);
 						}
 
 						buffer.WriteInt(count, countMarker);

@@ -38,8 +38,15 @@ namespace GameHost.Game
 			DefaultListenerCollection = Global.World.CreateEntity();
 			DefaultListenerCollection.Set<ListenerCollectionBase>(new ListenerCollection());
 
-			AppDomain.CurrentDomain.UnhandledException += (sender, args) => { OnException((Exception) args.ExceptionObject); };
-			TaskScheduler.UnobservedTaskException      += (sender, args) => { OnException((Exception) args.Exception); };
+			AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+			{
+				OnException((Exception) args.ExceptionObject);
+			};
+			TaskScheduler.UnobservedTaskException += (sender, args) =>
+			{
+				args.SetObserved();
+				OnException((Exception) args.Exception);
+			};
 		}
 
 		public void Setup()
@@ -147,7 +154,7 @@ namespace GameHost.Game
 			{
 				if (GameEntity.IsAlive && GameEntity.Has<GameLogger>())
 				{
-					GameEntity.Get<GameLogger>().Value.ZLogError(ex, "Unhandled Exception.");
+					GameEntity.Get<GameLogger>().Value.ZLogError(ex, $"(Thread={Thread.CurrentThread.Name}#{Thread.CurrentThread.ManagedThreadId}) Unhandled Exception\n");
 				}
 			}
 			catch
