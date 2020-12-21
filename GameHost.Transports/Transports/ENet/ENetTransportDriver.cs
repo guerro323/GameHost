@@ -74,7 +74,7 @@ namespace GameHost.Transports
 			var i = 0;
 			foreach (var (id, con) in m_Connections)
 			{
-				span[i++] = new TransportConnection {Id = id, Version = (uint) m_ConnectionVersions[id]};
+				span[i++] = new TransportConnection {Id = con.Id, Version = (uint) m_ConnectionVersions[con.Id]};
 			}
 		}
 

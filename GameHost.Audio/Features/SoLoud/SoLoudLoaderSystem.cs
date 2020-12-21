@@ -28,6 +28,7 @@ namespace GameHost.Audio
 
 			soloud = new Soloud();
 			soloud.init();
+			soloud.setGlobalVolume(0.5f);
 
 			World.Mgr.CreateEntity()
 			     .Set(soloud);

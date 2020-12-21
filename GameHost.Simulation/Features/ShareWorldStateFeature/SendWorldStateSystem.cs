@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Collections.Pooled;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
 using GameHost.Simulation.Application;
@@ -88,18 +89,19 @@ namespace GameHost.Simulation.Features.ShareWorldState
 		}
 
 		private Action<StateData, ParallelLoopState, long> getDataParallelBody;
-		private List<StateData> pooledStates = new List<StateData>();
+		private List<StateData>                            pooledStates  = new();
+		private PooledList<DataBufferWriter>               pooledWriters = new();
 
 		private struct StateData
 		{
-			public DataBufferWriter[] Writers;
-			public GameWorld          World;
-			public ComponentType      ComponentType;
+			public PooledList<DataBufferWriter> Writers;
+			public GameWorld      World;
+			public ComponentType  ComponentType;
 		}
-		
+
 		void GetDataParallel_Body(StateData state, ParallelLoopState loop, long i)
 		{
-			var buffer   = state.Writers[i] = new DataBufferWriter(128);
+			var buffer   = state.Writers[(int) i] = new DataBufferWriter(128);
 			var entities = state.World.Boards.Entity.Alive;
 
 			Inner(ref buffer, state.World, state.ComponentType.Id, entities);
@@ -164,12 +166,13 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			}
 
 			// 4. Write components
-			var componentBuffers = new DataBufferWriter[componentTypeSpan.Length];
+			pooledWriters.Clear();
+			pooledWriters.AddSpan(componentTypeSpan.Length);
 			if (forceSingleThread)
 			{
 				for (var i = 0; i != componentTypeSpan.Length; i++)
 				{
-					var buffer = componentBuffers[i] = new DataBufferWriter(128);
+					var buffer = pooledWriters[i] = new DataBufferWriter(128);
 					Inner(ref buffer, world, componentTypeSpan[i].Id, entities);
 				}
 			}
@@ -180,7 +183,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				{
 					pooledStates.Add(new StateData
 					{
-						Writers = componentBuffers,
+						Writers = pooledWriters,
 						World = world,
 						ComponentType = componentTypeSpan[i]
 					});
@@ -190,13 +193,14 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			}
 
 			var capacityIncrease = 0;
-			foreach (var buffer in componentBuffers)
+			foreach (var buffer in pooledWriters)
 				capacityIncrease += buffer.Capacity;
 
 			dataBuffer.Capacity = Math.Max(dataBuffer.Capacity, dataBuffer.Length + capacityIncrease + 1);
 
-			var biggestIdx = 0;
-			var biggest    = 0;
+			var biggestIdx       = 0;
+			var biggest          = 0;
+			var componentBuffers = pooledWriters.Span;
 			for (var index = 0; index < componentBuffers.Length; index++)
 			{
 				var buffer = componentBuffers[index];
