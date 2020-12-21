@@ -11,6 +11,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Collections.Pooled" Version="2.0.0-preview.27" />
       <PackageReference Include="DefaultEcs" Version="0.14.3" />
       <PackageReference Include="JetBrains.Annotations" Version="2020.2.0-eap" />
       <PackageReference Include="JsonSubTypes" Version="1.7.0" />

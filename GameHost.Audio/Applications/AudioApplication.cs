@@ -27,7 +27,7 @@ namespace GameHost.Audio.Applications
 
 		public AudioApplication(GlobalWorld source, Context overrideContext) : base(source, overrideContext)
 		{
-			targetFrequency = TimeSpan.FromSeconds(1f / 1000f);
+			targetFrequency = TimeSpan.FromSeconds(1f / 500f);
 			timeApp = new TimeApp(Data.Context);
 			fts     = new FixedTimeStep {TargetFrameTimeMs = (int) targetFrequency.TotalMilliseconds};
 

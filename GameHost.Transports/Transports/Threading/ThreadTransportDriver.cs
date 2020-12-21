@@ -92,7 +92,7 @@ namespace GameHost.Transports
 						throw new InvalidOperationException("A connection still had events in queue!");
 					}
 
-					while (connection.PopEvent(out _) != TransportEvent.EType.None)
+					while (connection.PopEvent(out var ev) != TransportEvent.EType.None)
 					{
 					}
 				}
@@ -186,7 +186,7 @@ namespace GameHost.Transports
 		{
 			lock (m_Connections)
 			{
-				return m_Connections.Count;
+				return m_Connections.Count - m_QueuedConnections.Count;
 			}
 		}
 
@@ -195,9 +195,12 @@ namespace GameHost.Transports
 			lock (m_Connections)
 			{
 				var i = 0;
-				foreach (var (id, con) in m_Connections)
+				foreach (var connection in m_Connections.Values)
 				{
-					span[i++] = new TransportConnection {Id = id, Version = 1};
+					if (m_QueuedConnections.Contains(connection.Id))
+						continue;
+					
+					span[i++] = new TransportConnection {Id = connection.Id, Version = 1};
 				}
 			}
 		}
@@ -206,6 +209,8 @@ namespace GameHost.Transports
 		{
 			lock (m_Connections)
 			{
+				scheduler.Run();
+				
 				foreach (var connection in m_Connections.Values)
 				{
 					var con = new TransportConnection {Id = connection.Id, Version = 1};

@@ -175,7 +175,7 @@ namespace GameHost.Threading
 						timeToSleep = Update();
 					}
 
-					cancellationToken.WaitHandle.WaitOne(timeToSleep);
+					cancellationToken.WaitHandle.WaitOne(timeToSleep * 0.1f);
 				}
 			});
 			Thread.Name = threadName;

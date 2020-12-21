@@ -132,7 +132,7 @@ namespace GameHost.Transports
 
 			m_PacketsToSend.Clear();
 
-			for (var i = 0; i < 4; i++)
+			for (var i = 0; i < 2; i++)
 			{
 				if (m_Host.Service(0, out var netEvent) > 0)
 				{

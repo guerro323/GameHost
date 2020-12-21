@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
@@ -37,14 +38,16 @@ namespace GameHost.Simulation.Application
 			worker = new ApplicationWorker("Simulation");
 		}
 
+		private Stopwatch sleepTime = new Stopwatch();
 		protected override ListenerUpdate OnUpdate()
 		{
-			var delta       = worker.Delta;
+			sleepTime.Stop();
+		
+			var delta       = worker.Delta + sleepTime.Elapsed;
 			var updateCount = fts.GetUpdateCount(delta.TotalSeconds);
 			updateCount = Math.Min(updateCount, 3);
 			
 			var elapsed           = worker.Elapsed;
-			var previousWorkDelta = delta;
 
 			using (worker.StartMonitoring(targetFrequency))
 			{
@@ -65,9 +68,8 @@ namespace GameHost.Simulation.Application
 			//Console.WriteLine("DeltaMs : " + worker.Delta.TotalMilliseconds + ", perf: " + worker.Performance);
 
 			var timeToSleep = TimeSpan.FromTicks(Math.Max(targetFrequency.Ticks - worker.Delta.Ticks, 0));
-			if (timeToSleep.Ticks > 0)
-				worker.Delta += timeToSleep;
 
+			sleepTime.Restart();
 			return new ListenerUpdate
 			{
 				TimeToSleep = timeToSleep

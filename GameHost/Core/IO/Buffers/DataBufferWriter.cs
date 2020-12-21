@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using Collections.Pooled;
+using K4os.Compression.LZ4;
 
 namespace RevolutionSnapshot.Core.Buffers
 {
@@ -51,9 +53,16 @@ namespace RevolutionSnapshot.Core.Buffers
                 if (dataCapacity > value)
                     throw new InvalidOperationException("New capacity is shorter than current one");
 
+                if (m_Data->capacity < m_Data->length)
+                    throw new InvalidOperationException("length bigger than capacity");
+
                 var newBuffer = (byte*) UnsafeUtility.Malloc(value);
 
                 UnsafeUtility.MemCpy(newBuffer, m_Data->buffer, m_Data->length);
+#if DEBUG
+                if (!new Span<byte>(m_Data->buffer, m_Data->length).SequenceEqual(new Span<byte>(newBuffer, m_Data->length)))
+                    throw new InvalidOperationException($"not equal buffer");
+#endif
                 UnsafeUtility.Free(m_Data->buffer);
 
                 m_Data->buffer   = newBuffer;
@@ -86,7 +95,13 @@ namespace RevolutionSnapshot.Core.Buffers
             ref var buffer = ref *m_Data;
             
             var dataLength = buffer.length;
-            var writeIndex = marker.Index * (*(byte*) &marker.Valid) + dataLength * (1 - (*(byte*) &marker.Valid));
+
+            int writeIndex;
+            if (marker.Valid)
+                writeIndex = marker.Index;
+            else
+                writeIndex = dataLength;
+           // var writeIndex = marker.Index * (*(byte*) &marker.Valid) + dataLength * (1 - (*(byte*) &marker.Valid));
             
             // Copy from GetWriteInfo()
 
@@ -335,6 +350,45 @@ namespace RevolutionSnapshot.Core.Buffers
             var span = new Span<char>(val, strLength);
             WriteInt(span.Length);
             WriteSpan(span);
+        }
+    }
+
+    public unsafe partial struct DataBufferWriter
+    {
+        public void WriteCompressed(Span<byte> data, LZ4Level level = LZ4Level.L04_HC)
+        {
+            var compressedSize   = LZ4Codec.MaximumOutputSize(data.Length);
+            var compressedMarker = WriteInt(compressedSize);
+            WriteInt(data.Length);
+            
+            Capacity += compressedSize;
+
+            const LZ4Level encoder = LZ4Level.L08_HC;
+
+            var size = LZ4Codec.Encode(data, CapacitySpan.Slice(Length, compressedSize), encoder);
+            WriteInt(size, compressedMarker);
+
+            Length += size;
+        }
+    }
+    
+    public unsafe partial struct DataBufferReader
+    {
+        public Span<byte> ReadDecompressed(PooledList<byte> fill)
+        {
+            var compressedSize   = ReadValue<int>();
+            var uncompressedSize = ReadValue<int>();
+
+            var uncompressed = fill.AddSpan(uncompressedSize);
+
+            unsafe
+            {
+                // var compressed = new Span<byte>(DataPtr + GetReadIndexAndSetNew(default, compressedSize * sizeof(byte)), compressedSize);
+                var compressed = Span.Slice(GetReadIndexAndSetNew(default, compressedSize));
+                LZ4Codec.Decode(compressed, uncompressed);
+            }
+
+            return uncompressed;
         }
     }
 }

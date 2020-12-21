@@ -4,13 +4,11 @@ using GameHost.Native.Char;
 
 namespace RevolutionSnapshot.Core.Buffers
 {
-    public unsafe ref struct DataBufferReader
+    public unsafe ref partial struct DataBufferReader
     {
-        public byte* DataPtr;
-
         public int CurrReadIndex;
-        public int Length;
-
+        public int Length => Span.Length;
+        
         public DataBufferReader(IntPtr dataPtr, int length) : this((byte*) dataPtr, length)
         {
         }
@@ -19,46 +17,36 @@ namespace RevolutionSnapshot.Core.Buffers
         {
             if (dataPtr == null)
                 throw new InvalidOperationException("dataPtr is null");
-
-            DataPtr       = dataPtr;
+            
             CurrReadIndex = 0;
-            Length        = length;
+            Span   = new Span<byte>(dataPtr, length);
         }
 
         public DataBufferReader(DataBufferReader reader, int start, int end)
         {
-            DataPtr       = (byte*) ((IntPtr) reader.DataPtr + start);
+            Span   = reader.Span.Slice(start, end - start);
             CurrReadIndex = 0;
-            Length        = end - start;
         }
 
         public DataBufferReader(DataBufferWriter writer)
         {
-            DataPtr       = (byte*) writer.GetSafePtr();
+            Span          = writer.Span;
             CurrReadIndex = 0;
-            Length        = writer.Length;
         }
+
+        private Span<byte> Span;
 
         public DataBufferReader(Span<byte> data)
         {
-            DataPtr       = (byte*) Unsafe.AsPointer(ref data.GetPinnableReference());
+            Span          = data;
             CurrReadIndex = 0;
-            Length        = data.Length;
-        }
-
-        public int GetReadIndex(DataBufferMarker marker)
-        {
-            var readIndex = !marker.Valid ? CurrReadIndex : marker.Index;
-            if (readIndex >= Length)
-            {
-                throw new IndexOutOfRangeException("p1");
-            }
-
-            return readIndex;
         }
 
         public int GetReadIndexAndSetNew(DataBufferMarker marker, int size)
         {
+            if (size < 0)
+                throw new InvalidOperationException();
+            
             var readIndex = !marker.Valid ? CurrReadIndex : marker.Index;
             if (readIndex >= Length)
             {
@@ -76,9 +64,19 @@ namespace RevolutionSnapshot.Core.Buffers
 
         public void ReadUnsafe(byte* data, int index, int size)
         {
-            Unsafe.CopyBlock(data, (void*) IntPtr.Add((IntPtr) DataPtr, index), (uint) size);
+#if DEBUG
+            if (size <= 0)
+                throw new InvalidOperationException("???");
+
+            if (index + size > Length)
+                throw new InvalidOperationException("stop there criminal scum");
+            if (index + size < 0)
+                throw new InvalidOperationException("illegal");
+#endif
+            Span.Slice(index, size).CopyTo(new Span<byte>(data, size));
+            //Unsafe.CopyBlockUnaligned(data, DataPtr + index, (uint) size);
         }
-        
+
         public void ReadDataSafe(byte* data, int size, DataBufferMarker marker = default)
         {
             var readIndex = GetReadIndexAndSetNew(marker, size);
@@ -94,19 +92,21 @@ namespace RevolutionSnapshot.Core.Buffers
             ReadDataSafe((byte*) Unsafe.AsPointer(ref span.GetPinnableReference()), span.Length * Unsafe.SizeOf<T>(), marker);
         }
 
-        public T ReadValue<T>(DataBufferMarker marker = default(DataBufferMarker))
+        public unsafe T ReadValue<T>(DataBufferMarker marker = default(DataBufferMarker))
             where T : struct
         {
-            var val       = default(T);
+            /*var val       = default(T);
             var size      = Unsafe.SizeOf<T>();
             var readIndex = GetReadIndexAndSetNew(marker, size);
 
             // Set it for later usage
             CurrReadIndex = readIndex + size;
             // Read the value
-            ReadUnsafe((byte*) Unsafe.AsPointer(ref val), readIndex, size);
+            ReadUnsafe((byte*) Unsafe.AsPointer(ref val), readIndex, size);*/
 
-            return val;
+            T value = default;
+            ReadDataSafe((byte*) Unsafe.AsPointer(ref value), Unsafe.SizeOf<T>());
+            return value;
         }
 
         public DataBufferMarker CreateMarker(int index)
@@ -199,17 +199,10 @@ namespace RevolutionSnapshot.Core.Buffers
             getval(ref this, val3, ref r4);
         }
 
-        public Span<T> ReadSpanDirect<T>(DataBufferMarker marker = default)
-            where T : struct
-        {
-            var length = ReadValue<int>();
-            return new Span<T>(DataPtr + GetReadIndexAndSetNew(marker, length * Unsafe.SizeOf<T>()), length);
-        }
-
         public string ReadString(DataBufferMarker marker = default)
         {
             var length = ReadValue<int>();
-            if (length < 1024)
+            if (length < 64)
             {
                 Span<char> span = stackalloc char[length];
                 ReadDataSafe(new Span<char>(Unsafe.AsPointer(ref span.GetPinnableReference()), length), marker);
@@ -217,7 +210,7 @@ namespace RevolutionSnapshot.Core.Buffers
             }
 
             var ptr = UnsafeUtility.Malloc(length * sizeof(char));
-            ReadDataSafe((byte*) ptr, length * sizeof(char), marker);
+            ReadDataSafe(new Span<char>(ptr, length), marker);
             UnsafeUtility.Free(ptr);
             return new string((char*) ptr, 0, length);
         }
@@ -226,7 +219,7 @@ namespace RevolutionSnapshot.Core.Buffers
             where TCharBuffer : struct, ICharBuffer
         {
             var length = ReadValue<int>();
-            if (length < 1024)
+            if (length < 64)
             {
                 Span<char> span = stackalloc char[length];
                 ReadDataSafe(new Span<char>(Unsafe.AsPointer(ref span.GetPinnableReference()), length), marker);

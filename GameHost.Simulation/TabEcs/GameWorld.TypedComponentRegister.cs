@@ -74,9 +74,12 @@ namespace GameHost.Simulation.TabEcs
 
 			public static void RemoveType(Type type)
 			{
-				typeNewWorldMap.Remove(type);
-				typeNewComponentMap.Remove(type);
-				typeGetComponentMap.Remove(type);
+				lock (_Synchronization)
+				{
+					typeNewWorldMap.Remove(type);
+					typeNewComponentMap.Remove(type);
+					typeGetComponentMap.Remove(type);
+				}
 			}
 		}
 

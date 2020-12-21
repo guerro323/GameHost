@@ -85,6 +85,10 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 				if (metadata.Valid)
 					founds[foundIndex++] = typeSpan[i].Id;
 			}
+			
+			if (foundIndex > 128)
+				throw new InvalidOperationException("What are you trying to do with " + foundIndex + " components?");
+
 
 			var archetype        = archetypeBoard.GetOrCreateRow(founds.Slice(0, foundIndex), true);
 			var currentArchetype = entityBoard.ArchetypeColumn[(int) entityHandle.Id];
