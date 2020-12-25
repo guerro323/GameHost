@@ -120,7 +120,10 @@ namespace GameHost.Audio.Systems
 				entity.Remove<AskLoadResource<AudioResource>>();
 			}
 
-			entities = stackalloc Entity[loadingSet.Count];
+			if (loadingSet.Count == 0)
+				return;
+			
+			entities = new Entity[loadingSet.Count];
 			loadingSet.GetEntities().CopyTo(entities);
 			foreach (var entity in entities)
 			{

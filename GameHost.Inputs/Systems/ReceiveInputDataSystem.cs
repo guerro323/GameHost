@@ -42,7 +42,7 @@ namespace GameHost.Inputs.Systems
 				system.CallDeserialize(ref data);
 				if (data.CurrReadIndex != (start + length))
 				{
-					logger.ZLogError($"Invalid reading for '{actionType}' (expected_length={length}, actual_length={data.CurrReadIndex - start})");
+					//logger.ZLogError($"Invalid reading for '{actionType}' (expected_length={length}, actual_length={data.CurrReadIndex - start})");
 					data.CurrReadIndex = start + length;
 				}
 			}

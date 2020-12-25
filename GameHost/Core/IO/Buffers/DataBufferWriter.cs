@@ -57,7 +57,6 @@ namespace RevolutionSnapshot.Core.Buffers
                     throw new InvalidOperationException("length bigger than capacity");
 
                 var newBuffer = (byte*) UnsafeUtility.Malloc(value);
-
                 UnsafeUtility.MemCpy(newBuffer, m_Data->buffer, m_Data->length);
 #if DEBUG
                 if (!new Span<byte>(m_Data->buffer, m_Data->length).SequenceEqual(new Span<byte>(newBuffer, m_Data->length)))
@@ -355,17 +354,15 @@ namespace RevolutionSnapshot.Core.Buffers
 
     public unsafe partial struct DataBufferWriter
     {
-        public void WriteCompressed(Span<byte> data, LZ4Level level = LZ4Level.L04_HC)
+        public void WriteCompressed(Span<byte> data, LZ4Level level = LZ4Level.L05_HC)
         {
             var compressedSize   = LZ4Codec.MaximumOutputSize(data.Length);
             var compressedMarker = WriteInt(compressedSize);
             WriteInt(data.Length);
             
             Capacity += compressedSize;
-
-            const LZ4Level encoder = LZ4Level.L08_HC;
-
-            var size = LZ4Codec.Encode(data, CapacitySpan.Slice(Length, compressedSize), encoder);
+            
+            var size = LZ4Codec.Encode(data, CapacitySpan.Slice(Length, compressedSize), level);
             WriteInt(size, compressedMarker);
 
             Length += size;

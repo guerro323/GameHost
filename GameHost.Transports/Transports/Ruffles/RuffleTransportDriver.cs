@@ -54,7 +54,7 @@ namespace GameHost.Transports.Transports.Ruffles
 				IPv4ListenAddress   = IPAddress.Parse("0.0.0.0"),
 				ChannelTypes = new[]
 				{
-					ChannelType.ReliableFragmented
+					ChannelType.ReliableSequencedFragmented
 				},
 				DualListenPort = port
 			});

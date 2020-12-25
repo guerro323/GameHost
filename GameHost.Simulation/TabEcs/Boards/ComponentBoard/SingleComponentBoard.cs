@@ -33,6 +33,16 @@ using System.Runtime.InteropServices;
 			 return row;
 		 }
 
+		 public override bool DeleteRow(uint row)
+		 {
+			 // clear data
+			 column.data
+			       .AsSpan((int) row * Size, Size)
+			       .Clear();
+			 
+			 return base.DeleteRow(row);
+		 }
+
 		 public Span<T> AsSpan<T>() where T : struct
 		 {
 			 if (Unsafe.SizeOf<T>() != Size)

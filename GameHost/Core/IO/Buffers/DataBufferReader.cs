@@ -64,17 +64,7 @@ namespace RevolutionSnapshot.Core.Buffers
 
         public void ReadUnsafe(byte* data, int index, int size)
         {
-#if DEBUG
-            if (size <= 0)
-                throw new InvalidOperationException("???");
-
-            if (index + size > Length)
-                throw new InvalidOperationException("stop there criminal scum");
-            if (index + size < 0)
-                throw new InvalidOperationException("illegal");
-#endif
-            Span.Slice(index, size).CopyTo(new Span<byte>(data, size));
-            //Unsafe.CopyBlockUnaligned(data, DataPtr + index, (uint) size);
+            Span.Slice(index, size).CopyTo(new Span<byte>(data, size)); 
         }
 
         public void ReadDataSafe(byte* data, int size, DataBufferMarker marker = default)
@@ -95,15 +85,6 @@ namespace RevolutionSnapshot.Core.Buffers
         public unsafe T ReadValue<T>(DataBufferMarker marker = default(DataBufferMarker))
             where T : struct
         {
-            /*var val       = default(T);
-            var size      = Unsafe.SizeOf<T>();
-            var readIndex = GetReadIndexAndSetNew(marker, size);
-
-            // Set it for later usage
-            CurrReadIndex = readIndex + size;
-            // Read the value
-            ReadUnsafe((byte*) Unsafe.AsPointer(ref val), readIndex, size);*/
-
             T value = default;
             ReadDataSafe((byte*) Unsafe.AsPointer(ref value), Unsafe.SizeOf<T>());
             return value;
@@ -202,6 +183,9 @@ namespace RevolutionSnapshot.Core.Buffers
         public string ReadString(DataBufferMarker marker = default)
         {
             var length = ReadValue<int>();
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length));
+            
             if (length < 64)
             {
                 Span<char> span = stackalloc char[length];
@@ -219,6 +203,9 @@ namespace RevolutionSnapshot.Core.Buffers
             where TCharBuffer : struct, ICharBuffer
         {
             var length = ReadValue<int>();
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length));
+            
             if (length < 64)
             {
                 Span<char> span = stackalloc char[length];
