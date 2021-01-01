@@ -223,9 +223,20 @@ namespace GameHost.Transports.Transports.Ruffles
 			return 0;
 		}
 
-		public override int                       Broadcast(TransportChannel             chan, Span<byte>          data)
+		public override int Broadcast(TransportChannel chan, Span<byte> data)
 		{
-			throw new NotImplementedException("broadcast not yet implemented (not needed for current usage)");
+			if (data.Length > tempBuffer.Length)
+				throw new InvalidOperationException($"{data.Length} bigger than {tempBuffer.Length}!");
+
+			var segment = new ArraySegment<byte>(tempBuffer, 0, data.Length);
+			data.CopyTo(segment);
+
+			foreach (var (tcon, rcon) in connectionMapForward)
+			{
+				rcon.Send(segment, 0, false, msgCounter++);
+			}
+
+			return 0;
 		}
 
 		public override int                       GetConnectionCount()

@@ -63,5 +63,25 @@ namespace GameHost.Native.Char
 				return hash;
 			}
 		}
+		
+		public static int ComputeHashCode(string buffer)
+		{
+			unchecked
+			{
+				const int p    = 16777619;
+				var       hash = (int) 2166136261;
+
+				var span = buffer.AsSpan();
+				foreach (var tchar in span)
+					hash = (hash ^ tchar) * p;
+
+				hash += hash << 13;
+				hash ^= hash >> 7;
+				hash += hash << 3;
+				hash ^= hash >> 17;
+				hash += hash << 5;
+				return hash;
+			}
+		}
 	}
 }

@@ -19,7 +19,7 @@ namespace GameHost.Threading
 
 		public abstract void Dispose();
 
-		public abstract SynchronizationManager.Context SynchronizeThread(TimeSpan span = default);
+		public abstract SynchronizationManager.SyncContext SynchronizeThread(TimeSpan span = default);
 	}
 
 	public class ListenerCollection : ListenerCollectionBase, IScheduler
@@ -129,11 +129,11 @@ namespace GameHost.Threading
 
 		private SynchronizationManager manager = new SynchronizationManager();
 
-		public override SynchronizationManager.Context SynchronizeThread(TimeSpan span = default)
+		public override SynchronizationManager.SyncContext SynchronizeThread(TimeSpan span = default)
 		{
 			if (span == default)
 				span = TimeSpan.FromSeconds(10);
-			return new SynchronizationManager.Context(manager, span);
+			return new SynchronizationManager.SyncContext(manager, span);
 		}
 		
 		private Scheduler scheduler = new Scheduler();

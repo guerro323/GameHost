@@ -12,12 +12,12 @@ namespace GameHost.Threading
 			Lock = new SpinLock(true);
 		}
 
-		public struct Context : IDisposable
+		public struct SyncContext : IDisposable
 		{
 			public readonly SynchronizationManager Synchronizer;
 			public readonly bool                   LockTaken;
 
-			public Context(SynchronizationManager synchronizer, TimeSpan timeout)
+			public SyncContext(SynchronizationManager synchronizer, TimeSpan timeout)
 			{
 				Synchronizer = synchronizer;
 
@@ -48,6 +48,6 @@ namespace GameHost.Threading
 
 	public interface IThreadSynchronizer
 	{
-		SynchronizationManager.Context SynchronizeThread(TimeSpan span = default);
+		SynchronizationManager.SyncContext SynchronizeThread(TimeSpan span = default);
 	}
 }

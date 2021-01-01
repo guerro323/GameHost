@@ -114,11 +114,23 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			ref var r = ref MemoryMarshal.GetReference(matchedArchetypes.Span);
 			return new EntityQueryEnumerator
 			{
-				Board       = GameWorld.Boards.Archetype,
-				Inner       = matchedArchetypes,
-				InnerIndex  = -1,
-				InnerSize   = matchedArchetypes.Count
+				Board      = GameWorld.Boards.Archetype,
+				Inner      = matchedArchetypes,
+				InnerIndex = -1,
+				InnerSize  = matchedArchetypes.Count
 			};
+		}
+
+		// we need to make sure that the user know to not call this method at each iteration of a loop (eg: `for (i = 0; i < GetEntityCount(); i++)`)
+		public int GetEntityCount()
+		{
+			CheckForNewArchetypes();
+
+			var count = 0;
+			// It is fast?
+			foreach (var arch in matchedArchetypes.Span)
+				count += GameWorld.Boards.Archetype.GetEntities(arch).Length;
+			return count;
 		}
 
 		public bool Any()
@@ -137,9 +149,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 
 			foreach (var arch in matchedArchetypes.Span)
 			{
-				// This work on a swapback basis, so we need to decrement by one at each delete
-				while (GameWorld.Boards.Archetype.GetEntities(arch).Length > 0)
-					GameWorld.RemoveEntity(new GameEntityHandle(GameWorld.Boards.Archetype.GetEntities(arch)[0]));
+				GameWorld.RemoveEntityBulk(MemoryMarshal.Cast<uint, GameEntityHandle>(GameWorld.Boards.Archetype.GetEntities(arch)));
 			}
 		}
 

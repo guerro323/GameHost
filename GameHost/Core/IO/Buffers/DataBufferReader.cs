@@ -185,7 +185,7 @@ namespace RevolutionSnapshot.Core.Buffers
             var length = ReadValue<int>();
             if (length < 0)
                 throw new ArgumentOutOfRangeException(nameof(length));
-            
+
             if (length < 64)
             {
                 Span<char> span = stackalloc char[length];
@@ -194,9 +194,15 @@ namespace RevolutionSnapshot.Core.Buffers
             }
 
             var ptr = UnsafeUtility.Malloc(length * sizeof(char));
-            ReadDataSafe(new Span<char>(ptr, length), marker);
-            UnsafeUtility.Free(ptr);
-            return new string((char*) ptr, 0, length);
+            try
+            {
+                ReadDataSafe(new Span<char>(ptr, length), marker);
+                return new string((char*) ptr, 0, length);
+            }
+            finally
+            {
+                UnsafeUtility.Free(ptr);
+            }
         }
 
         public TCharBuffer ReadBuffer<TCharBuffer>(DataBufferMarker marker = default(DataBufferMarker))
@@ -214,10 +220,16 @@ namespace RevolutionSnapshot.Core.Buffers
             }
 
             var ptr = UnsafeUtility.Malloc(length * sizeof(char));
-            ReadDataSafe((byte*) ptr, length * sizeof(char), marker);
-            var buffer = CharBufferUtility.Create<TCharBuffer>(new Span<char>(ptr, length));
-            UnsafeUtility.Free(ptr);
-            return buffer;
+            try
+            {
+                ReadDataSafe((byte*) ptr, length * sizeof(char), marker);
+                var buffer = CharBufferUtility.Create<TCharBuffer>(new Span<char>(ptr, length));
+                return buffer;
+            }
+            finally
+            {
+                UnsafeUtility.Free(ptr);
+            }
         }
     }
 }

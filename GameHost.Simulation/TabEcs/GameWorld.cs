@@ -40,9 +40,26 @@ namespace GameHost.Simulation.TabEcs
 			};
 		}
 
+		public bool HasComponentType(string name)
+		{
+			return Boards.ComponentType.Registered.Any(row => Boards.ComponentType.NameColumns[(int) row.Id] == name);
+		}
+
+		public ComponentType GetComponentType(string name)
+		{
+			var componentTypeBoard = Boards.ComponentType;
+			for (var i = 1; i < componentTypeBoard.Registered.Length; i++)
+			{
+				if (componentTypeBoard.NameColumns[i] == name)
+					return new ComponentType((uint) i);
+			}
+
+			throw new KeyNotFoundException(name);
+		}
+
 		public ComponentType RegisterComponent(string name, ComponentBoardBase componentBoard, Type optionalManagedType = null)
 		{
-			if (Boards.ComponentType.Registered.Where(row => Boards.ComponentType.NameColumns[(int) row.Id] == name).Count() > 0)
+			if (HasComponentType(name))
 				throw new InvalidOperationException($"[{WorldId}] A component named '{name}' already exist");
 
 			return new ComponentType(Boards.ComponentType.CreateRow(name, componentBoard));

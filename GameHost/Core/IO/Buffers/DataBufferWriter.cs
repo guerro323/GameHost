@@ -354,18 +354,21 @@ namespace RevolutionSnapshot.Core.Buffers
 
     public unsafe partial struct DataBufferWriter
     {
-        public void WriteCompressed(Span<byte> data, LZ4Level level = LZ4Level.L05_HC)
+        public int WriteCompressed(Span<byte> data, LZ4Level level = LZ4Level.L05_HC)
         {
             var compressedSize   = LZ4Codec.MaximumOutputSize(data.Length);
             var compressedMarker = WriteInt(compressedSize);
             WriteInt(data.Length);
             
             Capacity += compressedSize;
-            
+
+            //Console.WriteLine($"Write at {Length} with size {compressedSize} (write back compressedSize at {compressedMarker.Index})");
             var size = LZ4Codec.Encode(data, CapacitySpan.Slice(Length, compressedSize), level);
             WriteInt(size, compressedMarker);
 
             Length += size;
+
+            return size;
         }
     }
     

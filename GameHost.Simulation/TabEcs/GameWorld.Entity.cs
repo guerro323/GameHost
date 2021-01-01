@@ -29,6 +29,57 @@ namespace GameHost.Simulation.TabEcs
 			foreach (var ent in entities)
 				GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, ent);
 		}
+		
+		// Version with GameEntity support
+		public void RemoveEntityBulk(ReadOnlySpan<GameEntity> entities)
+		{
+			// We actually copy the handles since it's possible that it's originally from a list that is automatically resized after an entity is deleted.
+			// To make sure there are no stack overflow, we copy a max of 64 entities every iteration (and if there are less than 64, we just use this number)
+
+			const int toOperate = 32;
+			
+			Span<GameEntity> bulk = stackalloc GameEntity[toOperate];
+			while (entities.Length >= toOperate)
+			{
+				entities.Slice(0, toOperate).CopyTo(bulk);
+
+				foreach (var entity in bulk)
+					RemoveEntity(entity.Handle);
+			}
+
+			if (entities.Length <= 0)
+				return;
+
+			entities.CopyTo(bulk);
+
+			foreach (var entity in bulk.Slice(0, entities.Length))
+				RemoveEntity(entity.Handle);
+		}
+
+		public void RemoveEntityBulk(ReadOnlySpan<GameEntityHandle> handles)
+		{
+			// We actually copy the handles since it's possible that it's originally from a list that is automatically resized after an entity is deleted.
+			// To make sure there are no stack overflow, we copy a max of 64 entities every iteration (and if there are less than 64, we just use this number)
+
+			const int toOperate = 64;
+			
+			Span<GameEntityHandle> bulk = stackalloc GameEntityHandle[toOperate];
+			while (handles.Length >= toOperate)
+			{
+				handles.Slice(0, toOperate).CopyTo(bulk);
+
+				foreach (var handle in bulk)
+					RemoveEntity(handle);
+			}
+
+			if (handles.Length <= 0)
+				return;
+
+			handles.CopyTo(bulk);
+
+			foreach (var handle in bulk.Slice(0, handles.Length))
+				RemoveEntity(handle);
+		}
 
 		public void RemoveEntity(GameEntityHandle entityHandle)
 		{
@@ -71,7 +122,7 @@ namespace GameHost.Simulation.TabEcs
 		/// </summary>
 		public bool Contains(GameEntityHandle entityHandle)
 		{
-			return Boards.Entity.ArchetypeColumn[(int) entityHandle.Id].Id > 0;
+			return entityHandle.Id < Boards.Entity.ArchetypeColumn.Length && Boards.Entity.ArchetypeColumn[(int) entityHandle.Id].Id > 0;
 		}
 
 		/// <summary>

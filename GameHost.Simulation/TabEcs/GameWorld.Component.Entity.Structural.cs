@@ -93,13 +93,44 @@ namespace GameHost.Simulation.TabEcs
 
 			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);*/
 		}
-		
+
+		/// <summary>
+		/// Assure that an entity has the components. If an entity already possess one of them, it will not get replaced.
+		/// </summary>
+		/// <param name="entityHandle"></param>
+		/// <param name="componentTypeSpan"></param>
+		public void AssureComponents(GameEntityHandle entityHandle, Span<ComponentType> componentTypeSpan)
+		{
+			var updateArchetype = false;
+			var entityBoard     = Boards.Entity;
+
+			foreach (ref readonly var componentType in componentTypeSpan)
+			{
+				// TODO: support for shared component
+				if (entityBoard.GetComponentColumn(componentType.Id)[(int) entityHandle.Id].Valid)
+					continue;
+
+				var componentBoard = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);
+				var cRef           = new ComponentReference(componentType, GameWorldLL.CreateComponent(componentBoard));
+
+				GameWorldLL.AssignComponent(componentBoard, cRef, Boards.Entity, entityHandle);
+				GameWorldLL.SetOwner(componentBoard, cRef, entityHandle);
+
+				updateArchetype = true;
+			}
+
+			if (updateArchetype)
+				GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
+		}
+
 		/// <summary>
 		/// Add multiple component to an entity
 		/// </summary>
 		/// <param name="entityHandle"></param>
 		/// <param name="componentType"></param>
-		/// <returns></returns>
+		/// <remarks>
+		///	If you wish to not replace existing components, use <see cref="AssureComponents"/> (a bit slower than this method)
+		/// </remarks>
 		public void AddMultipleComponent(GameEntityHandle entityHandle, Span<ComponentType> componentTypeSpan)
 		{
 			ThrowOnInvalidHandle(entityHandle);

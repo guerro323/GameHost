@@ -48,5 +48,11 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			singleton = world.GetComponentData<T>(entity);
 			return true;
 		}
+
+		public static bool TryGetSingleton<T>(this GameWorld world, out GameEntityHandle entityHandle) where T : struct, IComponentData
+		{
+			var enumerator = QueryEntityWith(world, stackalloc[] {world.AsComponentType<T>()});
+			return enumerator.TryGetFirst(out entityHandle);
+		}
 	}
 }
