@@ -56,7 +56,7 @@ namespace GameHost.Transports.Transports.Ruffles
 				{
 					ChannelType.ReliableSequencedFragmented
 				},
-				DualListenPort = port
+				DualListenPort = port,
 			});
 
 			var r = socket.Start();

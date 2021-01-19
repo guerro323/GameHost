@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Collections.Pooled;
+using GameHost.IO;
 using K4os.Compression.LZ4;
 
 namespace RevolutionSnapshot.Core.Buffers
@@ -22,100 +24,96 @@ namespace RevolutionSnapshot.Core.Buffers
         }
     }
 
-    public unsafe partial struct DataBufferWriter : IDisposable
+    public partial struct DataBufferWriter : IDisposable
     {
         internal struct DataBuffer
         {
-            public byte* buffer;
-            public int   length;
-            public int   capacity;
+            public AllocatedMemory memory;
+            public int             length;
+            public int             capacity;
         }
 
-        private DataBuffer* m_Data;
+        private AllocatedMemory m_Data;
+        private IAllocator      m_Allocator;
 
-        public bool IsCreated => m_Data != null;
+        public bool IsCreated => m_Data.IsValid;
 
         public int Length
         {
-            get => m_Data->length;
-            set => m_Data->length = value;
+            get => m_Data.As<DataBuffer>().length;
+            set => m_Data.As<DataBuffer>().length = value;
         }
 
         public int Capacity
         {
-            get => m_Data->capacity;
+            get => m_Data.As<DataBuffer>().capacity;
             set
             {
-                var dataCapacity = m_Data->capacity;
+                ref var data = ref m_Data.As<DataBuffer>();
+
+                var dataCapacity = data.capacity;
                 if (dataCapacity == value)
                     return;
 
                 if (dataCapacity > value)
                     throw new InvalidOperationException("New capacity is shorter than current one");
 
-                if (m_Data->capacity < m_Data->length)
+                if (data.capacity < data.length)
                     throw new InvalidOperationException("length bigger than capacity");
 
-                var newBuffer = (byte*) UnsafeUtility.Malloc(value);
-                UnsafeUtility.MemCpy(newBuffer, m_Data->buffer, m_Data->length);
-#if DEBUG
-                if (!new Span<byte>(m_Data->buffer, m_Data->length).SequenceEqual(new Span<byte>(newBuffer, m_Data->length)))
-                    throw new InvalidOperationException($"not equal buffer");
-#endif
-                UnsafeUtility.Free(m_Data->buffer);
+                var newBuffer = m_Allocator.Alloc((uint) value);
 
-                m_Data->buffer   = newBuffer;
-                m_Data->capacity = value;
+                data.memory.Allocator = m_Allocator; // make sure that it remember our original allocator
+                data.memory.Span.Slice(0, data.length).CopyTo(newBuffer.Span.Slice(0, data.length));
+                
+                data.memory.Dispose();
+
+                data.memory   = newBuffer;
+                data.capacity = value;
             }
         }
 
-        public IntPtr     GetSafePtr() => (IntPtr) m_Data->buffer;
-        public Span<byte> Span         => new Span<byte>(m_Data->buffer, m_Data->length);
-        public Span<byte> CapacitySpan => new Span<byte>(m_Data->buffer, m_Data->capacity);
-
-
-        public DataBufferWriter(int capacity)
+        private AllocatedMemory getMemory()
         {
-            m_Data           = (DataBuffer*) UnsafeUtility.Malloc(sizeof(DataBuffer));
-            m_Data->buffer   = (byte*) UnsafeUtility.Malloc(capacity);
-            m_Data->length   = 0;
-            m_Data->capacity = capacity;
+            ref var data = ref m_Data.As<DataBuffer>();
+            data.memory.Allocator = m_Allocator;
+            return data.memory;
+        }
+
+        public IntPtr     GetSafePtr() => getMemory().DataPtr;
+        public Span<byte> Span         => getMemory().Span.Slice(0, m_Data.As<DataBuffer>().length);
+        public Span<byte> CapacitySpan => getMemory().Span;
+
+        public DataBufferWriter(int capacity, IAllocator allocator = null)
+        {
+            m_Allocator = allocator ?? ManagedAllocator.Default;
+
+            m_Data = m_Allocator.Alloc((uint) Unsafe.SizeOf<DataBuffer>());
+
+            ref var data = ref m_Data.As<DataBuffer>();
+            data.length   = 0;
+            data.capacity = capacity;
+            data.memory   = m_Allocator.Alloc((uint) capacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteData(byte* data, int index, int length)
+        public DataBufferMarker WriteDataSafe(Span<byte> data, DataBufferMarker marker)
         {
-            UnsafeUtility.MemCpy(m_Data->buffer + index, data, length);
-        }
+            ref var buffer = ref m_Data.As<DataBuffer>();
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public DataBufferMarker WriteDataSafe(byte* data, int writeSize, DataBufferMarker marker)
-        {
-            ref var buffer = ref *m_Data;
-            
             var dataLength = buffer.length;
+            var writeIndex = marker.Valid ? marker.Index : dataLength;
 
-            int writeIndex;
-            if (marker.Valid)
-                writeIndex = marker.Index;
-            else
-                writeIndex = dataLength;
-           // var writeIndex = marker.Index * (*(byte*) &marker.Valid) + dataLength * (1 - (*(byte*) &marker.Valid));
-            
-            // Copy from GetWriteInfo()
+            var predictedLength = writeIndex + data.Length;
 
-            var predictedLength = writeIndex + writeSize;
-
-            // Copy from TryResize()
             if (buffer.capacity <= predictedLength)
             {
                 Capacity = predictedLength * 2;
             }
 
-            // Copy from WriteData()
-            UnsafeUtility.MemCpy(buffer.buffer + writeIndex, data, writeSize);
-
             buffer.length = Math.Max(predictedLength, dataLength);
+
+            data.CopyTo(Span.Slice(writeIndex));
 
             DataBufferMarker rm;
             rm.Valid = true;
@@ -126,29 +124,23 @@ namespace RevolutionSnapshot.Core.Buffers
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DataBufferMarker WriteSpan<T>(Span<T> span, DataBufferMarker marker = default)
+            where T : unmanaged
         {
-            return WriteDataSafe((byte*) Unsafe.AsPointer(ref span.GetPinnableReference()), Unsafe.SizeOf<T>() * span.Length, marker);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public DataBufferMarker WriteRef<T>(ref T val, DataBufferMarker marker = default(DataBufferMarker))
-            where T : struct
-        {
-            return WriteDataSafe((byte*) Unsafe.AsPointer(ref val), Unsafe.SizeOf<T>(), marker);
+            return WriteDataSafe(MemoryMarshal.AsBytes(span), marker);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DataBufferMarker WriteUnmanaged<T>(T val, DataBufferMarker marker = default(DataBufferMarker))
             where T : unmanaged
         {
-            return WriteDataSafe((byte*) &val, sizeof(T), marker);
+            return WriteDataSafe(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref val, 1)), marker);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DataBufferMarker WriteValue<T>(T val, DataBufferMarker marker = default(DataBufferMarker))
             where T : struct
         {
-            return WriteDataSafe((byte*) Unsafe.AsPointer(ref val), Unsafe.SizeOf<T>(), marker);
+            return WriteDataSafe(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref val, 1)), marker);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -162,197 +154,53 @@ namespace RevolutionSnapshot.Core.Buffers
 
         public void Dispose()
         {
-            UnsafeUtility.Free(m_Data->buffer);
-            UnsafeUtility.Free(m_Data);
+            getMemory().Dispose();
+            m_Data.Dispose();
 
-            m_Data = null;
+            m_Data = default;
         }
     }
 
-    public unsafe partial struct DataBufferWriter
+    public partial struct DataBufferWriter
     {
         public DataBufferMarker WriteByte(byte val, DataBufferMarker marker = default(DataBufferMarker))
         {
-            return WriteDataSafe((byte*) &val, sizeof(byte), marker);
+            return WriteValue(val, marker);
         }
 
         public DataBufferMarker WriteShort(short val, DataBufferMarker marker = default(DataBufferMarker))
         {
-            return WriteDataSafe((byte*) &val, sizeof(short), marker);
+            return WriteValue(val, marker);
         }
 
         public DataBufferMarker WriteInt(int val, DataBufferMarker marker = default(DataBufferMarker))
         {
-            return WriteDataSafe((byte*) &val, sizeof(int), marker);
+            return WriteValue(val, marker);
         }
 
         public DataBufferMarker WriteLong(long val, DataBufferMarker marker = default(DataBufferMarker))
         {
-            return WriteDataSafe((byte*) &val, sizeof(long), marker);
-        }
-
-        public void WriteDynamicInt(ulong integer)
-        {
-            if (integer == 0)
-            {
-                WriteUnmanaged<byte>((byte) 0);
-            }
-            else if (integer <= byte.MaxValue)
-            {
-                WriteByte((byte) sizeof(byte));
-                WriteUnmanaged<byte>((byte) integer);
-            }
-            else if (integer <= ushort.MaxValue)
-            {
-                WriteByte((byte) sizeof(ushort));
-                WriteUnmanaged((ushort) integer);
-            }
-            else if (integer <= uint.MaxValue)
-            {
-                WriteByte((byte) sizeof(uint));
-                WriteUnmanaged((uint) integer);
-            }
-            else
-            {
-                WriteByte((byte) sizeof(ulong));
-                WriteUnmanaged(integer);
-            }
-        }
-
-        public void WriteDynamicIntWithMask(in ulong r1, in ulong r2)
-        {
-            byte setval(ref DataBufferWriter data, in ulong i)
-            {
-                if (i <= byte.MaxValue)
-                {
-                    data.WriteUnmanaged((byte) i);
-                    return 0;
-                }
-
-                if (i <= ushort.MaxValue)
-                {
-                    data.WriteUnmanaged((ushort) i);
-                    return 1;
-                }
-
-                if (i <= uint.MaxValue)
-                {
-                    data.WriteUnmanaged((uint) i);
-                    return 2;
-                }
-
-                data.WriteUnmanaged(i);
-                return 3;
-            }
-
-            var maskMarker = WriteByte(0);
-            var m1         = setval(ref this, r1);
-            var m2         = setval(ref this, r2);
-
-            WriteByte((byte) (m1 | (m2 << 2)), maskMarker);
-        }
-
-        public void WriteDynamicIntWithMask(in ulong r1, in ulong r2, in ulong r3)
-        {
-            byte setval(ref DataBufferWriter data, in ulong i)
-            {
-                if (i <= byte.MaxValue)
-                {
-                    data.WriteUnmanaged((byte) i);
-                    return 0;
-                }
-
-                if (i <= ushort.MaxValue)
-                {
-                    data.WriteUnmanaged((ushort) i);
-                    return 1;
-                }
-
-                if (i <= uint.MaxValue)
-                {
-                    data.WriteUnmanaged((uint) i);
-                    return 2;
-                }
-
-                data.WriteUnmanaged(i);
-                return 3;
-            }
-
-            var maskMarker = WriteByte(0);
-            var m1         = setval(ref this, r1);
-            var m2         = setval(ref this, r2);
-            var m3         = setval(ref this, r3);
-
-            WriteByte((byte) (m1 | (m2 << 2) | (m3 << 4)), maskMarker);
-        }
-
-        public void WriteDynamicIntWithMask(in ulong r1, in ulong r2, in ulong r3, in ulong r4)
-        {
-            byte setval(ref DataBufferWriter data, in ulong i)
-            {
-                if (i <= byte.MaxValue)
-                {
-                    data.WriteUnmanaged((byte) i);
-                    return 0;
-                }
-
-                if (i <= ushort.MaxValue)
-                {
-                    data.WriteUnmanaged((ushort) i);
-                    return 1;
-                }
-
-                if (i <= uint.MaxValue)
-                {
-                    data.WriteUnmanaged((uint) i);
-                    return 2;
-                }
-
-                data.WriteUnmanaged(i);
-                return 3;
-            }
-
-            var maskMarker = WriteByte(0);
-            var m1         = setval(ref this, r1);
-            var m2         = setval(ref this, r2);
-            var m3         = setval(ref this, r3);
-            var m4         = setval(ref this, r4);
-
-            WriteByte((byte) (m1 | (m2 << 2) | (m3 << 4) | (m4 << 6)), maskMarker);
+            return WriteValue(val, marker);
         }
 
         public void WriteBuffer(DataBufferWriter dataBuffer)
         {
-            WriteDataSafe((byte*) dataBuffer.GetSafePtr(), dataBuffer.Length, default(DataBufferMarker));
+            WriteDataSafe(dataBuffer.Span, default(DataBufferMarker));
         }
 
-        public void WriteStaticString(string val)
+        public unsafe void WriteStaticString(string val)
         {
-            fixed (char* strPtr = val)
-            {
-                WriteStaticString(strPtr, val.Length);
-            }
-        }
-        
-        public void WriteStaticString(Span<char> val)
-        {
-            fixed (char* strPtr = val)
-            {
-                WriteStaticString(strPtr, val.Length);
-            }
-        }
-
-        public void WriteStaticString(char* val, int strLength)
-        {
-            /*WriteInt(strLength);
-            WriteDataSafe((byte*) val, strLength * sizeof(char), default);*/
-            var span = new Span<char>(val, strLength);
+            var span = val.AsSpan();
             WriteInt(span.Length);
-            WriteSpan(span);
+            fixed (char* buffer = span)
+            {
+                // convert from readOnly to readWrite
+                WriteSpan(new Span<char>(buffer, span.Length));
+            }
         }
     }
 
-    public unsafe partial struct DataBufferWriter
+    public partial struct DataBufferWriter
     {
         public int WriteCompressed(Span<byte> data, LZ4Level level = LZ4Level.L05_HC)
         {
@@ -372,7 +220,7 @@ namespace RevolutionSnapshot.Core.Buffers
         }
     }
     
-    public unsafe partial struct DataBufferReader
+    public partial struct DataBufferReader
     {
         public Span<byte> ReadDecompressed(PooledList<byte> fill)
         {
@@ -380,13 +228,8 @@ namespace RevolutionSnapshot.Core.Buffers
             var uncompressedSize = ReadValue<int>();
 
             var uncompressed = fill.AddSpan(uncompressedSize);
-
-            unsafe
-            {
-                // var compressed = new Span<byte>(DataPtr + GetReadIndexAndSetNew(default, compressedSize * sizeof(byte)), compressedSize);
-                var compressed = Span.Slice(GetReadIndexAndSetNew(default, compressedSize));
-                LZ4Codec.Decode(compressed, uncompressed);
-            }
+            var compressed   = Span.Slice(GetReadIndexAndSetNew(default, compressedSize));
+            LZ4Codec.Decode(compressed, uncompressed);
 
             return uncompressed;
         }

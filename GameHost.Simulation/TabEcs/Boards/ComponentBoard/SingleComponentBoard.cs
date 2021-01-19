@@ -46,7 +46,7 @@ using System.Runtime.InteropServices;
 		 public Span<T> AsSpan<T>() where T : struct
 		 {
 			 if (Unsafe.SizeOf<T>() != Size)
-				 throw new InvalidOperationException();
+				 throw new InvalidOperationException($"{typeof(T)}.Size({Unsafe.SizeOf<T>()}) != Board.Size({Size})");
 
 			 return MemoryMarshal.Cast<byte, T>(column.data);
 		 }

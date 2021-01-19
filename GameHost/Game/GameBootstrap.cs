@@ -60,7 +60,9 @@ namespace GameHost.Game
 			void ResolveDefaults()
 			{
 				if (!GameEntity.Has<GameExecutingStorage>())
-					GameEntity.Set(new GameExecutingStorage(new LocalStorage(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location))));
+				{
+					GameEntity.Set(new GameExecutingStorage(new LocalStorage(System.IO.Path.GetDirectoryName(AppContext.BaseDirectory))));
+				}
 
 				if (!GameEntity.Has<GameLoggerFactory>())
 				{

@@ -3,7 +3,7 @@ using System.IO;
 
 namespace RevolutionSnapshot.Core.Buffers
 {
-	public unsafe class DataStreamWriter : Stream
+	public class DataStreamWriter : Stream
 	{
 		public DataBufferWriter Buffer;
 
@@ -18,7 +18,7 @@ namespace RevolutionSnapshot.Core.Buffers
 
 		public override int Read(byte[] buffer, int offset, int count)
 		{
-			new Span<byte>((void*) (Buffer.GetSafePtr() + offset), count).CopyTo(buffer);
+			Buffer.Span.Slice(offset, count).CopyTo(buffer);
 			return count;
 		}
 
@@ -34,8 +34,7 @@ namespace RevolutionSnapshot.Core.Buffers
 
 		public override void Write(byte[] buffer, int offset, int count)
 		{
-			fixed (byte* ptr = buffer)
-				Buffer.WriteDataSafe(ptr + offset, count, default);
+			Buffer.WriteDataSafe(buffer.AsSpan(offset, count), default);
 		}
 
 		public override bool CanRead  => true;

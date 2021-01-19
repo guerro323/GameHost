@@ -57,12 +57,12 @@ namespace GameHost.Simulation.TabEcs
 			throw new KeyNotFoundException(name);
 		}
 
-		public ComponentType RegisterComponent(string name, ComponentBoardBase componentBoard, Type optionalManagedType = null)
+		public ComponentType RegisterComponent(string name, ComponentBoardBase componentBoard, Type optionalManagedType = null, ComponentType optionalParentType = default)
 		{
 			if (HasComponentType(name))
 				throw new InvalidOperationException($"[{WorldId}] A component named '{name}' already exist");
 
-			return new ComponentType(Boards.ComponentType.CreateRow(name, componentBoard));
+			return new ComponentType(Boards.ComponentType.CreateRow(name, componentBoard, optionalParentType: optionalParentType));
 		}
 
 		public ComponentType AsComponentType(Type type)
@@ -83,9 +83,13 @@ namespace GameHost.Simulation.TabEcs
 			var componentType = TypedComponent<T>.MappedComponentType[WorldId];
 			if (componentType.Id > 0)
 				return componentType;
-
+			
 			ComponentBoardBase board = null;
-			if (typeof(IComponentData).IsAssignableFrom(typeof(T)))
+			if (default(T) is IMetadataCustomComponentBoard metadataCustomComponentBoard)
+			{
+				board = metadataCustomComponentBoard.ProvideComponentBoard(this);
+			}
+			else if (typeof(IComponentData).IsAssignableFrom(typeof(T)))
 			{
 				if (ComponentTypeUtility.IsZeroSizeStruct(typeof(T)))
 				{
@@ -101,7 +105,23 @@ namespace GameHost.Simulation.TabEcs
 			else
 				throw new InvalidOperationException();
 
-			componentType = RegisterComponent(TypeExt.GetFriendlyName(typeof(T)), board);
+			string componentName;
+			if (default(T) is IMetadataCustomComponentName metadataCustomComponentName)
+			{
+				componentName = metadataCustomComponentName.ProvideName(this);
+			}
+			else
+			{
+				componentName = TypeExt.GetFriendlyName(typeof(T));
+			}
+			
+			ComponentType parent = default;
+			if (default(T) is IMetadataSubComponentOf metadataSubComponentOf)
+			{
+				parent = metadataSubComponentOf.ProvideComponentParent(this);
+			}
+
+			componentType = RegisterComponent(componentName, board, optionalParentType: parent);
 			TypedComponentRegister.AddComponent(WorldId, typeof(T), componentType);
 			return componentType;
 		}

@@ -1,19 +1,20 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using GameHost.Native.Char;
 
 namespace RevolutionSnapshot.Core.Buffers
 {
-    public unsafe ref partial struct DataBufferReader
+    public ref partial struct DataBufferReader
     {
         public int CurrReadIndex;
         public int Length => Span.Length;
         
-        public DataBufferReader(IntPtr dataPtr, int length) : this((byte*) dataPtr, length)
+        public unsafe DataBufferReader(IntPtr dataPtr, int length) : this((byte*) dataPtr, length)
         {
         }
 
-        public DataBufferReader(byte* dataPtr, int length)
+        public unsafe DataBufferReader(byte* dataPtr, int length)
         {
             if (dataPtr == null)
                 throw new InvalidOperationException("dataPtr is null");
@@ -62,32 +63,32 @@ namespace RevolutionSnapshot.Core.Buffers
             return readIndex;
         }
 
-        public void ReadUnsafe(byte* data, int index, int size)
+        public unsafe void ReadUnsafe(byte* data, int index, int size)
         {
             Span.Slice(index, size).CopyTo(new Span<byte>(data, size)); 
         }
 
-        public void ReadDataSafe(byte* data, int size, DataBufferMarker marker = default)
+        public Span<T> ReadSpan<T>(int size, DataBufferMarker marker = default)
+            where T : struct
         {
+            size *= Unsafe.SizeOf<T>();
             var readIndex = GetReadIndexAndSetNew(marker, size);
             // Set it for later usage
             CurrReadIndex = readIndex + size;
-            // Read the value
-            ReadUnsafe(data, readIndex, size);
+
+            return MemoryMarshal.Cast<byte, T>(Span.Slice(readIndex, size));
         }
 
         public void ReadDataSafe<T>(Span<T> span, DataBufferMarker marker = default)
             where T : struct
         {
-            ReadDataSafe((byte*) Unsafe.AsPointer(ref span.GetPinnableReference()), span.Length * Unsafe.SizeOf<T>(), marker);
+            ReadSpan<T>(span.Length).CopyTo(span);
         }
 
-        public unsafe T ReadValue<T>(DataBufferMarker marker = default(DataBufferMarker))
+        public T ReadValue<T>(DataBufferMarker marker = default(DataBufferMarker))
             where T : struct
         {
-            T value = default;
-            ReadDataSafe((byte*) Unsafe.AsPointer(ref value), Unsafe.SizeOf<T>());
-            return value;
+            return ReadSpan<T>(1, marker)[0];
         }
 
         public DataBufferMarker CreateMarker(int index)
@@ -95,114 +96,13 @@ namespace RevolutionSnapshot.Core.Buffers
             return new DataBufferMarker(index);
         }
 
-        public ulong ReadDynInteger(DataBufferMarker marker = default(DataBufferMarker))
-        {
-            var byteCount = ReadValue<byte>();
-
-            if (byteCount == 0) return 0;
-            if (byteCount == sizeof(byte)) return ReadValue<byte>();
-            if (byteCount == sizeof(ushort)) return ReadValue<ushort>();
-            if (byteCount == sizeof(uint)) return ReadValue<uint>();
-            if (byteCount == sizeof(ulong)) return ReadValue<ulong>();
-
-            throw new InvalidOperationException($"Expected byte count range: [{sizeof(byte)}..{sizeof(ulong)}], received: {byteCount}");
-        }
-
-        public void ReadDynIntegerFromMask(out ulong r1, out ulong r2)
-        {
-            void getval(ref DataBufferReader data, int mr, ref ulong i)
-            {
-                if (mr == 0) i = data.ReadValue<byte>();
-                if (mr == 1) i = data.ReadValue<ushort>();
-                if (mr == 2) i = data.ReadValue<uint>();
-                if (mr == 3) i = data.ReadValue<ulong>();
-            }
-
-            var mask = ReadValue<byte>();
-            var val1 = (mask & 3);
-            var val2 = (mask & 12) >> 2;
-
-            r1 = default;
-            r2 = default;
-
-            getval(ref this, val1, ref r1);
-            getval(ref this, val2, ref r2);
-        }
-
-        public void ReadDynIntegerFromMask(out ulong r1, out ulong r2, out ulong r3)
-        {
-            void getval(ref DataBufferReader data, int mr, ref ulong i)
-            {
-                if (mr == 0) i = data.ReadValue<byte>();
-                if (mr == 1) i = data.ReadValue<ushort>();
-                if (mr == 2) i = data.ReadValue<uint>();
-                if (mr == 3) i = data.ReadValue<ulong>();
-            }
-
-            var mask = ReadValue<byte>();
-            var val1 = (mask & 3);
-            var val2 = (mask & 12) >> 2;
-            var val3 = (mask & 48) >> 4;
-
-            r1 = default;
-            r2 = default;
-            r3 = default;
-
-            getval(ref this, val1, ref r1);
-            getval(ref this, val2, ref r2);
-            getval(ref this, val3, ref r3);
-        }
-
-        public void ReadDynIntegerFromMask(out ulong r1, out ulong r2, out ulong r3, out ulong r4)
-        {
-            void getval(ref DataBufferReader data, int mr, ref ulong i)
-            {
-                if (mr == 0) i = data.ReadValue<byte>();
-                if (mr == 1) i = data.ReadValue<ushort>();
-                if (mr == 2) i = data.ReadValue<uint>();
-                if (mr == 3) i = data.ReadValue<ulong>();
-            }
-
-            var mask = ReadValue<byte>();
-            var val1 = (mask & 3);
-            var val2 = (mask & 12) >> 2;
-            var val3 = (mask & 48) >> 4;
-            var val4 = (mask & 192) >> 6;
-
-            r1 = default;
-            r2 = default;
-            r3 = default;
-            r4 = default;
-
-            getval(ref this, val1, ref r1);
-            getval(ref this, val2, ref r2);
-            getval(ref this, val3, ref r3);
-            getval(ref this, val3, ref r4);
-        }
-
         public string ReadString(DataBufferMarker marker = default)
         {
             var length = ReadValue<int>();
             if (length < 0)
                 throw new ArgumentOutOfRangeException(nameof(length));
-
-            if (length < 64)
-            {
-                Span<char> span = stackalloc char[length];
-                ReadDataSafe(new Span<char>(Unsafe.AsPointer(ref span.GetPinnableReference()), length), marker);
-                return new string(span);
-            }
-
-            var ptr = UnsafeUtility.Malloc(length * sizeof(char));
-            try
-            {
-                ReadDataSafe(new Span<char>(ptr, length), marker);
-                return new string((char*) ptr, 0, length);
-            }
-            finally
-            {
-                UnsafeUtility.Free(ptr);
-            }
+            
+            return new string(ReadSpan<char>(length));
         }
 
         public TCharBuffer ReadBuffer<TCharBuffer>(DataBufferMarker marker = default(DataBufferMarker))
@@ -211,25 +111,11 @@ namespace RevolutionSnapshot.Core.Buffers
             var length = ReadValue<int>();
             if (length < 0)
                 throw new ArgumentOutOfRangeException(nameof(length));
-            
-            if (length < 64)
-            {
-                Span<char> span = stackalloc char[length];
-                ReadDataSafe(new Span<char>(Unsafe.AsPointer(ref span.GetPinnableReference()), length), marker);
-                return CharBufferUtility.Create<TCharBuffer>(span);
-            }
 
-            var ptr = UnsafeUtility.Malloc(length * sizeof(char));
-            try
-            {
-                ReadDataSafe((byte*) ptr, length * sizeof(char), marker);
-                var buffer = CharBufferUtility.Create<TCharBuffer>(new Span<char>(ptr, length));
-                return buffer;
-            }
-            finally
-            {
-                UnsafeUtility.Free(ptr);
-            }
+            var buffer = new TCharBuffer {Length = length};
+            ReadDataSafe(buffer.Span.Slice(0, length));
+
+            return buffer;
         }
     }
 }

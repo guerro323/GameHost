@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using GameHost.Simulation.TabEcs.Interfaces;
 using GameHost.Simulation.TabEcs.LLAPI;
 
@@ -93,6 +94,26 @@ namespace GameHost.Simulation.TabEcs
 			return HasComponent(entityHandle, AsComponentType<T>());
 		}
 
+		public void GetComponentOf<TList>(GameEntityHandle entityHandle, ComponentType baseType, TList list)
+			where TList : IList<ComponentReference>
+		{
+			ThrowOnInvalidHandle(entityHandle);
+
+			var archetype = GetArchetype(entityHandle);
+			foreach (var componentTypeId in Boards.Archetype.GetComponentTypes(archetype.Id))
+			{
+				if (Boards.ComponentType.ParentTypeColumns[(int) componentTypeId] != baseType)
+					continue;
+
+				var componentType = new ComponentType(componentTypeId);
+				var metadata      = GetComponentMetadata(entityHandle, componentType);
+				if (metadata.Null)
+					continue;
+
+				list.Add(new ComponentReference(componentType, metadata.Id));
+			}
+		}
+
 		/// <summary>
 		/// Get the reference to a component data from an entity
 		/// </summary>
@@ -123,6 +144,43 @@ namespace GameHost.Simulation.TabEcs
 					msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int) comp]}\n";
 				}
 				
+				throw new InvalidOperationException(msg);
+			}
+#endif
+
+			return ref componentColumn.AsSpan<T>()[Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id].Assigned];
+		}
+
+		/// <summary>
+		/// Get the reference to a component data from an entity
+		/// </summary>
+		/// <param name="entityHandle"></param>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		/// <exception cref="InvalidOperationException"></exception>
+		public ref T GetComponentData<T>(GameEntityHandle entityHandle, ComponentType baseType)
+			where T : struct, IComponentData
+		{
+			ThrowOnInvalidHandle(entityHandle);
+
+			var componentType = baseType.Id;
+			var board         = Boards.ComponentType.ComponentBoardColumns[(int) componentType];
+			if (board is TagComponentBoard)
+				return ref TagComponentBoard.Default<T>.V;
+
+			if (!(board is SingleComponentBoard componentColumn))
+				throw new InvalidOperationException($"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
+
+#if DEBUG
+			if (!HasComponent(entityHandle, new ComponentType(componentType)))
+			{
+				var msg           = $"{Safe(entityHandle)} has no {Boards.ComponentType.NameColumns[(int) componentType]}. Existing:\n";
+				var componentList = Boards.Archetype.GetComponentTypes(GetArchetype(entityHandle).Id);
+				foreach (var comp in componentList)
+				{
+					msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int) comp]}\n";
+				}
+
 				throw new InvalidOperationException(msg);
 			}
 #endif

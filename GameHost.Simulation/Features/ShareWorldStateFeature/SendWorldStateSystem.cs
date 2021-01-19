@@ -221,11 +221,6 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 		private unsafe void Inner(ref DataBufferWriter buffer, GameWorld world, uint row, Span<GameEntityHandle> entities)
 		{
-			byte* ptr<T>(Span<T> span)
-			{
-				return (byte*) Unsafe.AsPointer(ref span.GetPinnableReference());
-			}
-
 			var skipMarker = buffer.WriteInt(0);
 			var serializer = world.Boards.ComponentType.GetColumn(row, ref custom_column.serializer);
 
@@ -258,7 +253,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 							count++;
 
 							var componentData = singleComponentBoard.ReadRaw(link.Id);
-							buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref componentData.GetPinnableReference()), componentBoard.Size, default);
+							buffer.WriteDataSafe(componentData.Slice(0, componentBoard.Size), default);
 						}
 
 						buffer.WriteInt(count, countMarker);
@@ -281,7 +276,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 
 							var rawBufferData = bufferComponentBoard.AsSpan()[(int) link.Id];
 							buffer.WriteInt(rawBufferData.Count);
-							buffer.WriteDataSafe((byte*) Unsafe.AsPointer(ref rawBufferData.Span.GetPinnableReference()), rawBufferData.Count, default);
+							buffer.WriteDataSafe(rawBufferData.Span, default);
 						}
 
 						buffer.WriteInt(count, countMarker);

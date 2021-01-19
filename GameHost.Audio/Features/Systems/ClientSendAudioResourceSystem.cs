@@ -11,7 +11,7 @@ namespace GameHost.Audio.Features.Systems
 {
 	public class ClientSendAudioResourceSystem : AppSystemWithFeature<AudioClientFeature>
 	{
-		private readonly EntitySet resourceSet;
+		private readonly EntitySet                           resourceSet;
 		private readonly Dictionary<AudioClientFeature, int> clientLastMaxId;
 
 		public ClientSendAudioResourceSystem(WorldCollection collection) : base(collection)
@@ -46,7 +46,7 @@ namespace GameHost.Audio.Features.Systems
 					clientLastMaxId[feature] = maxId;
 					update                   = true;
 				}
-				
+
 				if (update)
 				{
 					var updatedCount = 0;
@@ -67,16 +67,10 @@ namespace GameHost.Audio.Features.Systems
 						{
 							writer.WriteInt((int) EAudioRegisterResourceType.Bytes, typeMarker);
 							writer.WriteInt(bytesData.Value.Length);
-							unsafe
-							{
-								fixed (byte* bytePtr = bytesData.Value)
-								{
-									writer.WriteDataSafe(bytePtr, bytesData.Value.Length, default);
-								}
-							}
+							writer.WriteDataSafe(bytesData.Value.AsSpan(), default);
 						}
 					}
-					
+
 					if (feature.Driver.Broadcast(feature.PreferredChannel, writer.Span) < 0)
 						throw new InvalidOperationException("Couldn't send data!");
 				}

@@ -21,7 +21,7 @@ namespace GameHost.Core.RPC
 			};
 		}
 
-		public unsafe T Deserialize<T>(JsonSerializerSettings options = null)
+		public T Deserialize<T>(JsonSerializerSettings options = null)
 		{
 			return JsonConvert.DeserializeObject<T>(Data.ReadString(), options);
 		}

@@ -6,37 +6,6 @@ namespace RevolutionSnapshot.Core.Buffers
 {
 	public static unsafe class UnsafeUtility
 	{
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void* Malloc(int size, bool init = true)
-		{
-			var ptr = (void*) Marshal.AllocHGlobal(size);
-			if (init)
-				Unsafe.InitBlock(ptr, 0, (uint) size);
-			
-#if DEBUG
-			if (ptr == lastFreedAddress)
-				lastFreedAddress = null;
-#endif
-			return ptr;
-		}
-
-#if DEBUG
-		[ThreadStatic]
-		private static void* lastFreedAddress;
-#endif
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Free(void* addr)
-		{
-#if DEBUG
-			if (lastFreedAddress == addr)
-				throw new InvalidOperationException("You are freeing on the previous freed address!");
-
-			lastFreedAddress = addr;
-#endif
-			Marshal.FreeHGlobal((IntPtr) addr);
-		}
-
 		public static bool SameData<T>(T left, T right)
 		{
 			var size     = Unsafe.SizeOf<T>();

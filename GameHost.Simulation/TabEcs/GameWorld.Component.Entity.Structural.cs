@@ -75,25 +75,6 @@ namespace GameHost.Simulation.TabEcs
 			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
 		}
 
-		public void DependOnEntityComponent(GameEntityHandle entityHandle, GameEntityHandle target, ComponentType componentType)
-		{
-			throw new NotImplementedException("This feature is not yet finished.");
-			
-			/*var componentBoard = Boards.ComponentType.ComponentBoardColumns[(int) componentType.Id];
-
-			var previousComponentId = Boards.Entity.AssignSharedComponent(entity.Id, componentType.Id, target.Id);
-			if (previousComponentId > 0)
-			{
-				var refs = componentBoard.RemoveReference(previousComponentId, entity);
-
-				// nobody reference this component anymore, let's remove the row
-				if (refs == 0)
-					componentBoard.DeleteRow(previousComponentId);
-			}
-
-			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entity);*/
-		}
-
 		/// <summary>
 		/// Assure that an entity has the components. If an entity already possess one of them, it will not get replaced.
 		/// </summary>
@@ -210,7 +191,23 @@ namespace GameHost.Simulation.TabEcs
 
 			return cRef;
 		}
-		
+
+		/// <summary>
+		/// Add a component to an entity based on another component
+		/// </summary>
+		/// <param name="entityHandle"></param>
+		/// <param name="data"></param>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public ComponentReference AddComponent<T>(GameEntityHandle entityHandle, ComponentType baseType, in T data = default)
+			where T : struct, IComponentData
+		{
+			var cRef = AddComponent(entityHandle, baseType);
+			GetComponentData<T>(entityHandle, baseType) = data;
+
+			return cRef;
+		}
+
 		/// <summary>
 		/// Add a component to an entity
 		/// </summary>

@@ -5,13 +5,13 @@
  {
 	 public abstract class ComponentBoardBase : BoardContainer
 	 {
-		 public readonly int Size;
+		 public readonly int           Size;
 
 		 private (GameEntityHandle[] owner, PooledList<GameEntityHandle>[] references, byte h) column;
 
 		 public ComponentBoardBase(int size, int capacity) : base(capacity)
 		 {
-			 Size = size;
+			 Size                = size;
 
 			 column.owner      = new GameEntityHandle[0];
 			 column.references = new PooledList<GameEntityHandle>[0];

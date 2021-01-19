@@ -5,7 +5,7 @@
  {
 	 public class ComponentTypeBoardContainer : BoardContainer
 	 {
-		 private (string[] name, int[] size, ComponentBoardBase[] componentBoard) column;
+		 private (string[] name, int[] size, ComponentBoardBase[] componentBoard, ComponentType[] parentType) column;
 
 		 public ComponentTypeBoardContainer(int capacity) : base(capacity)
 		 {
@@ -17,18 +17,20 @@
 		 public Span<string>                     NameColumns           => column.name;
 		 public ReadOnlySpan<int>                SizeColumns           => column.size;
 		 public ReadOnlySpan<ComponentBoardBase> ComponentBoardColumns => column.componentBoard;
+		 public ReadOnlySpan<ComponentType>      ParentTypeColumns     => column.parentType;
 
 		 public void SetRowName(uint row, string name)
 		 {
 			 GetColumn(row, ref column.name) = name;
 		 }
 
-		 public uint CreateRow(string name, ComponentBoardBase componentBoard)
+		 public uint CreateRow(string name, ComponentBoardBase componentBoard, ComponentType optionalParentType = default)
 		 {
 			 var row = CreateRow();
 			 GetColumn(row, ref column.name)           = name;
 			 GetColumn(row, ref column.size)           = componentBoard.Size;
 			 GetColumn(row, ref column.componentBoard) = componentBoard;
+			 GetColumn(row, ref column.parentType)     = optionalParentType;
 			 return row;
 		 }
 
