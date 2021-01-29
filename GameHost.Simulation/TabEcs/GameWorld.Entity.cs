@@ -70,6 +70,8 @@ namespace GameHost.Simulation.TabEcs
 
 				foreach (var handle in bulk)
 					RemoveEntity(handle);
+
+				handles = handles.Slice(toOperate);
 			}
 
 			if (handles.Length <= 0)
@@ -88,16 +90,29 @@ namespace GameHost.Simulation.TabEcs
 			foreach (ref readonly var componentType in Boards.ComponentType.Registered)
 				RemoveComponent(entityHandle, componentType);
 
-			foreach (ref readonly var linkedEntity in Boards.Entity.GetLinkedEntities(entityHandle.Id))
+			var children       = Boards.Entity.GetLinkedEntities(entityHandle.Id);
+			var childrenLength = children.Length;
+			for (var ent = 0; ent < childrenLength; ent++)
 			{
+				var linkedEntity = children[ent];
 				if (Contains(linkedEntity))
+				{
 					RemoveEntity(linkedEntity);
+					ent--;
+					childrenLength--;
+				}
 			}
 
-			foreach (ref readonly var parent in Boards.Entity.GetLinkedParents(entityHandle.Id))
+			var parents      = Boards.Entity.GetLinkedParents(entityHandle.Id);
+			var parentLength = parents.Length;
+			for (var ent = 0; ent < parentLength; ent++)
 			{
-				if (Contains(parent))
-					Boards.Entity.RemoveLinked(parent.Id, entityHandle.Id);
+				var parent = parents[ent];
+				if (Boards.Entity.RemoveLinked(parent.Id, entityHandle.Id))
+				{
+					ent--;
+					parentLength--;
+				}
 			}
 
 			var archetype = GetArchetype(entityHandle);
@@ -169,7 +184,7 @@ namespace GameHost.Simulation.TabEcs
 		{
 			ThrowOnInvalidHandle(child);
 			ThrowOnInvalidHandle(owner);
-
+			
 			return isLinked
 				? Boards.Entity.AddLinked(owner.Id, child.Id)
 				: Boards.Entity.RemoveLinked(owner.Id, child.Id);

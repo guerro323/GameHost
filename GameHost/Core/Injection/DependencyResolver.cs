@@ -110,12 +110,12 @@ namespace GameHost.Injection
                 //Console.WriteLine($"completed {source}");
                 unresolvedFrames = 0;
             }
-            else if (unresolvedFrames++ > 100)
+            else if (unresolvedFrames++ > 1000)
             {
                 unresolvedFrames = 0;
             
                 var str = Dependencies.Aggregate(Source, (current, dep) => current + $"\n\t{dep}; {dep.IsResolved}");
-                //Console.WriteLine(str);
+                Console.WriteLine(str);
             }
 
             // Be sure to set the result right after onComplete has been called (in case new deps has been added)

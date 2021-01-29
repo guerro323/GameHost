@@ -65,7 +65,8 @@ namespace GameHost.Simulation.Application
 				}
 			}
 
-			//Console.WriteLine("DeltaMs : " + worker.Delta.TotalMilliseconds + ", perf: " + worker.Performance);
+			/*if (updateCount > 0)
+				Console.WriteLine($"DeltaMs : {worker.Delta.TotalMilliseconds:F3}ms");*/
 
 			var timeToSleep = TimeSpan.FromTicks(Math.Max(targetFrequency.Ticks - worker.Delta.Ticks, 0));
 

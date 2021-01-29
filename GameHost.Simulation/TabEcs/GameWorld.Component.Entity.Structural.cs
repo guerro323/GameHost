@@ -155,6 +155,35 @@ namespace GameHost.Simulation.TabEcs
 			GameWorldLL.UpdateArchetype(Boards.Archetype, Boards.ComponentType, Boards.Entity, entityHandle);
 		}
 
+		public ComponentReference Copy(GameEntityHandle from, GameEntityHandle to, ComponentType componentType)
+		{
+			ThrowOnInvalidHandle(from);
+			ThrowOnInvalidHandle(to);
+
+			if (!HasComponent(from, componentType))
+				throw new InvalidOperationException();
+
+			var fromMetadata   = GetComponentMetadata(from, componentType);
+			var toRef          = AddComponent(to, componentType);
+			var componentBoard = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);
+			switch (componentBoard)
+			{
+				case SingleComponentBoard singleComponentBoard:
+					singleComponentBoard.ReadRaw(fromMetadata.Id)
+					                    .CopyTo(singleComponentBoard.ReadRaw(toRef.Id));
+					break;
+				case BufferComponentBoard bufferComponentBoard:
+				{
+					var toBuffer = bufferComponentBoard.AsSpan()[(int) toRef.Id];
+					toBuffer.Clear();
+					toBuffer.AddRange(bufferComponentBoard.AsSpan()[(int) fromMetadata.Id]);
+					break;
+				}
+			}
+
+			return toRef;
+		}
+
 		/// <summary>
 		/// Add a component to an entity
 		/// </summary>

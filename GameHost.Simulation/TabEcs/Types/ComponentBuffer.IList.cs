@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Collections.Pooled;
 using NetFabric.Hyperlinq;
 
 namespace GameHost.Simulation.TabEcs
@@ -10,11 +11,45 @@ namespace GameHost.Simulation.TabEcs
 	public partial struct ComponentBuffer<T>
 		where T : struct
 	{
-		public Span<T>.Enumerator GetEnumerator()
+		public struct Enumerator
 		{
-			return Span.GetEnumerator();
+			private readonly PooledList<byte> list;
+			private readonly int              step;
+			private          int              index;
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal Enumerator(PooledList<byte> list)
+			{
+				this.list = list;
+				step      = Unsafe.SizeOf<T>();
+				index     = 0;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool MoveNext()
+			{
+				var index = this.index + step;
+				if (index <= list.Count)
+				{
+					this.index = index;
+					return true;
+				}
+
+				return false;
+			}
+
+			public ref T Current
+			{
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => ref Unsafe.As<byte, T>(ref list.Span[index - step]);
+			}
 		}
-		
+
+		public Enumerator GetEnumerator()
+		{
+			return new(backing);
+		}
+
 		IEnumerator<T> IEnumerable<T>.GetEnumerator()
 		{
 			// todo: remove array copy

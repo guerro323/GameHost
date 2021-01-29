@@ -6,7 +6,7 @@ namespace RevolutionSnapshot.Core.Buffers
 {
 	public static unsafe class UnsafeUtility
 	{
-		public static bool SameData<T>(T left, T right)
+		public static bool SameData<T>(ref T left, ref T right)
 		{
 			var size     = Unsafe.SizeOf<T>();
 			var leftPtr  = (byte*) Unsafe.AsPointer(ref left);
@@ -16,6 +16,11 @@ namespace RevolutionSnapshot.Core.Buffers
 				if (leftPtr[i] != rightPtr[i])
 					return false;
 			return true;
+		}
+		
+		public static bool SameData<T>(T left, T right)
+		{
+			return SameData(ref left, ref right);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

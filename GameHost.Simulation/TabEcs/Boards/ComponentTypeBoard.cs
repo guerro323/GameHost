@@ -12,6 +12,7 @@
 			 column.name           = new string[0];
 			 column.size           = new int[0];
 			 column.componentBoard = new ComponentBoardBase[0];
+			 column.parentType     = new ComponentType[0];
 		 }
 
 		 public Span<string>                     NameColumns           => column.name;

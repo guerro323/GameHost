@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using GameHost.Simulation.TabEcs.Interfaces;
 using GameHost.Simulation.TabEcs.LLAPI;
 
@@ -158,6 +159,26 @@ namespace GameHost.Simulation.TabEcs
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
 		/// <exception cref="InvalidOperationException"></exception>
+		public ref T GetComponentData<T>(ComponentReference componentReference)
+			where T : struct, IComponentData
+		{
+			var board         = Boards.ComponentType.ComponentBoardColumns[(int) componentReference.Type.Id];
+			if (board is TagComponentBoard)
+				return ref TagComponentBoard.Default<T>.V;
+
+			if (!(board is SingleComponentBoard componentColumn))
+				throw new InvalidOperationException($"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
+			
+			return ref componentColumn.AsSpan<T>()[(int) componentReference.Id];
+		}
+
+		/// <summary>
+		/// Get the reference to a component data from an entity
+		/// </summary>
+		/// <param name="entityHandle"></param>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		/// <exception cref="InvalidOperationException"></exception>
 		public ref T GetComponentData<T>(GameEntityHandle entityHandle, ComponentType baseType)
 			where T : struct, IComponentData
 		{
@@ -184,7 +205,7 @@ namespace GameHost.Simulation.TabEcs
 				throw new InvalidOperationException(msg);
 			}
 #endif
-
+			
 			return ref componentColumn.AsSpan<T>()[Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id].Assigned];
 		}
 
