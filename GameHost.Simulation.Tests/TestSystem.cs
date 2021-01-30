@@ -27,42 +27,31 @@ namespace GameHost.Simulation.Tests
 			for (var i = 0; i < size; i++)
 			{
 				gameWorld.AddComponent(entities[i], componentType);
-				if (i > 25_000 && i < 60_000)
-					gameWorld.AddComponent(entities[i], gameWorld.AsComponentType<Seperation_1>());
-				if (i > 50_000 && i < 80_000)
-					gameWorld.AddComponent(entities[i], gameWorld.AsComponentType<Seperation_2>());
-				if (i > 75_000)
-				{
-					gameWorld.AddComponent(entities[i], gameWorld.AsComponentType<Seperation_3>());
-					if (i > 90_000)
-						gameWorld.AddComponent(entities[i], gameWorld.AsComponentType<Seperation_4>());
-				}
-
-				if (i < 5_000)
-					gameWorld.AddComponent(entities[i], gameWorld.AsComponentType<Seperation_4>());
 			}
 
 			var sw     = new Stopwatch();
 			var lowest = TimeSpan.MaxValue;
 
 			using var runner = new ThreadBatchRunner(1f);
-			for (var i = 0; i < 10_000; i++)
+			
+			var query = new EntityQuery(gameWorld, new[] {componentType}); 
+			/*var system = new EntitySystemComponent<int, IntComponent>((in GameEntityHandle handle, ref IntComponent component, in SystemState<int> _) =>
 			{
-				var query = new EntityQuery(gameWorld, new[] {componentType}); 
-				/*var system = new EntitySystemComponent<int, IntComponent>((in GameEntityHandle handle, ref IntComponent component, in SystemState<int> _) =>
-				{
-					component.Value++;
-				}, query);*/
-				var system = new ArchetypeSystem<int>((in EntityArchetype _, in ReadOnlySpan<GameEntityHandle> entities, in SystemState<int> state) =>
-				{
-					var accessor = new ComponentDataAccessor<IntComponent>(state.World);
-					foreach (ref readonly var entity in entities)
-						accessor[entity].Value++;
-				}, query);
-				system.PrepareBatch(0);
-
-				sw.Restart();
+				component.Value++;
+			}, query);*/
+			var system = new ArchetypeSystem<int>((in ReadOnlySpan<GameEntityHandle> entities, in SystemState<int> state) =>
+			{
+				var accessor = new ComponentDataAccessor<IntComponent>(state.World);
+				foreach (ref readonly var entity in entities)
+					accessor[entity].Value++;
+			}, query);
+				
+			system.PrepareData(0);
+			
+			for (var i = 0; i < 100; i++)
+			{
 				var request = runner.Queue(system);
+				sw.Restart();
 				while (!runner.IsCompleted(request))
 				{
 				}
@@ -88,10 +77,5 @@ namespace GameHost.Simulation.Tests
 		{
 			public int Value;
 		}
-		
-		public struct Seperation_1 : IComponentData {}
-		public struct Seperation_2 : IComponentData {}
-		public struct Seperation_3 : IComponentData {}
-		public struct Seperation_4 : IComponentData {}
 	}
 }

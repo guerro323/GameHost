@@ -9,7 +9,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 {
 	public interface IBatch
 	{
-		int  GetBatchCount(int taskCount);
+		int  PrepareBatch(int taskCount);
 		void Execute(int index, int maxUseIndex, int task, int taskCount);
 	}
 
@@ -43,6 +43,15 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 	{
 		bool         IsCompleted(BatchRequest request);
 		BatchRequest Queue(IBatch    batch);
+	}
+
+	public static class BatchRunnerExtensions
+	{
+		public static void WaitForCompletion(this IBatchRunner runner, BatchRequest request)
+		{
+			while (!runner.IsCompleted(request))
+				Thread.Sleep(0);
+		}
 	}
 
 	public class ThreadBatchRunner : IBatchRunner, IDisposable
@@ -88,16 +97,26 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			if (obj is not TaskState state)
 				throw new InvalidOperationException($"Task {obj} is not a {typeof(TaskState)}");
 
-			while (false == state.Token.IsCancellationRequested)
+			try
 			{
-				var hasRanBatch = !state.Batches.IsEmpty;
-				while (state.Batches.TryTake(out var queued))
+				var spin = new SpinWait();
+				while (false == state.Token.IsCancellationRequested)
 				{
-					queued.Batch.Execute(queued.Index, queued.MaxUseIndex, state.TaskIndex, state.TaskCount);
-					Interlocked.Increment(ref state.Results[queued.BatchId].SuccessfulWrite);
-				}
+					var hasRanBatch = !state.Batches.IsEmpty;
+					while (state.Batches.TryTake(out var queued))
+					{
+						queued.Batch.Execute(queued.Index, queued.MaxUseIndex, state.TaskIndex, state.TaskCount);
+						Interlocked.Increment(ref state.Results[queued.BatchId].SuccessfulWrite);
+					}
 
-				Thread.Sleep(0);
+					spin.SpinOnce();
+					if (hasRanBatch)
+						spin.Reset();
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex);
 			}
 		}
 
@@ -148,7 +167,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 
 		public BatchRequest Queue(IBatch batch)
 		{
-			var use = batch.GetBatchCount(tasks.Length);
+			var use = batch.PrepareBatch(tasks.Length);
 			if (use <= 0)
 				return default;
 

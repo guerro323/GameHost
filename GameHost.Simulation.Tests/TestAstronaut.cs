@@ -55,7 +55,7 @@ namespace GameHost.Simulation.Tests
 			world.AddComponent(astronautOnMoon, new Velocity {Value = new Vector3(10, 0, 0)});
 			world.AddComponent<Position>(astronautOnMoon);
 
-			static void onAstronaut(in EntityArchetype archetype, in ReadOnlySpan<GameEntityHandle> entities, in SystemState<GameEntityHandle> state)
+			static void onAstronaut(in ReadOnlySpan<GameEntityHandle> entities, in SystemState<GameEntityHandle> state)
 			{
 				var (gameWorld, timeEntity) = state;
 

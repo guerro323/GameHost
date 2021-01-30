@@ -166,16 +166,19 @@ namespace GameHost.Threading
 			
 			Thread = new Thread(() =>
 			{
+				var spin = new SpinWait();
 				while (!cancellationToken.IsCancellationRequested && !disposeTokenSource.IsCancellationRequested)
 				{
 					TimeSpan timeToSleep;
 					using (SynchronizeThread())
 					{
-						//Console.WriteLine(Thread.Name + ", " + Listeners.Count);
 						timeToSleep = Update();
 					}
 
-					cancellationToken.WaitHandle.WaitOne(timeToSleep * 0.1f);
+					timeToSleep *= 0.1f;
+					cancellationToken.WaitHandle.WaitOne(timeToSleep);
+					if (timeToSleep < TimeSpan.FromMilliseconds(1))
+						spin.SpinOnce();
 				}
 			});
 			Thread.Name = threadName;

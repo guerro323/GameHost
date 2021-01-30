@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Buffers;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Collections.Pooled;
@@ -145,13 +147,47 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			return false;
 		}
 
+		public void AddEntitiesTo(PooledList<GameEntityHandle> list)
+		{
+			foreach (var archetype in matchedArchetypes.Span)
+			{
+				list.AddRange(MemoryMarshal.Cast<uint, GameEntityHandle>(GameWorld.Boards.Archetype.GetEntities(archetype)));
+			}
+		}
+
+		public void AddEntitiesTo<TList>(TList list)
+			where TList : IList<GameEntityHandle>
+		{
+			foreach (var archetype in matchedArchetypes.Span)
+			{
+				foreach (ref readonly var entity in MemoryMarshal.Cast<uint, GameEntityHandle>(GameWorld.Boards.Archetype.GetEntities(archetype)))
+				{
+					list.Add(entity);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Remove all entities that match this query
+		/// </summary>
 		public void RemoveAllEntities()
 		{
 			CheckForNewArchetypes();
 
 			foreach (var arch in matchedArchetypes.Span)
 			{
-				GameWorld.RemoveEntityBulk(MemoryMarshal.Cast<uint, GameEntityHandle>(GameWorld.Boards.Archetype.GetEntities(arch)));
+				var entitySpan = MemoryMarshal.Cast<uint, GameEntityHandle>(GameWorld.Boards.Archetype.GetEntities(arch));
+				var rented     = ArrayPool<GameEntityHandle>.Shared.Rent(entitySpan.Length);
+
+				try
+				{
+					entitySpan.CopyTo(rented);
+					GameWorld.RemoveEntityBulk(rented.AsSpan(0, entitySpan.Length));
+				}
+				finally
+				{
+					ArrayPool<GameEntityHandle>.Shared.Return(rented);
+				}
 			}
 		}
 

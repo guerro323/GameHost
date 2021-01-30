@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Collections.Pooled;
 using GameHost.Simulation.TabEcs;
 using GameHost.Simulation.TabEcs.HLAPI;
 using GameHost.Simulation.TabEcs.Interfaces;
@@ -22,7 +23,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 
 	public class ArchetypeSystem<T> : IBatch
 	{
-		public delegate void OnArchetype(in EntityArchetype archetype, in ReadOnlySpan<GameEntityHandle> entities, in SystemState<T> state);
+		public delegate void OnArchetype(in ReadOnlySpan<GameEntityHandle> entities, in SystemState<T> state);
 
 		private OnArchetype action;
 		private EntityQuery query;
@@ -37,7 +38,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 
 		private SystemState<T> currentState;
 
-		public void PrepareBatch(T data)
+		public void PrepareData(T data)
 		{
 			query.CheckForNewArchetypes();
 
@@ -47,13 +48,13 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 
 		public void Update(T data)
 		{
-			PrepareBatch(data);
+			PrepareData(data);
 			Update();
 		}
 
 		public void Update()
 		{
-			query.CheckForNewArchetypes();
+			/*query.CheckForNewArchetypes();
 
 			var archetypes = query.Archetypes;
 			if (archetypes.Length == 0)
@@ -64,44 +65,53 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			{
 				ReadOnlySpan<GameEntityHandle> entities = MemoryMarshal.Cast<uint, GameEntityHandle>(archetypeBoard.GetEntities(archetypeId));
 				action(new EntityArchetype(archetypeId), entities, currentState);
-			}
+			}*/
 		}
+		
+		private PooledList<GameEntityHandle> batchHandles = new PooledList<GameEntityHandle>(64);
 
-		const int ToProcess = 1; // how much archetype per task
-
-		public int GetBatchCount(int taskCount)
+		private int GetEntityToProcess(int taskCount)
+		{
+			return Math.Max((int) Math.Ceiling((float) batchHandles.Count / taskCount), 1);
+		}
+		
+		public int PrepareBatch(int taskCount)
 		{
 			currentState.World = query.GameWorld;
 			query.CheckForNewArchetypes();
 
-			var archetypes = query.Archetypes;
-			return archetypes.Length == 0 ? 0 : Math.Max((int) Math.Ceiling((float) archetypes.Length / ToProcess), 1);
+			batchHandles.Clear();
+
+			var targetCount = query.GetEntityCount();
+			if (targetCount > batchHandles.Capacity)
+				batchHandles.Capacity = targetCount;
+				
+			query.AddEntitiesTo(batchHandles);
+			
+			return batchHandles.Count == 0 ? 0 : Math.Max((int) Math.Ceiling((float) batchHandles.Count / GetEntityToProcess(taskCount)), 1);
 		}
 
 		public void Execute(int index, int maxUseIndex, int task, int taskCount)
 		{
-			var archetypes     = query.Archetypes;
-			var archetypeBoard = query.GameWorld.Boards.Archetype;
+			var handleSpan = batchHandles.Span;
 
+			var entityToProcess = GetEntityToProcess(taskCount);
+			
 			int batchSize;
 			if (index == maxUseIndex)
 			{
-				var r = ToProcess * index;
-				batchSize = archetypes.Length - r;
+				var r = entityToProcess * index;
+				batchSize = handleSpan.Length - r;
 			}
 			else
-				batchSize = ToProcess;
+				batchSize = entityToProcess;
 
-			var start = ToProcess * index;
+			var start = entityToProcess * index;
 			var end   = start + batchSize;
-			if (start >= archetypes.Length || end > archetypes.Length)
+			if (start >= handleSpan.Length)
 				return;
-
-			for (; start < end; start++)
-			{
-				ReadOnlySpan<GameEntityHandle> entities = MemoryMarshal.Cast<uint, GameEntityHandle>(archetypeBoard.GetEntities(archetypes[start]));
-				action(new EntityArchetype(archetypes[start]), entities, currentState);
-			}
+			
+			action(handleSpan.Slice(start, Math.Min(handleSpan.Length, end) - start), currentState);
 		}
 	}
 
@@ -160,7 +170,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 
 		const int ToProcess = 1; // how much archetype per task
 
-		public int GetBatchCount(int taskCount)
+		public int PrepareBatch(int taskCount)
 		{
 			currentState.World = query.GameWorld;
 			query.CheckForNewArchetypes();

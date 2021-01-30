@@ -9,6 +9,7 @@ using GameHost.Threading;
 using GameHost.Threading.Apps;
 using GameHost.Worlds;
 using GameHost.Worlds.Components;
+using StormiumTeam.GameBase.Utility.Misc.EntitySystem;
 
 namespace GameHost.Simulation.Application
 {
@@ -30,6 +31,7 @@ namespace GameHost.Simulation.Application
 		{
 			// register game world since it's kinda important for the simu app, ahah
 			Data.Context.BindExisting(new GameWorld());
+			Data.Context.BindExisting<IBatchRunner>(new ThreadBatchRunner(0.3f)); // we only 30% of the cores
 
 			targetFrequency = TimeSpan.FromSeconds(0.02); // 100 fps
 			timeApp = new TimeApp(Data.Context);

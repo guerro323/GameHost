@@ -55,7 +55,7 @@ namespace GameHost.Simulation.Tests
 				ToProcess = toProcess;
 			}
 
-			public int GetBatchCount(int count)
+			public int PrepareBatch(int count)
 			{
 				ComputedValue = 0;
 				return Size == 0 ? 0 : Math.Max((int) Math.Ceiling((float) Size / ToProcess), 1);
