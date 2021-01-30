@@ -6,6 +6,8 @@
         <IsPackable>false</IsPackable>
 
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <LangVersion>9</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>

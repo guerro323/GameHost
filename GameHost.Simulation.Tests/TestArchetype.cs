@@ -15,7 +15,7 @@ namespace GameHost.Simulation.Tests
 			var component1 = world.RegisterComponent("Component1", new SingleComponentBoard(sizeof(int), 0));
 			var component2 = world.RegisterComponent("Component2", new SingleComponentBoard(sizeof(int), 0));
 
-			GameEntity ent1, ent2, ent3;
+			GameEntityHandle ent1, ent2, ent3;
 
 			ent1 = world.CreateEntity();
 			world.AddComponent(ent1, component1);
@@ -40,7 +40,7 @@ namespace GameHost.Simulation.Tests
 
 			for (var i = 0; i != 4; i++)
 			{
-				var entities = new GameEntity[1000];
+				var entities = new GameEntityHandle[1000];
 				world.CreateEntityBulk(entities);
 
 				var sw = new Stopwatch();
@@ -72,7 +72,7 @@ namespace GameHost.Simulation.Tests
 			
 			for (var i = 0; i != 4; i++)
 			{
-				var entities = new GameEntity[1000];
+				var entities = new GameEntityHandle[1000];
 				world.CreateEntityBulk(entities);
 
 				var sw = new Stopwatch();

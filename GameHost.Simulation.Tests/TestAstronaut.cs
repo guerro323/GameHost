@@ -2,7 +2,9 @@ using System;
 using System.Numerics;
 using GameHost.Simulation.TabEcs;
 using GameHost.Simulation.TabEcs.Interfaces;
+using GameHost.Simulation.Utility.EntityQuery;
 using NUnit.Framework;
+using StormiumTeam.GameBase.Utility.Misc.EntitySystem;
 
 namespace GameHost.Simulation.Tests
 {
@@ -53,21 +55,31 @@ namespace GameHost.Simulation.Tests
 			world.AddComponent(astronautOnMoon, new Velocity {Value = new Vector3(10, 0, 0)});
 			world.AddComponent<Position>(astronautOnMoon);
 
-			foreach (ref readonly var entity in world.Boards.Entity.Alive)
+			static void onAstronaut(in EntityArchetype archetype, in ReadOnlySpan<GameEntityHandle> entities, in SystemState<GameEntityHandle> state)
 			{
-				if (!world.HasComponent<Gravity>(entity)
-				    && !world.HasComponent<Position>(entity)
-				    && !world.HasComponent<Velocity>(entity))
-					continue;
+				var (gameWorld, timeEntity) = state;
 
-				ref readonly var gravity = ref world.GetComponentData<Gravity>(entity);
+				ref readonly var time = ref gameWorld.GetComponentData<Time>(timeEntity);
+				foreach (ref readonly var entity in entities)
+				{
+					ref readonly var gravity = ref gameWorld.GetComponentData<Gravity>(entity);
 
-				ref var velocity = ref world.GetComponentData<Velocity>(entity);
-				ref var position = ref world.GetComponentData<Position>(entity);
+					ref var velocity = ref gameWorld.GetComponentData<Velocity>(entity);
+					ref var position = ref gameWorld.GetComponentData<Position>(entity);
 
-				velocity.Value += gravity.Value * world.GetComponentData<Time>(timeEntity).Delta;
-				position.Value += velocity.Value * world.GetComponentData<Time>(timeEntity).Delta;
+					velocity.Value += gravity.Value * time.Delta;
+					position.Value += velocity.Value * time.Delta;
+				}
 			}
+
+			var system = new ArchetypeSystem<GameEntityHandle>(onAstronaut, new EntityQuery(world, new []
+			{
+				world.AsComponentType<Gravity>(),
+				world.AsComponentType<Position>(),
+				world.AsComponentType<Velocity>()
+			}));
+
+			system.Update(timeEntity);
 
 			Console.WriteLine($"{world.GetComponentData<Position>(astronautOnEarth).Value}");
 			Console.WriteLine($"{world.GetComponentData<Position>(astronautOnMoon).Value}");

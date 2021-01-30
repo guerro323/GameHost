@@ -56,7 +56,8 @@ namespace GameHost.Simulation.Tests
 			Assert.AreNotEqual(World.GetComponentData<IntComponent>(entityOwner).Value, World.GetComponentData<IntComponent>(entityWithRef).Value);
 		}
 
-		[Test]
+		// TODO: Readd this once we have Entity dependance again
+		/*[Test]
 		public void TestDependence()
 		{
 			var root   = World.CreateEntity();
@@ -67,7 +68,7 @@ namespace GameHost.Simulation.Tests
 			World.DependOnEntityComponent(parent, root, World.AsComponentType<IntComponent>());
 			World.DependOnEntityComponent(child, parent, World.AsComponentType<IntComponent>());
 
-			int component_val(GameEntity entity) => World.GetComponentData<IntComponent>(entity).Value;
+			int component_val(GameEntityHandle entity) => World.GetComponentData<IntComponent>(entity).Value;
 
 			// Child depend on parent, and parent depend on root.
 			Assert.AreEqual(component_val(root), component_val(parent));
@@ -96,7 +97,7 @@ namespace GameHost.Simulation.Tests
 			// Root still has the component, but since the parent of the child has broken the component dependence the child shouldn't have the component anymore.
 			Assert.IsTrue(World.HasComponent<IntComponent>(root));
 			Assert.IsFalse(World.HasComponent<IntComponent>(child));
-		}
+		}*/
 
 		public struct IntComponent : IComponentData
 		{

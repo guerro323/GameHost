@@ -85,12 +85,12 @@ namespace GameHost.Simulation.Tests.Feature
 		{
 			public int Passed;
 
-			public bool CanSerialize(GameWorld world, Span<GameEntity> entities, ComponentBoardBase board)
+			public bool CanSerialize(GameWorld world, Span<GameEntityHandle> entities, ComponentBoardBase board)
 			{
 				return true;
 			}
 
-			public void SerializeBoard(ref DataBufferWriter buffer, GameWorld world, Span<GameEntity> entities, ComponentBoardBase board)
+			public void SerializeBoard(ref DataBufferWriter buffer, GameWorld world, Span<GameEntityHandle> entities, ComponentBoardBase board)
 			{
 				Passed = 0;
 				foreach (var entity in entities)

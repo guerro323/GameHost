@@ -24,6 +24,8 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		private PooledList<uint> matchedArchetypes;
 		private bool[]           archetypeIsValid;
 
+		public Span<uint> Archetypes => matchedArchetypes.Span;
+
 		public EntityQuery(GameWorld gameWorld, FinalizedQuery query)
 		{
 			GameWorld = gameWorld;

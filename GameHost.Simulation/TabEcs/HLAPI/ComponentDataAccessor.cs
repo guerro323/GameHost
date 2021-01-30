@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Collections.Pooled;
 using GameHost.Simulation.TabEcs.Interfaces;
 
