@@ -18,7 +18,7 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void AssignComponent(ComponentBoardBase componentBoard, ComponentReference componentReference, EntityBoardContainer entityBoard, GameEntityHandle entityHandle)
+		public static bool AssignComponent(ComponentBoardBase componentBoard, ComponentReference componentReference, EntityBoardContainer entityBoard, GameEntityHandle entityHandle)
 		{
 			componentBoard.AddReference(componentReference.Id, entityHandle);
 
@@ -30,7 +30,11 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 				// nobody reference this component anymore, let's remove the row
 				if (refs == 0)
 					componentBoard.DeleteRow(previousComponentId);
+
+				return false;
 			}
+
+			return true;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -78,14 +82,13 @@ namespace GameHost.Simulation.TabEcs.LLAPI
 			for (var i = 0; i != typeSpan.Length; i++)
 			{
 				var metadataSpan = entityBoard.GetComponentColumn(typeSpan[i].Id);
-				if (metadataSpan.Length <= entityHandle.Id)
-					continue;
+				/*if (metadataSpan.Length <= entityHandle.Id) TODO:: if it bug again, just uncomment this
+					continue;*/
 
-				var metadata = metadataSpan[(int) entityHandle.Id];
-				if (metadata.Valid)
+				if (metadataSpan[(int) entityHandle.Id].Valid)
 					founds[foundIndex++] = typeSpan[i].Id;
 			}
-			
+
 			if (foundIndex > 128)
 				throw new InvalidOperationException("What are you trying to do with " + foundIndex + " components?");
 

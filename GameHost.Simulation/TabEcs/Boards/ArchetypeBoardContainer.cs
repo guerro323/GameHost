@@ -61,24 +61,16 @@ namespace GameHost.Simulation.TabEcs
 				sum += componentTypes[i];
 			}
 
+			// it is possible to vectorize this?
 			for (var i = 1; i < column.componentTypes.Length; i++)
 			{
 				if (column.sum[i] != sum)
 					continue;
 
-				var existing = column.componentTypes[i];
-				if (existing.Length != componentTypes.Length)
-					continue;
-
-				var length = existing.Length;
-				for (var x = 0; x != length; x++)
-					if (existing[x] != componentTypes[x])
-						goto c;
-
-				return (uint) i;
-
-				c:
-				continue;
+				if (column.componentTypes[i]
+				          .AsSpan()
+				          .SequenceEqual(componentTypes))
+					return (uint) i;
 			}
 
 			return CreateArchetype(componentTypes, sum);
