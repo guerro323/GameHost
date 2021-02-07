@@ -27,11 +27,13 @@ namespace GameHost.Simulation.Application
 			Schedule(() => { fts.TargetFrameTimeMs = (int) span.TotalMilliseconds; }, default);
 		}
 
+		private ThreadBatchRunner batchRunner;
+
 		public SimulationApplication(GlobalWorld source, Context overrideContext) : base(source, overrideContext)
 		{
 			// register game world since it's kinda important for the simu app, ahah
 			Data.Context.BindExisting(new GameWorld());
-			Data.Context.BindExisting<IBatchRunner>(new ThreadBatchRunner(0.3f)); // we only 30% of the cores
+			Data.Context.BindExisting<IBatchRunner>(batchRunner = new ThreadBatchRunner(0.5f)); // we only use 50% of the cores
 
 			targetFrequency = TimeSpan.FromSeconds(0.02); // 100 fps
 			timeApp = new TimeApp(Data.Context);
@@ -59,10 +61,18 @@ namespace GameHost.Simulation.Application
 					Scheduler.Run();
 					TryExecuteScheduler();
 
-					for (var tickAge = updateCount - 1; tickAge >= 0; --tickAge)
+					try
 					{
-						timeApp.Update(elapsed - TimeSpan.FromSeconds(fts.accumulatedTime) - targetFrequency * tickAge, targetFrequency);
-						Data.Loop();
+						batchRunner.StartPerformanceCriticalSection();
+						for (var tickAge = updateCount - 1; tickAge >= 0; --tickAge)
+						{
+							timeApp.Update(elapsed - TimeSpan.FromSeconds(fts.accumulatedTime) - targetFrequency * tickAge, targetFrequency);
+							Data.Loop();
+						}
+					}
+					finally
+					{
+						batchRunner.StopPerformanceCriticalSection();
 					}
 				}
 			}

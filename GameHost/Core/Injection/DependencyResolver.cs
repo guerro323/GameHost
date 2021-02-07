@@ -23,8 +23,10 @@ namespace GameHost.Injection
             get
             {
                 if (Dependencies.Count == 0)
+                {
                     return Task.CompletedTask;
-                
+                }
+
                 var tcs = new TaskCompletionSource<bool>();
                 dependencyCompletion.Add(tcs);
                 return tcs.Task;
@@ -106,6 +108,13 @@ namespace GameHost.Injection
                 // Here we go again!
                 if (Dependencies.Count > 0)
                     allResolved = false;
+                else if (dependencyCompletion.Count > 0)
+                {
+                    // Be sure to set the result right after onComplete has been called (in case new deps has been added)
+                    foreach (var tcs in dependencyCompletion)
+                        tcs.SetResult(true);
+                    dependencyCompletion.Clear();
+                }
 
                 //Console.WriteLine($"completed {source}");
                 unresolvedFrames = 0;
@@ -116,14 +125,6 @@ namespace GameHost.Injection
             
                 var str = Dependencies.Aggregate(Source, (current, dep) => current + $"\n\t{dep}; {dep.IsResolved}");
                 Console.WriteLine(str);
-            }
-
-            // Be sure to set the result right after onComplete has been called (in case new deps has been added)
-            if (allResolved && dependencyCompletion.Count > 0)
-            {
-                foreach (var tcs in dependencyCompletion)
-                    tcs.SetResult(true);
-                dependencyCompletion.Clear();
             }
 
             if (!allResolved)

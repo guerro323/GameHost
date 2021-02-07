@@ -79,7 +79,7 @@ namespace GameHost.Simulation.Tests
 				world.AsComponentType<Velocity>()
 			}));
 
-			system.Update(timeEntity);
+			//system.Update(timeEntity);
 
 			Console.WriteLine($"{world.GetComponentData<Position>(astronautOnEarth).Value}");
 			Console.WriteLine($"{world.GetComponentData<Position>(astronautOnMoon).Value}");

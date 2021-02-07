@@ -65,6 +65,9 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			public int               TaskIndex;
 			public int               TaskCount;
 
+			public bool IsPerformanceCritical;
+			public int  ProcessorId;
+			
 			public ConcurrentBag<QueuedBatch> Batches;
 			public BatchResult[]              Results;
 		}
@@ -87,6 +90,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 		}
 
 		private Task[]                       tasks;
+		private TaskState[]                  states;
 		private ConcurrentBag<QueuedBatch>[] taskBatches;
 		private BatchResult[]                batchResults;
 
@@ -99,9 +103,15 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 
 			try
 			{
-				var spin = new SpinWait();
+				Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
+
+				var spin            = new SpinWait();
+				var sleep0Threshold = 10;
+				var sleepCount      = 0;
 				while (false == state.Token.IsCancellationRequested)
 				{
+					Volatile.Write(ref state.ProcessorId, Thread.GetCurrentProcessorId());
+					
 					var hasRanBatch = !state.Batches.IsEmpty;
 					while (state.Batches.TryTake(out var queued))
 					{
@@ -109,7 +119,18 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 						Interlocked.Increment(ref state.Results[queued.BatchId].SuccessfulWrite);
 					}
 
-					spin.SpinOnce();
+					if (state.IsPerformanceCritical)
+					{
+						if (sleepCount++ > sleep0Threshold)
+						{
+							Thread.Sleep(0);
+							sleepCount = 0;
+						}
+
+						continue;
+					}
+					
+					spin.SpinOnce(30);
 					if (hasRanBatch)
 						spin.Reset();
 				}
@@ -124,17 +145,18 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 
 		public ThreadBatchRunner(float corePercentile)
 		{
-			var coreCount = Math.Clamp((int) (Environment.ProcessorCount / corePercentile), 1, Environment.ProcessorCount);
+			var coreCount = Math.Clamp((int) (Environment.ProcessorCount * corePercentile), 1, Environment.ProcessorCount);
 			
 			ccs           = new CancellationTokenSource();
 			tasks         = new Task[coreCount];
+			states        = new TaskState[coreCount];
 			taskBatches   = new ConcurrentBag<QueuedBatch>[coreCount];
 			batchResults  = new BatchResult[MaxRunningBatches];
 			batchVersions = new int[MaxRunningBatches];
 			var ts = tasks.AsSpan();
 			for (var index = 0; index < ts.Length; index++)
 			{
-				ts[index] = new Task(runTask, new TaskState
+				ts[index] = new Task(runTask, states[index] = new TaskState
 				{
 					Token     = ccs.Token,
 					TaskIndex = index,
@@ -192,10 +214,26 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 				SuccessfulWrite = -1,
 				MaxIndex        = use - 1
 			};
-			
+
+			var sortByPerformanceCritical = IsPerformanceCritical && ThreadInCriticalContext > 0 ? tasks.Length : 0;
 			for (var i = 0; i < use; i++)
 			{
 				var taskIndex = i % tasks.Length;
+				if (sortByPerformanceCritical > 0)
+				{
+					var beginning = taskIndex;
+					while (states[taskIndex] is {IsPerformanceCritical: false})
+					{
+						taskIndex++;
+						if (taskIndex >= tasks.Length)
+							taskIndex = 0;
+						if (taskIndex == beginning)
+							break;
+					}
+
+					sortByPerformanceCritical--;
+				}
+
 				taskBatches[taskIndex].Add(new QueuedBatch
 				{
 					BatchId     = batchNumber,
@@ -208,9 +246,43 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			return new BatchRequest(batchNumber, batchVersion);
 		}
 
-		public Task QueueAsync(IBatch batch)
+		public bool IsPerformanceCritical   { get; private set; }
+		public int  ThreadInCriticalContext { get; private set; }
+
+		/// <summary>
+		/// Asks threads (which are not on the same processor of the caller) to enter a performance critical context.
+		/// There will be no spinning, Thread.Sleep(1) or Thread.Yield() while this phase is active.
+		/// </summary>
+		/// <remarks>
+		///	A Start should be followed by a Stop, as fast as possible.
+		/// </remarks>
+		public void StartPerformanceCriticalSection()
 		{
-			return Task.CompletedTask;
+			IsPerformanceCritical   = true;
+			ThreadInCriticalContext = 0;
+			
+			var currentProcessor = Thread.GetCurrentProcessorId();
+			foreach (var state in states)
+			{
+				var processorId = Volatile.Read(ref state.ProcessorId);
+
+				// this is needed in case there is a task on the same processor as the caller of this runner.
+				// or else everything would block
+				state.IsPerformanceCritical = processorId != default && processorId != currentProcessor;
+				if (state.IsPerformanceCritical)
+					ThreadInCriticalContext++;
+			}
+		}
+
+		public void StopPerformanceCriticalSection()
+		{
+			IsPerformanceCritical   = false;
+			ThreadInCriticalContext = 0;
+			
+			foreach (var state in states)
+			{
+				state.IsPerformanceCritical = false;
+			}
 		}
 	}
 }

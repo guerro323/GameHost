@@ -33,12 +33,9 @@ namespace GameHost.Simulation.Tests
 			var lowest = TimeSpan.MaxValue;
 
 			using var runner = new ThreadBatchRunner(1f);
-			
-			var query = new EntityQuery(gameWorld, new[] {componentType}); 
-			/*var system = new EntitySystemComponent<int, IntComponent>((in GameEntityHandle handle, ref IntComponent component, in SystemState<int> _) =>
-			{
-				component.Value++;
-			}, query);*/
+			runner.StartPerformanceCriticalSection();
+
+			var query = new EntityQuery(gameWorld, new[] {componentType});
 			var system = new ArchetypeSystem<int>((in ReadOnlySpan<GameEntityHandle> entities, in SystemState<int> state) =>
 			{
 				var accessor = new ComponentDataAccessor<IntComponent>(state.World);
@@ -48,7 +45,8 @@ namespace GameHost.Simulation.Tests
 				
 			system.PrepareData(0);
 			
-			for (var i = 0; i < 100; i++)
+			Thread.Sleep(10); // make sure that threads are correctly initialized and are in critical context
+			for (var i = 0; i < 1000; i++)
 			{
 				var request = runner.Queue(system);
 				sw.Restart();
@@ -69,6 +67,8 @@ namespace GameHost.Simulation.Tests
 					lowest = sw.Elapsed;
 				Thread.Sleep(0);
 			}
+			
+			runner.StopPerformanceCriticalSection();
 
 			Console.WriteLine($"Elapsed={lowest.TotalMilliseconds}ms");
 		}
