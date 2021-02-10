@@ -40,18 +40,34 @@ namespace GameHost.Simulation.TabEcs
 			};
 		}
 
+		public void SwitchStructuralThread()
+		{
+			var currentThread = Thread.CurrentThread;
+			Boards.Entity.SetCallerThread(currentThread);
+			Boards.Archetype.SetCallerThread(currentThread);
+			Boards.ComponentType.SetCallerThread(currentThread);
+
+			foreach (var board in Boards.ComponentType.ComponentBoardColumns)
+				board?.SetCallerThread(currentThread);
+		}
+
 		public bool HasComponentType(string name)
 		{
 			return Boards.ComponentType.Registered.Any(row => Boards.ComponentType.NameColumns[(int) row.Id] == name);
 		}
 
+		private object lockedComponentTypeSynchronization = new();
+
 		public ComponentType GetComponentType(string name)
 		{
-			var componentTypeBoard = Boards.ComponentType;
-			for (var i = 1; i < componentTypeBoard.Registered.Length; i++)
+			lock (lockedComponentTypeSynchronization)
 			{
-				if (componentTypeBoard.NameColumns[i] == name)
-					return new ComponentType((uint) i);
+				var componentTypeBoard = Boards.ComponentType;
+				for (var i = 1; i < componentTypeBoard.Registered.Length; i++)
+				{
+					if (componentTypeBoard.NameColumns[i] == name)
+						return new ComponentType((uint) i);
+				}
 			}
 
 			throw new KeyNotFoundException(name);
@@ -62,7 +78,8 @@ namespace GameHost.Simulation.TabEcs
 			if (HasComponentType(name))
 				throw new InvalidOperationException($"[{WorldId}] A component named '{name}' already exist");
 
-			return new ComponentType(Boards.ComponentType.CreateRow(name, componentBoard, optionalParentType: optionalParentType));
+			lock (lockedComponentTypeSynchronization)
+				return new ComponentType(Boards.ComponentType.CreateRow(name, componentBoard, optionalParentType: optionalParentType));
 		}
 
 		public ComponentType AsComponentType(Type type)
@@ -108,7 +125,8 @@ namespace GameHost.Simulation.TabEcs
 			string componentName;
 			if (default(T) is IMetadataCustomComponentName metadataCustomComponentName)
 			{
-				componentName = metadataCustomComponentName.ProvideName(this);
+				lock (lockedComponentTypeSynchronization)
+					componentName = metadataCustomComponentName.ProvideName(this);
 			}
 			else
 			{
@@ -118,7 +136,8 @@ namespace GameHost.Simulation.TabEcs
 			ComponentType parent = default;
 			if (default(T) is IMetadataSubComponentOf metadataSubComponentOf)
 			{
-				parent = metadataSubComponentOf.ProvideComponentParent(this);
+				lock (lockedComponentTypeSynchronization)
+					parent = metadataSubComponentOf.ProvideComponentParent(this);
 			}
 
 			componentType = RegisterComponent(componentName, board, optionalParentType: parent);

@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
  using System.Runtime.InteropServices;
  using Collections.Pooled;
@@ -111,6 +111,8 @@ using System.Collections.Generic;
 			 var length = p_componentColumn.Length;
 			 if (type >= length)
 			 {
+				 CheckForThreadSafety();
+				 
 				 Array.Resize(ref p_componentColumn, ((int) type + 1) * 2);
 				 for (var i = length; i < p_componentColumn.Length; i++)
 				 {

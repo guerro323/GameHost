@@ -43,10 +43,25 @@ namespace GameHost.Utility
 
 	public static class TaskRunUtility
 	{
+		[Obsolete("use extension method")]
 		public static Task StartUnwrap(Func<CancellationToken, Task> taskCreator, TaskScheduler taskScheduler, CancellationToken cancellationToken)
 		{
 			return Task.Factory
 			           .StartNew(() => taskCreator(cancellationToken), cancellationToken, TaskCreationOptions.AttachedToParent, taskScheduler)
+			           .Unwrap();
+		}
+		
+		public static Task StartUnwrap(this TaskScheduler taskScheduler, Func<CancellationToken, Task> taskCreator, CancellationToken cancellationToken)
+		{
+			return Task.Factory
+			           .StartNew(() => taskCreator(cancellationToken), cancellationToken, TaskCreationOptions.AttachedToParent, taskScheduler)
+			           .Unwrap();
+		}
+
+		public static Task StartUnwrap(this TaskScheduler taskScheduler, Func<Task> taskCreator)
+		{
+			return Task.Factory
+			           .StartNew(taskCreator, CancellationToken.None, TaskCreationOptions.AttachedToParent, taskScheduler)
 			           .Unwrap();
 		}
 	}

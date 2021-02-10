@@ -8,6 +8,9 @@ namespace GameHost.Inputs.Systems
 		{
 			foreach (var obj in GetObjects())
 			{
+				if (obj is IUpdatePass updatePass && !updatePass.CanUpdate())
+					continue;
+				
 				obj.OnInputUpdate();
 			}
 		}

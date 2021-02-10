@@ -105,7 +105,7 @@ namespace GameHost.Audio.Players
 				}
 			}
 
-			recorder.Execute(World.Mgr);
+			recorder.Execute();
 		}
 	}
 }

@@ -13,25 +13,7 @@ namespace GameHost.Inputs.DefaultActions
         {
             public Layout(string id, params CInput[] inputs) : base(id)
             {
-                Inputs = new ReadOnlyCollection<CInput>(inputs);
-            }
-
-            public override void Serialize(ref DataBufferWriter buffer)
-            {
-                var count = Inputs.Count;
-                buffer.WriteInt(count);
-                for (var i = 0; i < count; i++)
-                    buffer.WriteStaticString(Inputs[i].Target);
-            }
-
-            public override void Deserialize(ref DataBufferReader buffer)
-            {
-                var count = buffer.ReadValue<int>();
-                var array = new CInput[count];
-                for (var i = 0; i < count; i++)
-                    array[i] = new CInput(buffer.ReadString());
-
-                Inputs = new ReadOnlyCollection<CInput>(array);
+                Inputs = inputs;
             }
         }
 
@@ -44,7 +26,7 @@ namespace GameHost.Inputs.DefaultActions
             public InputActionSystem(WorldCollection collection) : base(collection)
             {
             }
-            
+
             public override void OnInputUpdate()
             {
                 var currentLayout = World.Mgr.Get<InputCurrentLayout>()[0];
@@ -55,7 +37,8 @@ namespace GameHost.Inputs.DefaultActions
                         return;
 
                     PressAction action = default;
-                    foreach (var input in layout.Inputs)
+
+                    foreach (var input in layout.Inputs.Span)
                         if (Backend.GetInputControl(input.Target) is { } buttonControl)
                         {
                             action.DownCount += buttonControl.wasPressedThisFrame ? 1u : 0;
@@ -65,18 +48,6 @@ namespace GameHost.Inputs.DefaultActions
                     entity.Set(action);
                 }
             }
-        }
-
-        public void Serialize(ref DataBufferWriter buffer)
-        {
-            buffer.WriteValue(DownCount);
-            buffer.WriteValue(UpCount);
-        }
-
-        public void Deserialize(ref DataBufferReader buffer)
-        {
-            DownCount += buffer.ReadValue<uint>();
-            UpCount   += buffer.ReadValue<uint>();
         }
     }
 }

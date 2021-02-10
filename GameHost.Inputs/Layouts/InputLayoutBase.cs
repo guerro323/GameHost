@@ -11,16 +11,13 @@ namespace GameHost.Inputs.Layouts
 	public abstract class InputLayoutBase
 	{
 		public readonly string                     Id;
-		public          ReadOnlyCollection<CInput> Inputs { get; protected set; }
+		public          ReadOnlyMemory<CInput> Inputs { get; protected set; }
 
 		public InputLayoutBase(string id)
 		{
 			this.Id = id;
-			Inputs  = new ReadOnlyCollection<CInput>(Array.Empty<CInput>());
+			Inputs  = Array.Empty<CInput>();
 		}
-
-		public abstract void Serialize(ref   DataBufferWriter buffer);
-		public abstract void Deserialize(ref DataBufferReader buffer);
 	}
 
 	public class InputActionLayouts : Dictionary<string, InputLayoutBase>

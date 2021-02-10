@@ -38,5 +38,24 @@ namespace GameHost.Core.Ecs
 			foreach (ref var entity in entities)
 				entity.Remove<T>();
 		}
+
+
+		/// <summary>
+		/// Remove a component of a given <see cref="EntitySet"/>
+		/// </summary>
+		/// <param name="set">The selected entity set</param>
+		/// <typeparam name="T">The component to remove</typeparam>
+		public static void Set<T>(this EntitySet set, in T data = default)
+		{
+			if (set.Count == 0)
+				return;
+
+			// no ref access since we do structural change
+			Span<Entity> entities = stackalloc Entity[set.Count];
+			set.GetEntities().CopyTo(entities);
+
+			foreach (ref var entity in entities)
+				entity.Set(data);
+		}
 	}
 }

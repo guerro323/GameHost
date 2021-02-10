@@ -13,6 +13,8 @@
 			 column.size           = new int[0];
 			 column.componentBoard = new ComponentBoardBase[0];
 			 column.parentType     = new ComponentType[0];
+
+			 CheckSafetyIssue = false;
 		 }
 
 		 public Span<string>                     NameColumns           => column.name;

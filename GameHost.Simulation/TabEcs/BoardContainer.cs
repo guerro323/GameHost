@@ -1,4 +1,6 @@
 ﻿﻿using System;
+ using System.Diagnostics;
+ using System.Threading;
  using TabEcs;
 
  namespace GameHost.Simulation.TabEcs
@@ -14,19 +16,38 @@
 	 public abstract class BoardContainer : IDisposable
 	 {
 		 protected internal UIntBoardBase board;
+
+		 private   Thread callerThread;
+		 protected bool   CheckSafetyIssue;
 		 
 		 public BoardContainer(int capacity)
 		 {
 			 board = new UIntBoardBase(capacity);
+			 
+			 callerThread     = Thread.CurrentThread;
+			 CheckSafetyIssue = true;
+		 }
+
+		 public void SetCallerThread(Thread callerThread) => this.callerThread = callerThread;
+
+		 [Conditional("DEBUG")]
+		 protected void CheckForThreadSafety()
+		 {
+			 if (CheckSafetyIssue && Thread.CurrentThread != callerThread)
+				 throw new InvalidOperationException($"Thread Safety Issue! Current={Thread.CurrentThread.Name}({Thread.CurrentThread.ManagedThreadId}), Original={callerThread.Name}({callerThread.ManagedThreadId})");
 		 }
 
 		 public virtual uint CreateRow()
 		 {
+			 CheckForThreadSafety();
+
 			 return board.CreateRow();
 		 }
 
 		 public virtual void CreateRowBulk(Span<uint> rows)
 		 {
+			 CheckForThreadSafety();
+			 
 			 board.CreateRowBulk(rows);
 		 }
 
@@ -37,6 +58,8 @@
 
 		 public virtual bool DeleteRow(uint row)
 		 {
+			 CheckForThreadSafety();
+			 
 			 return board.TrySetUnusedRow(row);
 		 }
 

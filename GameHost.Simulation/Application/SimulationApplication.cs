@@ -28,11 +28,12 @@ namespace GameHost.Simulation.Application
 		}
 
 		private ThreadBatchRunner batchRunner;
+		private GameWorld         gameWorld;
 
 		public SimulationApplication(GlobalWorld source, Context overrideContext) : base(source, overrideContext)
 		{
 			// register game world since it's kinda important for the simu app, ahah
-			Data.Context.BindExisting(new GameWorld());
+			Data.Context.BindExisting(gameWorld = new GameWorld());
 			Data.Context.BindExisting<IBatchRunner>(batchRunner = new ThreadBatchRunner(0.5f)); // we only use 50% of the cores
 
 			targetFrequency = TimeSpan.FromSeconds(0.02); // 100 fps
@@ -45,6 +46,8 @@ namespace GameHost.Simulation.Application
 		private Stopwatch sleepTime = new Stopwatch();
 		protected override ListenerUpdate OnUpdate()
 		{
+			gameWorld.SwitchStructuralThread();
+			
 			sleepTime.Stop();
 		
 			var delta       = worker.Delta + sleepTime.Elapsed;

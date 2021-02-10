@@ -62,9 +62,7 @@ namespace GameHost.Inputs.Systems
 		protected InputActionSystemBase(WorldCollection collection) : base(collection)
 		{
 		}
-
-		public abstract void CallSerialize(ref   DataBufferWriter buffer);
-		public abstract void CallDeserialize(ref DataBufferReader buffer);
+		
 		public abstract void OnBeginFrame();
 
 		public abstract Entity          CreateEntityAction();
@@ -93,14 +91,12 @@ namespace GameHost.Inputs.Systems
 		public override string ActionPath => CustomActionPath ?? typeof(TAction).FullName;
 		
 		private InputActionSystemGroup group;
-		private ReceiveInputDataSystem receiveSystem;
 
 		protected EntitySet InputQuery { get; }
 
 		protected InputActionSystemBase(WorldCollection collection) : base(collection)
 		{
 			DependencyResolver.Add(() => ref group);
-			DependencyResolver.Add(() => ref receiveSystem);
 			DependencyResolver.Add(() => ref Backend);
 
 			InputQuery = collection.Mgr.GetEntities()
@@ -116,54 +112,6 @@ namespace GameHost.Inputs.Systems
 			group.Add(this);
 		}
 
-		public override void CallSerialize(ref DataBufferWriter buffer)
-		{
-			OnSerialize(ref buffer);
-		}
-
-		public override void CallDeserialize(ref DataBufferReader buffer)
-		{
-			OnDeserialize(ref buffer);
-		}
-
-		protected virtual void OnSerialize(ref DataBufferWriter buffer)
-		{
-			buffer.WriteInt(InputQuery.Count);
-			foreach (ref readonly var entity in InputQuery.GetEntities())
-			{
-				var repl   = entity.Get<InputEntityId>();
-				var action = entity.Get<TAction>();
-
-				buffer.WriteInt(repl.Value);
-				action.Serialize(ref buffer);
-			}
-		}
-
-		protected virtual void OnDeserialize(ref DataBufferReader buffer)
-		{
-			var entityCount = buffer.ReadValue<int>();
-			for (var i = 0; i < entityCount; i++)
-			{
-				var replId = buffer.ReadValue<int>();
-
-				var found = false;
-				foreach (ref readonly var entity in InputQuery.GetEntities())
-				{
-					if (entity.Get<InputEntityId>().Value != replId)
-						continue;
-
-					ref var current = ref entity.Get<TAction>();
-					current.Deserialize(ref buffer);
-					found   = true;
-
-					break;
-				}
-
-				/*if (!found)
-					Console.WriteLine($"No input <{typeof(TAction).Name}> entity found for replId={replId}");*/
-			}
-		}
-		
 		protected InputActionLayouts GetLayouts(in Entity entity)
 		{
 			return Backend.GetLayoutsOf(entity);

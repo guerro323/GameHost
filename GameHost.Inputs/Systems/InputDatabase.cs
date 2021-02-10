@@ -34,7 +34,6 @@ namespace GameHost.Inputs.Systems
             ac.Set(new InputActionLayouts(layouts));
             ac.Set(new InputActionType(typeof(TAction)));
             ac.Set(default(TAction));
-            ac.Set(new PushInputLayoutChange());
 
             return ac;
         }
@@ -55,7 +54,6 @@ namespace GameHost.Inputs.Systems
             existing.Set(new InputActionLayouts(layouts));
             existing.Set(new InputActionType(typeof(TAction)));
             existing.Set(default(TAction));
-            existing.Set(new PushInputLayoutChange());
 
             return existing;
         }

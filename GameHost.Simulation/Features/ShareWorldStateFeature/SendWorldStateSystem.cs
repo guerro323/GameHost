@@ -118,12 +118,20 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			{
 				dataBuffer.WriteSpan(componentTypeSpan);
 
+				var max = 0u;
+				
 				// 1.5 Write description of component type
 				foreach (var componentType in componentTypeSpan)
 				{
 					dataBuffer.WriteInt(world.Boards.ComponentType.SizeColumns[(int) componentType.Id]);
 					dataBuffer.WriteStaticString(world.Boards.ComponentType.NameColumns[(int) componentType.Id]);
+
+					max = Math.Max(componentType.Id, max);
 				}
+				
+				// Make sure that the component column on the entity board are correctly initialized
+				// If we don't, there may be a possibility that they may get created in parallel (which we don't want)
+				world.Boards.Entity.GetComponentColumn(max);
 			}
 
 			// 2. Write archetypes

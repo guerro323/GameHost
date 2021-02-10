@@ -75,11 +75,14 @@ namespace GameHost.Inputs.Systems
 
 		public InputControl GetInputControl(string path)
 		{
-			return inputDataMap[path.ToLower()];
+			return GetOrCreateInputControl(path);
 		}
 
 		public InputActionLayouts GetLayoutsOf(Entity entity)
 		{
+			if (entity.TryGet(out InputActionLayouts layouts))
+				return layouts;
+			
 			if (!entity.TryGet(out ReplicatedInputAction inputAction))
 				throw new InvalidOperationException($"GetLayoutsOf: {entity} should be an input action");
 

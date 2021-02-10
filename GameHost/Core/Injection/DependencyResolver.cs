@@ -22,9 +22,12 @@ namespace GameHost.Injection
         {
             get
             {
-                if (Dependencies.Count == 0)
+                lock (Dependencies)
                 {
-                    return Task.CompletedTask;
+                    if (Dependencies.Count == 0)
+                    {
+                        return Task.CompletedTask;
+                    }
                 }
 
                 var tcs = new TaskCompletionSource<bool>();
@@ -98,28 +101,34 @@ namespace GameHost.Injection
                                            .Select(d => ((IResolvedObject) d).Resolved)
                                            .ToList();
 
-                Dependencies.Clear();
-                if (onComplete != null)
+                lock (Dependencies)
                 {
-                    onComplete(resolvedDependencies);
-                    onComplete = null;
+                    Dependencies.Clear();
+                    if (onComplete != null)
+                    {
+                        var prev = onComplete;
+                        prev(resolvedDependencies);
+                        if (prev == onComplete) onComplete = null;
+                    }
+
+                    // Here we go again!
+                    if (Dependencies.Count > 0)
+                    {
+                        allResolved = false;
+                    }
+                    else if (dependencyCompletion.Count > 0)
+                    {
+                        // Be sure to set the result right after onComplete has been called (in case new deps has been added)
+                        foreach (var tcs in dependencyCompletion)
+                            tcs.SetResult(true);
+                        dependencyCompletion.Clear();
+                    }
                 }
 
-                // Here we go again!
-                if (Dependencies.Count > 0)
-                    allResolved = false;
-                else if (dependencyCompletion.Count > 0)
-                {
-                    // Be sure to set the result right after onComplete has been called (in case new deps has been added)
-                    foreach (var tcs in dependencyCompletion)
-                        tcs.SetResult(true);
-                    dependencyCompletion.Clear();
-                }
-
-                //Console.WriteLine($"completed {source}");
+                //Console.WriteLine($"completed {Source}");
                 unresolvedFrames = 0;
             }
-            else if (unresolvedFrames++ > 1000)
+            else if (unresolvedFrames++ > 100)
             {
                 unresolvedFrames = 0;
             

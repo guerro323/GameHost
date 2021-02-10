@@ -22,5 +22,10 @@ namespace GameHost.Injection.Dependency
 			IsResolved       = Task.IsCompleted;
 			ResolveException = Task.Exception;
 		}
+
+		public override string ToString()
+		{
+			return $"TaskDependency({Task})";
+		}
 	}
 }
