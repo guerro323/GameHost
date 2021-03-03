@@ -13,7 +13,7 @@
     <ItemGroup>
       <PackageReference Include="BidirectionalMap" Version="1.0.0" />
       <PackageReference Include="Collections.Pooled" Version="2.0.0-preview.27" />
-      <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta29" />
+      <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta42" />
       <PackageReference Include="TabEcs.LLAPI" Version="1.0.6" />
     </ItemGroup>
 
