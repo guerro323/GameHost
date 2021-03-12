@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Collections.Pooled;
+using RevolutionSnapshot.Core.Buffers;
 
 namespace GameHost.Simulation.TabEcs
 {
@@ -16,6 +18,21 @@ namespace GameHost.Simulation.TabEcs
 		public ComponentBuffer(PooledList<byte> backing)
 		{
 			this.backing = backing;
+		}
+
+		/// <summary>
+		/// Clean all items that are default/zero
+		/// </summary>
+		public void ClearZeroes()
+		{
+			for (var i = 0; i < Count; i++)
+			{
+				if (!UnsafeUtility.SameData(this[i], default))
+					continue;
+
+				RemoveAt(i);
+				i--;
+			}
 		}
 
 		public void Add(T value)
