@@ -3,13 +3,13 @@ using GameHost.Injection;
 
 namespace GameHost.Core.RPC
 {
-	public class RpcCollectionObject : AppObject
+	public class RpcEventCollection : AppObject
 	{
 		public delegate void OnCommandRequest(GameHostCommandResponse response);
 
 		public delegate void OnCommandReply(GameHostCommandResponse response);
 
-		public RpcCollectionObject(Context context) : base(context)
+		public RpcEventCollection(Context context) : base(context)
 		{
 		}
 

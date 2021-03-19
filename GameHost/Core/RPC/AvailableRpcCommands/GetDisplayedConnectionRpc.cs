@@ -8,6 +8,21 @@ using Newtonsoft.Json;
 
 namespace GameHost.Core.RPC.AvailableRpcCommands
 {
+	public struct GetDisplayedConnection : IGameHostRpcWithResponsePacket<GetDisplayedConnection.Response>
+	{
+		public struct Response : IGameHostRpcResponsePacket
+		{
+			public struct Connection
+			{
+				public string Name    { get; set; }
+				public string Type    { get; set; }
+				public string Address { get; set; }
+			}
+
+			public Dictionary<string, Connection> Connections { get; set; }
+		}
+	}
+
 	public class GetDisplayedConnectionRpc : RpcCommandSystem
 	{
 		public class Result
@@ -23,6 +38,7 @@ namespace GameHost.Core.RPC.AvailableRpcCommands
 		}
 
 		private EntitySet connectionSet;
+		private RpcSystem rpcSystem;
 
 		public GetDisplayedConnectionRpc(WorldCollection collection) : base(collection)
 		{
@@ -30,6 +46,15 @@ namespace GameHost.Core.RPC.AvailableRpcCommands
 			                     .With<DisplayedConnection>()
 			                     .With<TransportAddress>()
 			                     .AsSet();
+			
+			DependencyResolver.Add(() => ref rpcSystem);
+		}
+
+		protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
+		{
+			base.OnDependenciesResolved(dependencies);
+
+			rpcSystem.RegisterPacketWithResponse<GetDisplayedConnection, GetDisplayedConnection.Response>("GameHost.DisplayConnections");
 		}
 
 		public override string CommandId => "displayallcon";

@@ -15,7 +15,7 @@ namespace GameHost.Core.RPC
 		protected abstract void OnReceiveRequest(GameHostCommandResponse response);
 		protected abstract void OnReceiveReply(GameHostCommandResponse   response);
 
-		private RpcEventCollectionSystem collectionSystem;
+		private RpcLowLevelSystem collectionSystem;
 		private StartGameHostListener    listener;
 
 		private DataBufferWriter tempWriter;
@@ -33,7 +33,7 @@ namespace GameHost.Core.RPC
 		protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
 		{
 			base.OnDependenciesResolved(dependencies);
-			collectionSystem.Global.CommandRequest += r =>
+			collectionSystem.Events.CommandRequest += r =>
 			{
 				if (CommandId.AsSpan().SequenceEqual(r.Command.Span))
 				{
@@ -47,7 +47,7 @@ namespace GameHost.Core.RPC
 					}
 				}
 			};
-			collectionSystem.Global.CommandReply += r =>
+			collectionSystem.Events.CommandReply += r =>
 			{
 				isInRequestSection = false;
 				if (CommandId.AsSpan().SequenceEqual(r.Command.Span))

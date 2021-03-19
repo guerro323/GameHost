@@ -34,7 +34,7 @@ namespace GameHost.Tests
 			public List<Item> collection { get; set; }
 		}
 
-		[Test]
+		/*[Test]
 		public void Test()
 		{
 			var response = new GameHostCommandResponse();
@@ -73,6 +73,6 @@ namespace GameHost.Tests
 
 			Assert.AreEqual(4, ((First) deserialized.collection[0]).first_value);
 			Assert.AreEqual(2, ((Second) deserialized.collection[1]).second_value);
-		}
+		}*/
 	}
 }

@@ -1,9 +1,14 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
@@ -21,9 +26,10 @@ namespace GameHost.Core.Client
 	[RestrictToApplication(typeof(ExecutiveEntryApplication))]
 	public class StartGameHostListener : AppSystemWithFeature<ReceiveGameHostClientFeature>
 	{
-		private int                      featureCount;
-		private RpcListener              listener;
-		private RpcEventCollectionSystem collectionSystem;
+		private int               featureCount;
+		private RpcListener       listener;
+		private RpcLowLevelSystem lowLevel;
+		private RpcSystem         rpcSystem;
 
 		private ILogger logger;
 
@@ -32,15 +38,16 @@ namespace GameHost.Core.Client
 		// we require an absolute type
 		public StartGameHostListener(WorldCollection collection) : base(f => f.GetType() == typeof(ReceiveGameHostClientFeature), collection)
 		{
-			Server = new Bindable<NetManager>();
-			
+			Server       = new();
+
 			DependencyResolver.Add(() => ref logger);
-			DependencyResolver.Add(() => ref collectionSystem);
+			DependencyResolver.Add(() => ref lowLevel);
+			DependencyResolver.Add(() => ref rpcSystem);
 		}
 
 		protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
 		{
-			Server.Value = new NetManager(listener = new RpcListener(collectionSystem));
+			Server.Value = new NetManager(listener = new (lowLevel));
 
 			base.OnDependenciesResolved(dependencies);
 		}
@@ -49,7 +56,9 @@ namespace GameHost.Core.Client
 		{
 			base.OnUpdate();
 			if (Server.Value.IsRunning)
+			{
 				Server.Value.PollEvents();
+			}
 		}
 
 		protected override void OnFeatureAdded(Entity entity, ReceiveGameHostClientFeature obj)
@@ -128,58 +137,104 @@ namespace GameHost.Core.Client
 
 	public class RpcListener : INetEventListener
 	{
-		private RpcEventCollectionSystem collection;
+		private RpcLowLevelSystem       lowLevel;
+		private Utf8JsonWriter          jsonWriter;
+		private ArrayBufferWriter<byte> writtenBytes;
 
-		public RpcListener(RpcEventCollectionSystem collection)
+		public event Action<(NetPeer peer, Entity clientEntity)> PeerConnected; 
+
+		public RpcListener(RpcLowLevelSystem lowLevel)
 		{
-			this.collection = collection;
+			this.lowLevel = lowLevel;
+
+			jsonWriter = new(writtenBytes = new(512));
 		}
 
 		public virtual void OnPeerConnected(NetPeer peer)
 		{
+			var clientEntity = lowLevel.Connect(ToTransportConnection(peer), args =>
+			{
+				var (state, packetEntity) = args;
+				var handler = packetEntity.Get<EntityRpcMultiHandler>();
+
+				jsonWriter.Reset();
+				jsonWriter.WriteStartObject();
+				{
+					jsonWriter.WriteString("jsonrpc", "2.0");
+					jsonWriter.WriteString("method", handler.Send.Method);
+					jsonWriter.WritePropertyName("params");
+					// StartObject
+					{
+						handler.Send.Send(packetEntity, jsonWriter);
+					}
+					// EndObject
+
+					if (packetEntity.Has<RpcSystem.RequireReplyTag>())
+						jsonWriter.WriteNumber("id", state.WaitForResponse(packetEntity));
+				}
+				jsonWriter.WriteEndObject();
+				jsonWriter.Flush(); // required
+
+				var dataWriter = new NetDataWriter();
+				dataWriter.Put(Encoding.UTF8.GetString(writtenBytes.WrittenSpan));
+				peer.Send(dataWriter, DeliveryMethod.ReliableOrdered);
+			});
+
+			PeerConnected?.Invoke((peer, clientEntity));
 		}
 
 		public virtual void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
 		{
+			Console.WriteLine($"disconnected --> {disconnectInfo}");
+			
+			lowLevel.Disconnect(ToTransportConnection(peer));
 		}
 
 		public virtual void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
 		{
+			Console.WriteLine($"{endPoint} --> {socketError}");
 		}
 
 		public virtual void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
 		{
-			var type = reader.GetString();
-			switch (type)
+			using var document = JsonDocument.Parse(reader.GetString());
+			var       element  = document.RootElement;
+
+			if (!element.TryGetProperty("jsonrpc", out var jsonRpcProperty))
+				throw new InvalidOperationException("no jsonrpc property");
+			if (!element.TryGetProperty("method", out var methodProperty))
+				throw new InvalidOperationException("no method property");
+
+			var hasResult = element.TryGetProperty("result", out var resultProperty);
+			var hasId     = element.TryGetProperty("id", out var idProperty);
+			var hasParams = element.TryGetProperty("params", out var paramsProperty);
+			
+			Debug.Assert(jsonRpcProperty.ValueEquals("2.0"), "jsonRpcProperty.ValueEquals('2.0')");
+
+			switch (hasResult)
 			{
-				case nameof(RpcMessageType.Command):
-				{
-					var commandType = reader.GetString();
-					var commandId   = reader.GetString();
-
-					var response = new GameHostCommandResponse
-					{
-						Connection = new TransportConnection {Id = (uint) peer.Id, Version = 1},
-						Command    = CharBufferUtility.Create<CharBuffer128>(commandId),
-						Data       = new DataBufferReader(reader.GetRemainingBytesSegment())
-					};
-					switch (commandType)
-					{
-						case nameof(RpcCommandType.Send):
-						{
-							collection.Global.TriggerCommandRequest(response);
-							break;
-						}
-						case nameof(RpcCommandType.Reply):
-						{
-							collection.Global.TriggerCommandReply(response);
-							break;
-						}
-					}
-
-					break;
-				}
+				case true when hasParams:
+					throw new InvalidOperationException("can't be a request and a response at the same time");
+				case true when hasId == false:
+					throw new InvalidOperationException("follow-up required but no id present");
 			}
+
+			var connection = ToTransportConnection(peer);
+			if (hasResult)
+			{
+				lowLevel.AddResponse(connection, methodProperty, resultProperty, idProperty);
+			}
+			else
+			{
+				lowLevel.AddRequest(connection, methodProperty, paramsProperty, idProperty);
+			}
+
+			/*var response = new GameHostCommandResponse
+			{
+				Connection = ToTransportConnection(peer),
+				Command    = CharBufferUtility.Create<CharBuffer128>(commandId),
+				Data       = new DataBufferReader(reader.GetRemainingBytesSegment())
+			};*/
 		}
 
 		public virtual void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
@@ -194,5 +249,7 @@ namespace GameHost.Core.Client
 		{
 			request.Accept();
 		}
+
+		private static TransportConnection ToTransportConnection(NetPeer peer) => new() {Id = (uint) peer.Id, Version = 1};
 	}
 }
