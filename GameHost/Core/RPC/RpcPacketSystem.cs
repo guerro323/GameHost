@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using DefaultEcs;
 using GameHost.Applications;
-using GameHost.Core.Client;
 using GameHost.Core.Ecs;
-using RevolutionSnapshot.Core.Buffers;
 
 namespace GameHost.Core.RPC
 {
@@ -12,14 +9,14 @@ namespace GameHost.Core.RPC
 	public abstract class RpcPacketSystem<T> : AppSystem
 		where T : IGameHostRpcPacket
 	{
-		public abstract string MethodName { get; }
-
 		protected RpcSystem RpcSystem;
 
 		protected RpcPacketSystem(WorldCollection collection) : base(collection)
 		{
 			DependencyResolver.Add(() => ref RpcSystem);
 		}
+
+		public abstract string MethodName { get; }
 
 		protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
 		{
@@ -34,11 +31,11 @@ namespace GameHost.Core.RPC
 		where T : IGameHostRpcWithResponsePacket<TResponse>
 		where TResponse : IGameHostRpcResponsePacket
 	{
-		public abstract string MethodName { get; }
+		private readonly EntitySet awaitingResponseSet;
+
+		private RpcPacketError? lastError;
 
 		protected RpcSystem RpcSystem;
-
-		private EntitySet awaitingResponseSet;
 
 		protected RpcPacketWithResponseSystem(WorldCollection collection) : base(collection)
 		{
@@ -50,14 +47,14 @@ namespace GameHost.Core.RPC
 			DependencyResolver.Add(() => ref RpcSystem);
 		}
 
+		public abstract string MethodName { get; }
+
 		protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
 		{
 			base.OnDependenciesResolved(dependencies);
 
 			RpcSystem.RegisterPacketWithResponse<T, TResponse>(MethodName);
 		}
-
-		private RpcPacketError? lastError;
 
 		protected override void OnUpdate()
 		{
@@ -78,7 +75,7 @@ namespace GameHost.Core.RPC
 		}
 
 		protected abstract TResponse GetResponse(in T request);
-		
+
 		protected TResponse WithError(RpcPacketError packet)
 		{
 			lastError = packet;

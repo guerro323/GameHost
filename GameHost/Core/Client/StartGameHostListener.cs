@@ -84,22 +84,7 @@ namespace GameHost.Core.Client
 			if (featureCount == 0)
 				Server.Value.Stop();
 		}
-
-		public void SendReply(TransportConnection connection, CharBuffer128 command, DataBufferWriter data)
-		{
-			var peer = Server.Value.GetPeerById((int) connection.Id);
-			if (peer == null)
-				throw new InvalidOperationException($"Peer '{connection.Id}' not existing");
-
-			var writer = new NetDataWriter(true, data.Length);
-			writer.Put(nameof(RpcMessageType.Command));
-			writer.Put(nameof(RpcCommandType.Reply));
-			writer.Put(command.ToString());
-			writer.Put(data.Span.ToArray());
-
-			peer.Send(writer, DeliveryMethod.ReliableOrdered);
-		}
-
+		
 		// https://stackoverflow.com/a/45384984
 		private static int GetAvailablePort(int startingPort)
 		{

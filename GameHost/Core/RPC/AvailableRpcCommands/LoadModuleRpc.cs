@@ -13,7 +13,7 @@ namespace GameHost.Core.RPC.AvailableRpcCommands
 		public class System : RpcPacketWithResponseSystem<LoadModuleRpc, NoMembersResponsePacket>
 		{
 			private readonly EntitySet moduleSet;
-		
+
 			public System(WorldCollection collection) : base(collection)
 			{
 				moduleSet = collection.Mgr.GetEntities()
@@ -22,6 +22,7 @@ namespace GameHost.Core.RPC.AvailableRpcCommands
 			}
 
 			public override string MethodName => "GameHost.LoadModule";
+
 			protected override NoMembersResponsePacket GetResponse(in LoadModuleRpc request)
 			{
 				foreach (var entity in moduleSet.GetEntities())

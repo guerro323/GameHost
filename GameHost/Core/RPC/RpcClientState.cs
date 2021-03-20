@@ -1,20 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using DefaultEcs;
 
 namespace GameHost.Core.RPC
 {
 	public class RpcClientState
 	{
-		public uint CallWithResponseCount;
+		public           uint                     CallWithResponseCount;
+		private readonly Dictionary<uint, Entity> clientAwaitingMap = new();
 
-		private Dictionary<uint, Entity> serverAwaitingMap = new();
-		private Dictionary<uint, Entity> clientAwaitingMap = new();
-
-		public RpcClientState()
-		{
-		}
+		private readonly Dictionary<uint, Entity> serverAwaitingMap = new();
 
 		public bool SetResponse(uint id, out Entity entity)
 		{

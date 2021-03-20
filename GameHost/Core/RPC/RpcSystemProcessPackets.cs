@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
@@ -9,12 +8,10 @@ namespace GameHost.Core.RPC
 	[RestrictToApplication(typeof(ExecutiveEntryApplication))]
 	public class RpcSystemProcessPackets : AppSystem
 	{
-		public struct ProcessedTag {}
-		
-		private EntitySet packetSet;
-		private EntitySet packetToDestroySet;
-		
-		private EntitySet publicClientSet;
+		private readonly EntitySet packetSet;
+		private readonly EntitySet packetToDestroySet;
+
+		private readonly EntitySet publicClientSet;
 
 		public RpcSystemProcessPackets(WorldCollection collection) : base(collection)
 		{
@@ -22,7 +19,7 @@ namespace GameHost.Core.RPC
 			                      .With<EntityRpcMultiHandler>()
 			                      .Without<ProcessedTag>()
 			                      .AsSet();
-			
+
 			packetToDestroySet = collection.Mgr.GetEntities()
 			                               .WithEither<EntityRpcMultiHandler>()
 			                               .WithEither<RpcPacketError>()
@@ -43,15 +40,11 @@ namespace GameHost.Core.RPC
 			var clientEntities = publicClientSet.GetEntities();
 
 			foreach (ref readonly var packet in packetSet.GetEntities())
-			{
 				if (packet.TryGet(out EntityRpcTargetClient target))
 					SendPacketTo(packet, target.Client);
 				else
-				{
 					foreach (ref readonly var client in clientEntities)
 						SendPacketTo(packet, client);
-				}
-			}
 
 			packetToDestroySet.DisposeAllEntities();
 			packetSet.Set<ProcessedTag>(); // packets that were destroyed will not have this component added
@@ -63,8 +56,12 @@ namespace GameHost.Core.RPC
 
 			var action = client.Get<EntityRpcClientInvokeOnSendPacket>().OnSendPacket;
 			Debug.Assert(action != null, "action != null");
-			
+
 			action(packet);
+		}
+
+		public struct ProcessedTag
+		{
 		}
 	}
 }

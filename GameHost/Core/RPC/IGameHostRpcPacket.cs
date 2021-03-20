@@ -1,7 +1,4 @@
-﻿using System.Text.Json;
-using System.Threading.Tasks;
-
-namespace GameHost.Core.RPC
+﻿namespace GameHost.Core.RPC
 {
 	public interface IGameHostRpcPacket
 	{
@@ -14,7 +11,6 @@ namespace GameHost.Core.RPC
 
 	public interface IGameHostRpcResponsePacket : IGameHostRpcPacket
 	{
-		
 	}
 
 	public struct GetDisplayedConnectionRpc : IGameHostRpcWithResponsePacket<GetDisplayedConnectionRpc.Response>

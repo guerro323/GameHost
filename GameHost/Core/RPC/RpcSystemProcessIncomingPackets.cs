@@ -5,8 +5,8 @@ namespace GameHost.Core.RPC
 {
 	public class RpcSystemProcessIncomingPackets : AppSystem
 	{
-		private EntitySet garbageNotificationSet;
-		
+		private readonly EntitySet garbageNotificationSet;
+
 		public RpcSystemProcessIncomingPackets(WorldCollection collection) : base(collection)
 		{
 			garbageNotificationSet = World.Mgr.GetEntities()
@@ -18,7 +18,7 @@ namespace GameHost.Core.RPC
 		protected override void OnUpdate()
 		{
 			base.OnUpdate();
-			
+
 			garbageNotificationSet.DisposeAllEntities();
 		}
 	}
