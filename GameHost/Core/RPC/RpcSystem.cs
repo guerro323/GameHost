@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using DefaultEcs;
 using GameHost.Applications;
@@ -14,24 +15,38 @@ namespace GameHost.Core.RPC
 	{
 		private class RemoveDictionaryKey : IDisposable
 		{
-			public string                                Key;
-			public Dictionary<string, IPacketRpcHandler> Dictionary;
-			
+			public string                                    Key;
+			public Dictionary<string, EntityRpcMultiHandler> Dictionary;
+
 			public void Dispose()
 			{
 				Dictionary.Remove(Key);
 			}
 		}
-		
-		public struct DestroyOnProcessedTag {}
-		public struct RequireReplyTag {}
-		
+
+		public struct DestroyOnProcessedTag
+		{
+		}
+
+		public struct RequireServerReplyTag
+		{
+		}
+
+		public struct ClientRequestTag
+		{
+		}
+
+		public struct NotificationTag
+		{
+		}
+
 		public RpcSystem(WorldCollection collection) : base(collection)
 		{
 		}
 
-		private Dictionary<Type, string>              packetTypeToMethodNames = new();
-		private Dictionary<string, IPacketRpcHandler> handlers = new();
+		private Dictionary<Type, string> packetTypeToMethodNames = new();
+
+		private Dictionary<string, EntityRpcMultiHandler> handlers = new();
 
 		public Entity CreateClient(Action<Entity> onSendPacket, bool isPublic = true)
 		{
@@ -43,55 +58,62 @@ namespace GameHost.Core.RPC
 			return client;
 		}
 
-		private IDisposable RegisterDefaultPacket<TIn, TOut>(string methodName)
+		public IDisposable RegisterPacket<T>(string methodName = null)
+			where T : IGameHostRpcPacket
 		{
-			var packetHandler = new DefaultHandler<TIn, TOut>(methodName);
-			handlers[packetHandler.Method]        = packetHandler;
-			packetTypeToMethodNames[typeof(TIn)]  = methodName;
-			packetTypeToMethodNames[typeof(TOut)] = methodName;
+			methodName ??= typeof(T).Namespace + "." + typeof(T).Name;
+			
+			var packetHandler = new DefaultHandler<T>(methodName);
+			handlers[packetHandler.Method] = new(request: packetHandler, response: null);
+			
+			packetTypeToMethodNames[typeof(T)] = methodName;
 
 			return new RemoveDictionaryKey {Key = methodName, Dictionary = handlers};
 		}
 
-		public IDisposable RegisterPacket<T>(string methodName = null)
-			where T : IGameHostRpcPacket
-		{
-			return RegisterDefaultPacket<T, T>(methodName ?? typeof(T).Name);
-		}
-		
 		public IDisposable RegisterPacketWithResponse<T, TResponse>(string methodName = null)
 			where T : IGameHostRpcWithResponsePacket<TResponse>
 			where TResponse : IGameHostRpcResponsePacket
 		{
-			return RegisterDefaultPacket<T, TResponse>(methodName ?? typeof(T).Name);
+			methodName ??= typeof(T).Namespace + "." + typeof(T).Name;
+
+			var packetHandler   = new DefaultHandler<T>(methodName);
+			var responseHandler = new ResponseDefaultHandler<TResponse>(methodName);
+			handlers[packetHandler.Method] = new(request: packetHandler, response: responseHandler);
+
+			packetTypeToMethodNames[typeof(T)]         = methodName;
+			packetTypeToMethodNames[typeof(TResponse)] = methodName;
+
+			return new RemoveDictionaryKey {Key = methodName, Dictionary = handlers};
 		}
 
-		public RpcCallEntity<TResponse> CreateCall<T, TResponse>(in T call, Entity client = default)
+		public RpcCallEntity<TResponse> CreateCall<T, TResponse>(in T call, Entity client = default, bool disposeOnGetResponse = true)
 			where T : IGameHostRpcWithResponsePacket<TResponse>
 			where TResponse : IGameHostRpcResponsePacket
 		{
 			var entity = World.Mgr.CreateEntity();
 			entity.Set(call);
 			entity.Set(new EntityRpcMultiHandler(
-				send: handlers[packetTypeToMethodNames[typeof(T)]],
-				receive: handlers[packetTypeToMethodNames[typeof(TResponse)]]
+				request: handlers[packetTypeToMethodNames[typeof(T)]].Request,
+				response: handlers[packetTypeToMethodNames[typeof(TResponse)]].Response
 			));
 			entity.Set(new RpcReceivedPacketInvokableList<TResponse>());
-			
+
 			if (client.IsAlive)
 				entity.Set(new EntityRpcTargetClient(client));
-			
-			entity.Set<DestroyOnProcessedTag>();
-			entity.Set<RequireReplyTag>();
+
+			if (disposeOnGetResponse)
+				entity.Set<DestroyOnProcessedTag>();
+			entity.Set<RequireServerReplyTag>();
 
 			return new(entity);
 		}
 
-		public RpcCallEntity<TResponse> CreateCall<T, TResponse>(Entity client = default)
+		public RpcCallEntity<TResponse> CreateCall<T, TResponse>(Entity client = default, bool disposeOnGetResponse = true)
 			where T : IGameHostRpcWithResponsePacket<TResponse>, new()
 			where TResponse : IGameHostRpcResponsePacket
 		{
-			return CreateCall<T, TResponse>(new(), client);
+			return CreateCall<T, TResponse>(new(), client, disposeOnGetResponse);
 		}
 
 		public Entity CreateNotification<T>(in T call, Entity client = default)
@@ -99,40 +121,56 @@ namespace GameHost.Core.RPC
 			var entity = World.Mgr.CreateEntity();
 			entity.Set(call);
 			entity.Set(new EntityRpcMultiHandler(
-				send: handlers[packetTypeToMethodNames[typeof(T)]],
-				receive: handlers[packetTypeToMethodNames[typeof(T)]]
+				request: handlers[packetTypeToMethodNames[typeof(T)]].Request,
+				response: null
 			));
 			if (client.IsAlive)
 				entity.Set(new EntityRpcTargetClient(client));
-			
-			entity.Set<DestroyOnProcessedTag>();
-			
-			return entity;
-		}
 
-		public Entity AddIncomingRequest(string method, JsonElement element)
-		{
-			var entity = World.Mgr.CreateEntity();
-			handlers[method].Receive(entity, element);
-			
 			entity.Set<DestroyOnProcessedTag>();
 
 			return entity;
 		}
 
-		public Entity AddIncomingNotification(string method, JsonElement element)
+		public Entity AddIncomingRequest(string method, JsonElement element, Entity clientEntity)
 		{
 			var entity = World.Mgr.CreateEntity();
-			handlers[method].Receive(entity, element);
-			
+			entity.Set<DestroyOnProcessedTag>();
+			entity.Set<ClientRequestTag>();
+			entity.Set(new EntityRpcTargetClient(clientEntity));
+
+			handlers[method].Request.Receive(entity, element);
+
+			return entity;
+		}
+		
+		public void AddIncomingResponse(Entity entity, string method, JsonElement element, Entity clientEntity)
+		{
 			entity.Set<DestroyOnProcessedTag>();
 
-			return entity;		
+			handlers[method].Response.Receive(entity, element);
+			
+			entity.Remove<RequireServerReplyTag>();
 		}
 
-		public void ReplyToRequest(Entity request)
+		public Entity AddIncomingNotification(string method, JsonElement element, Entity clientEntity)
 		{
-			// TODO: Add component "ReplyToRequestTag" to entity
+			var entity = World.Mgr.CreateEntity();
+			entity.Set<NotificationTag>();
+			entity.Set<DestroyOnProcessedTag>();
+			entity.Set(new EntityRpcTargetClient(clientEntity));
+
+			handlers[method].Request.Receive(entity, element);
+
+			return entity;
+		}
+
+		
+		public RpcClientRequestEntity<TRequest, TResponse> PrepareReply<TRequest, TResponse>(Entity request)
+			where TRequest : IGameHostRpcWithResponsePacket<TResponse>
+			where TResponse : IGameHostRpcResponsePacket
+		{
+			return new(request, handlers[packetTypeToMethodNames[typeof(TResponse)]].Response);
 		}
 	}
 
@@ -148,12 +186,12 @@ namespace GameHost.Core.RPC
 
 	public readonly struct EntityRpcMultiHandler
 	{
-		public readonly IPacketRpcHandler Send, Receive;
+		public readonly IPacketRpcHandler Request, Response;
 
-		public EntityRpcMultiHandler(IPacketRpcHandler send, IPacketRpcHandler receive)
+		public EntityRpcMultiHandler(IPacketRpcHandler request, IPacketRpcHandler response)
 		{
-			Send    = send;
-			Receive = receive;
+			Request  = request;
+			Response = response;
 		}
 	}
 
@@ -176,18 +214,59 @@ namespace GameHost.Core.RPC
 	{
 		public readonly Entity Entity;
 
-		public bool      HasResponse => Entity.Has<TResponse>();
-		public TResponse Response    => Entity.Get<TResponse>();
+		public bool HasResponse => Entity.Has<TResponse>();
+
+		public TResponse Response
+		{
+			get
+			{
+				var data = Entity.Get<TResponse>();
+				if (Entity.Has<RpcSystem.DestroyOnProcessedTag>())
+					Entity.Dispose();
+				return data;
+			}
+		}
 
 		public RpcCallEntity(Entity entity)
 		{
 			Entity = entity;
 		}
-		
+
 		public event Action<OnRpcReceivedPacket<TResponse>> OnReply
 		{
 			add => Entity.Get<RpcReceivedPacketInvokableList<TResponse>>().Add(value);
 			remove => Entity.Get<RpcReceivedPacketInvokableList<TResponse>>().Remove(value);
+		}
+	}
+	
+	public readonly struct RpcClientRequestEntity<TRequest, TResponse>
+		where TRequest : IGameHostRpcWithResponsePacket<TResponse>
+		where TResponse : IGameHostRpcResponsePacket
+	{
+		public readonly Entity            Entity;
+		public readonly IPacketRpcHandler HandlerToSet;
+
+		public TRequest Request => Entity.Get<TRequest>();
+		
+		public RpcClientRequestEntity(Entity entity, IPacketRpcHandler handlerToSet)
+		{
+			Entity       = entity;
+			HandlerToSet = handlerToSet;
+		}
+
+		public void ReplyWith(TResponse response)
+		{
+			if (!Entity.Has<RpcSystem.ClientRequestTag>())
+				throw new InvalidOperationException($"no '{nameof(RpcSystem.ClientRequestTag)}' found on {Entity}");
+			
+			Entity.Set(response);
+			Entity.Set(new EntityRpcMultiHandler(
+				request: null,
+				response: HandlerToSet
+			));
+
+			Entity.Set<RpcSystem.DestroyOnProcessedTag>();
+			Entity.Remove<RpcSystem.ClientRequestTag>();
 		}
 	}
 
@@ -199,13 +278,13 @@ namespace GameHost.Core.RPC
 	public readonly struct OnRpcReceivedPacket<T>
 		where T : IGameHostRpcPacket
 	{
-		public readonly Entity              Entity;
-		public readonly T                   Value;
-		public readonly TransportConnection Replier;
+		public readonly Entity Packet;
+		public readonly T      Value;
+		public readonly Entity Replier;
 
-		public OnRpcReceivedPacket(Entity entity, T value, TransportConnection replier)
+		public OnRpcReceivedPacket(Entity packet, T value, Entity replier)
 		{
-			Entity  = entity;
+			Packet  = packet;
 			Value   = value;
 			Replier = replier;
 		}
@@ -219,21 +298,47 @@ namespace GameHost.Core.RPC
 		void Receive(Entity entity, JsonElement    element);
 	}
 
-	public class DefaultHandler<TIn, TOut> : IPacketRpcHandler
+	public class DefaultHandler<T> : IPacketRpcHandler
+		where T : IGameHostRpcPacket
 	{
 		public string Method { get; }
 
 		public DefaultHandler(string method) => Method = method;
-		
-		public void Send(Entity entity, Utf8JsonWriter writer)
+
+		public virtual void Send(Entity entity, Utf8JsonWriter writer)
 		{
-			var t = entity.Get<TIn>();
+			var t = entity.Get<T>();
 			JsonSerializer.Serialize(writer, t);
 		}
 
-		public void Receive(Entity entity, JsonElement element)
+		public virtual void Receive(Entity entity, JsonElement element)
 		{
-			entity.Set(JsonSerializer.Deserialize<TOut>(element.ToString()));
+			entity.Set(JsonSerializer.Deserialize<T>(element.ToString()));
+		}
+	}
+
+	public class ResponseDefaultHandler<T> : DefaultHandler<T> 
+		where T : IGameHostRpcPacket
+	{
+		public ResponseDefaultHandler(string method) : base(method)
+		{
+		}
+
+		public override void Receive(Entity entity, JsonElement element)
+		{
+			base.Receive(entity, element);
+			
+			var ev = new OnRpcReceivedPacket<T>(entity, entity.Get<T>(), entity.Get<EntityRpcTargetClient>().Client);
+			entity.World.Publish(ev);
+			
+			if (entity.TryGet(out RpcReceivedPacketInvokableList<T> invokableList))
+			{
+				foreach (var action in invokableList)
+					action(ev);
+
+				if (invokableList.Any() && entity.Has<RpcSystem.DestroyOnProcessedTag>())
+					entity.Dispose();
+			}
 		}
 	}
 }

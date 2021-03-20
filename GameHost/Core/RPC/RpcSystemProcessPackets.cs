@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
@@ -19,11 +20,13 @@ namespace GameHost.Core.RPC
 		{
 			packetSet = collection.Mgr.GetEntities()
 			                      .With<EntityRpcMultiHandler>()
+			                      .Without<ProcessedTag>()
 			                      .AsSet();
 			
 			packetToDestroySet = collection.Mgr.GetEntities()
 			                               .With<EntityRpcMultiHandler>()
 			                               .With<RpcSystem.DestroyOnProcessedTag>()
+			                               .Without<RpcSystem.RequireServerReplyTag>()
 			                               .AsSet();
 
 			publicClientSet = collection.Mgr.GetEntities()
@@ -59,7 +62,7 @@ namespace GameHost.Core.RPC
 
 			var action = client.Get<EntityRpcClientInvokeOnSendPacket>().OnSendPacket;
 			Debug.Assert(action != null, "action != null");
-
+			
 			action(packet);
 		}
 	}

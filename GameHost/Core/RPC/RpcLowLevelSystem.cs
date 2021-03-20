@@ -16,11 +16,10 @@ namespace GameHost.Core.RPC
 	public class RpcLowLevelSystem : AppSystem
 	{
 		public RpcEventCollection Events;
-
-		private Dictionary<TransportConnection, (Entity ent, RpcClientState state)> conMap = new(32);
+		
 		private ILogger                                                             logger;
 		private RpcSystem                                                           rpcSystem;
-		
+
 		public RpcLowLevelSystem(WorldCollection collection) : base(collection)
 		{
 			DependencyResolver.Add(() => ref Events);
@@ -28,58 +27,58 @@ namespace GameHost.Core.RPC
 			DependencyResolver.Add(() => ref rpcSystem);
 		}
 
-		
 
-		public Entity Connect(TransportConnection con, Action<(RpcClientState state, Entity packet)> sendPacket)
+
+		public Entity CreateConnection(Action<(RpcClientState state, Entity packet)> sendPacket)
 		{
 			var state     = new RpcClientState();
-			var conEntity = rpcSystem.CreateClient(packet =>
-			{
-				sendPacket((state, packet));
-			});
-			conMap[con] = (conEntity, state);
-
+			var conEntity = rpcSystem.CreateClient(packet => { sendPacket((state, packet)); });
+			conEntity.Set(state);
+			
 			return conEntity;
 		}
 
-		public bool Disconnect(TransportConnection con)
+		public bool DestroyConnection(Entity entity)
 		{
-			if (!conMap.TryGetValue(con, out var tuple)) 
+			if (!entity.IsAlive)
 				return false;
-			
-			tuple.ent.Dispose();
-			return conMap.Remove(con);
-
+			entity.Dispose();
+			return true;
 		}
 
-		public void AddResponse(TransportConnection connection, JsonElement methodProperty, JsonElement resultProperty, JsonElement idProperty)
+		public void AddResponse(Entity connection, JsonElement methodProperty, JsonElement resultProperty, JsonElement idProperty)
 		{
-			if (conMap[connection].state.SetResponse(idProperty.GetUInt32(), out var entity))
+			if (connection.Get<RpcClientState>().SetResponse(idProperty.GetUInt32(), out var entity))
 			{
-				
+				rpcSystem.AddIncomingResponse(entity, methodProperty.GetString(), resultProperty, connection);
 			}
 			else
 				logger.ZLogWarning($"No request were made with id '{idProperty.GetUInt32()}' but a response from the server was made with it?");
 		}
 
-		public void AddRequest(TransportConnection connection, JsonElement methodProperty, JsonElement paramsProperty, JsonElement idProperty)
+		public void AddRequest(Entity connection, JsonElement methodProperty, JsonElement paramsProperty, JsonElement idProperty)
 		{
 			Entity followEntity;
-
-			var clientEntity = conMap[connection].ent;
 
 			// It's a notification
 			if (idProperty.ValueKind == JsonValueKind.Undefined)
 			{
-				followEntity = rpcSystem.AddIncomingNotification(methodProperty.GetString(), paramsProperty);
-				followEntity.Set(new EntityRpcTargetClient(clientEntity));
+				followEntity = rpcSystem.AddIncomingNotification(methodProperty.GetString(), paramsProperty, connection);
 				return;
 			}
 
-			followEntity = rpcSystem.AddIncomingRequest(methodProperty.GetString(), paramsProperty);
-			followEntity.Set(new EntityRpcTargetClient(clientEntity));
+			followEntity = rpcSystem.AddIncomingRequest(methodProperty.GetString(), paramsProperty, connection);
 
-			conMap[connection].state.AddRequest(idProperty.GetUInt32(), followEntity);
+			var id = idProperty.GetUInt32();
+			connection.Get<RpcClientState>().AddRequest(id, followEntity);
+			followEntity.Set(new FollowUpId(id));
+		}
+
+		public readonly struct FollowUpId
+		{
+			public readonly uint Value;
+
+			public FollowUpId(uint id) => Value = id;
 		}
 	}
 }
