@@ -24,7 +24,8 @@ namespace GameHost.Core.RPC
 			                      .AsSet();
 			
 			packetToDestroySet = collection.Mgr.GetEntities()
-			                               .With<EntityRpcMultiHandler>()
+			                               .WithEither<EntityRpcMultiHandler>()
+			                               .WithEither<RpcPacketError>()
 			                               .With<RpcSystem.DestroyOnProcessedTag>()
 			                               .Without<RpcSystem.RequireServerReplyTag>()
 			                               .AsSet();

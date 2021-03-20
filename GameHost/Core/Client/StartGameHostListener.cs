@@ -157,26 +157,42 @@ namespace GameHost.Core.Client
 			var clientEntity = lowLevel.CreateConnection(args =>
 			{
 				var (state, packetEntity) = args;
-				var handler = packetEntity.Get<EntityRpcMultiHandler>();
 
-				// If the request handler is null, then it's a response
-				var isResponse = handler.Request is null;
-				var rpcHandler = isResponse ? handler.Response : handler.Request;
-				if (rpcHandler is null)
-					throw new NullReferenceException(nameof(rpcHandler));
+				var isError = false == packetEntity.TryGet(out EntityRpcMultiHandler handler);
+				
+					// If the request handler is null, then it's a response
+					var isResponse = handler.Request is null;
+					var rpcHandler = isResponse ? handler.Response : handler.Request;
+					if (rpcHandler is null && false == isError)
+						throw new NullReferenceException(nameof(rpcHandler));
 
-				writtenBytes.Clear();
+					writtenBytes.Clear();
 				jsonWriter.Reset();
 				jsonWriter.WriteStartObject();
 				{
 					jsonWriter.WriteString("jsonrpc", "2.0");
-					jsonWriter.WriteString("method", rpcHandler.Method);
-					jsonWriter.WritePropertyName(isResponse ? "result" : "params");
-					// StartObject
+					if (false == isError)
 					{
-						rpcHandler.Send(packetEntity, jsonWriter);
+						jsonWriter.WriteString("method", rpcHandler.Method);
+						jsonWriter.WritePropertyName(isResponse ? "result" : "params");
+						// StartObject
+						{
+							rpcHandler.Send(packetEntity, jsonWriter);
+						}
+						// EndObject
 					}
-					// EndObject
+					else
+					{
+						jsonWriter.WritePropertyName("error");
+						jsonWriter.WriteStartObject();
+						{
+							var error = packetEntity.Get<RpcPacketError>();
+
+							jsonWriter.WriteNumber("code", error.Code);
+							jsonWriter.WriteString("message", error.Message);
+						}
+						jsonWriter.WriteEndObject();
+					}
 
 					if (packetEntity.Has<RpcSystem.RequireServerReplyTag>())
 						jsonWriter.WriteNumber("id", state.WaitForResponse(packetEntity));
@@ -231,12 +247,15 @@ namespace GameHost.Core.Client
 
 			if (!element.TryGetProperty("jsonrpc", out var jsonRpcProperty))
 				throw new InvalidOperationException("no jsonrpc property");
-			if (!element.TryGetProperty("method", out var methodProperty))
+			
+			if (!element.TryGetProperty("method", out var methodProperty) 
+			    && !element.TryGetProperty("error", out _))
 				throw new InvalidOperationException("no method property");
 
 			var hasResult = element.TryGetProperty("result", out var resultProperty);
 			var hasId     = element.TryGetProperty("id", out var idProperty);
 			var hasParams = element.TryGetProperty("params", out var paramsProperty);
+			var hasError  = element.TryGetProperty("error", out var errorProperty);
 
 			Debug.Assert(jsonRpcProperty.ValueEquals("2.0"), "jsonRpcProperty.ValueEquals('2.0')");
 
@@ -253,10 +272,12 @@ namespace GameHost.Core.Client
 			{
 				lowLevel.AddResponse(connection, methodProperty, resultProperty, idProperty);
 			}
-			else
+			else if (!hasError)
 			{
 				lowLevel.AddRequest(connection, methodProperty, paramsProperty, idProperty);
 			}
+			else
+				throw new NotImplementedException("errors not implemented");
 		}
 
 		public virtual void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)

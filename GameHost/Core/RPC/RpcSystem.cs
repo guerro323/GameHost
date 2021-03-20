@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
@@ -62,10 +63,10 @@ namespace GameHost.Core.RPC
 			where T : IGameHostRpcPacket
 		{
 			methodName ??= typeof(T).Namespace + "." + typeof(T).Name;
-			
+
 			var packetHandler = new DefaultHandler<T>(methodName);
 			handlers[packetHandler.Method] = new(request: packetHandler, response: null);
-			
+
 			packetTypeToMethodNames[typeof(T)] = methodName;
 
 			return new RemoveDictionaryKey {Key = methodName, Dictionary = handlers};
@@ -143,13 +144,13 @@ namespace GameHost.Core.RPC
 
 			return entity;
 		}
-		
+
 		public void AddIncomingResponse(Entity entity, string method, JsonElement element, Entity clientEntity)
 		{
 			entity.Set<DestroyOnProcessedTag>();
 
 			handlers[method].Response.Receive(entity, element);
-			
+
 			entity.Remove<RequireServerReplyTag>();
 		}
 
@@ -165,7 +166,7 @@ namespace GameHost.Core.RPC
 			return entity;
 		}
 
-		
+
 		public RpcClientRequestEntity<TRequest, TResponse> PrepareReply<TRequest, TResponse>(Entity request)
 			where TRequest : IGameHostRpcWithResponsePacket<TResponse>
 			where TResponse : IGameHostRpcResponsePacket
@@ -238,7 +239,7 @@ namespace GameHost.Core.RPC
 			remove => Entity.Get<RpcReceivedPacketInvokableList<TResponse>>().Remove(value);
 		}
 	}
-	
+
 	public readonly struct RpcClientRequestEntity<TRequest, TResponse>
 		where TRequest : IGameHostRpcWithResponsePacket<TResponse>
 		where TResponse : IGameHostRpcResponsePacket
@@ -247,7 +248,7 @@ namespace GameHost.Core.RPC
 		public readonly IPacketRpcHandler HandlerToSet;
 
 		public TRequest Request => Entity.Get<TRequest>();
-		
+
 		public RpcClientRequestEntity(Entity entity, IPacketRpcHandler handlerToSet)
 		{
 			Entity       = entity;
@@ -258,12 +259,26 @@ namespace GameHost.Core.RPC
 		{
 			if (!Entity.Has<RpcSystem.ClientRequestTag>())
 				throw new InvalidOperationException($"no '{nameof(RpcSystem.ClientRequestTag)}' found on {Entity}");
-			
+
 			Entity.Set(response);
+			
+			Entity.Remove<RpcPacketError>();
 			Entity.Set(new EntityRpcMultiHandler(
 				request: null,
 				response: HandlerToSet
 			));
+
+			Entity.Set<RpcSystem.DestroyOnProcessedTag>();
+			Entity.Remove<RpcSystem.ClientRequestTag>();
+		}
+
+		public void SetError(RpcPacketError error)
+		{
+			if (!Entity.Has<RpcSystem.ClientRequestTag>())
+				throw new InvalidOperationException($"no '{nameof(RpcSystem.ClientRequestTag)}' found on {Entity}");
+
+			Entity.Remove<TResponse>();
+			Entity.Set(error);
 
 			Entity.Set<RpcSystem.DestroyOnProcessedTag>();
 			Entity.Remove<RpcSystem.ClientRequestTag>();
@@ -317,7 +332,7 @@ namespace GameHost.Core.RPC
 		}
 	}
 
-	public class ResponseDefaultHandler<T> : DefaultHandler<T> 
+	public class ResponseDefaultHandler<T> : DefaultHandler<T>
 		where T : IGameHostRpcPacket
 	{
 		public ResponseDefaultHandler(string method) : base(method)
@@ -327,10 +342,10 @@ namespace GameHost.Core.RPC
 		public override void Receive(Entity entity, JsonElement element)
 		{
 			base.Receive(entity, element);
-			
+
 			var ev = new OnRpcReceivedPacket<T>(entity, entity.Get<T>(), entity.Get<EntityRpcTargetClient>().Client);
 			entity.World.Publish(ev);
-			
+
 			if (entity.TryGet(out RpcReceivedPacketInvokableList<T> invokableList))
 			{
 				foreach (var action in invokableList)
@@ -340,5 +355,30 @@ namespace GameHost.Core.RPC
 					entity.Dispose();
 			}
 		}
+	}
+
+	public struct RpcPacketError
+	{
+		[JsonPropertyName("code")]
+		public int Code { get; set; }
+
+		[JsonPropertyName("message")]
+		public string Message { get; set; }
+
+		public RpcPacketError(int code)
+		{
+			Code    = code;
+			Message = string.Empty;
+		}
+
+		public RpcPacketError(int code, string message)
+		{
+			Code    = code;
+			Message = message;
+		}
+	}
+
+	public struct NoMembersResponsePacket : IGameHostRpcResponsePacket
+	{
 	}
 }

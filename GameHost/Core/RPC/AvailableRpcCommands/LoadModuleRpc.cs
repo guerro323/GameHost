@@ -1,67 +1,46 @@
 ﻿using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Core.Modules.Feature;
-using Newtonsoft.Json;
+using JetBrains.Annotations;
 
 namespace GameHost.Core.RPC.AvailableRpcCommands
 {
-	public class LoadModuleRpc : RpcCommandSystem
+	public struct LoadModuleRpc : IGameHostRpcWithResponsePacket<NoMembersResponsePacket>
 	{
-		public class Result
-		{
-			public int    ErrorCode   { get; set; }
-			public string ErrorString { get; set; }
-		}
+		public string ModuleId { get; set; }
 
-		private EntitySet moduleSet;
+		[UsedImplicitly]
+		public class System : RpcPacketWithResponseSystem<LoadModuleRpc, NoMembersResponsePacket>
+		{
+			private readonly EntitySet moduleSet;
 		
-		public LoadModuleRpc(WorldCollection collection) : base(collection)
-		{
-			moduleSet = collection.Mgr.GetEntities()
-			                      .With<RegisteredModule>()
-			                      .AsSet();
-		}
-
-		public override string CommandId => "loadmodule";
-
-		protected override void OnReceiveRequest(GameHostCommandResponse response)
-		{
-			if (response.Data.Length == 0)
-				return;
-			
-			var moduleId = response.Data.ReadString();
-			foreach (var entity in moduleSet.GetEntities())
+			public System(WorldCollection collection) : base(collection)
 			{
-				var m = entity.Get<RegisteredModule>();
-				if (m.Description.NameId != moduleId)
-					continue;
-
-				if (m.State == ModuleState.None)
-				{
-					World.Mgr.CreateEntity()
-					     .Set(new RequestLoadModule {Module = entity});
-
-					GetReplyWriter()
-						.WriteStaticString(JsonConvert.SerializeObject(new Result
-						{
-							ErrorCode = 0,
-							ErrorString = $"Module '{moduleId}' Loaded!"
-						}));
-					return;
-				}
+				moduleSet = collection.Mgr.GetEntities()
+				                      .With<RegisteredModule>()
+				                      .AsSet();
 			}
-			
-			GetReplyWriter()
-				.WriteStaticString(JsonConvert.SerializeObject(new Result
-				{
-					ErrorCode   = 1,
-					ErrorString = $"No Module with ID '{moduleId}' found."
-				}));
-		}
 
-		protected override void OnReceiveReply(GameHostCommandResponse response)
-		{
-			// what
+			public override string MethodName => "GameHost.LoadModule";
+			protected override NoMembersResponsePacket GetResponse(in LoadModuleRpc request)
+			{
+				foreach (var entity in moduleSet.GetEntities())
+				{
+					var m = entity.Get<RegisteredModule>();
+					if (m.Description.NameId != request.ModuleId)
+						continue;
+
+					if (m.State == ModuleState.None)
+					{
+						World.Mgr.CreateEntity()
+						     .Set(new RequestLoadModule {Module = entity});
+
+						return default;
+					}
+				}
+
+				return WithError(1, $"No Module with ID '{request.ModuleId}' found!");
+			}
 		}
 	}
 }
