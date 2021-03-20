@@ -24,6 +24,7 @@ using RevolutionSnapshot.Core.Buffers;
 namespace GameHost.Core.Client
 {
 	[RestrictToApplication(typeof(ExecutiveEntryApplication))]
+	[UpdateAfter(typeof(RpcSystemProcessIncomingPackets))]
 	public class StartGameHostListener : AppSystemWithFeature<ReceiveGameHostClientFeature>
 	{
 		private int               featureCount;

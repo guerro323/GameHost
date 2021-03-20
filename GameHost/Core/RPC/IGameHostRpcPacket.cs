@@ -12,11 +12,4 @@
 	public interface IGameHostRpcResponsePacket : IGameHostRpcPacket
 	{
 	}
-
-	public struct GetDisplayedConnectionRpc : IGameHostRpcWithResponsePacket<GetDisplayedConnectionRpc.Response>
-	{
-		public struct Response : IGameHostRpcResponsePacket
-		{
-		}
-	}
 }

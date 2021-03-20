@@ -20,7 +20,8 @@ namespace HelloWorldTemplate
 			{
 				TextsToPrint = new []
 				{
-					"Hello World!"
+					"Hello World!",
+					"Press any key to exit the application."
 				}
 			});
 			

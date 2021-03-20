@@ -1,8 +1,10 @@
 ﻿using DefaultEcs;
+using GameHost.Applications;
 using GameHost.Core.Ecs;
 
 namespace GameHost.Core.RPC
 {
+	[RestrictToApplication(typeof(ExecutiveEntryApplication))]
 	public class RpcSystemProcessIncomingPackets : AppSystem
 	{
 		private readonly EntitySet garbageNotificationSet;

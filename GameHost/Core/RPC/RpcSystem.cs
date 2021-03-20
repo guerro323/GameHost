@@ -208,18 +208,30 @@ namespace GameHost.Core.RPC
 		}
 	}
 
-	public readonly struct RpcCallEntity<TResponse>
+	public readonly struct RpcCallEntity<TResponse> : IDisposable
 		where TResponse : IGameHostRpcResponsePacket
 	{
 		public readonly Entity Entity;
 
 		public bool HasResponse => Entity.Has<TResponse>();
+		public bool HasError    => Entity.Has<RpcPacketError>();
 
 		public TResponse Response
 		{
 			get
 			{
 				var data = Entity.Get<TResponse>();
+				if (Entity.Has<RpcSystem.DestroyOnProcessedTag>())
+					Entity.Dispose();
+				return data;
+			}
+		}
+
+		public RpcPacketError Error
+		{
+			get
+			{
+				var data = Entity.Get<RpcPacketError>();
 				if (Entity.Has<RpcSystem.DestroyOnProcessedTag>())
 					Entity.Dispose();
 				return data;
@@ -235,6 +247,11 @@ namespace GameHost.Core.RPC
 		{
 			add => Entity.Get<RpcReceivedPacketInvokableList<TResponse>>().Add(value);
 			remove => Entity.Get<RpcReceivedPacketInvokableList<TResponse>>().Remove(value);
+		}
+
+		public void Dispose()
+		{
+			Entity.Dispose();
 		}
 	}
 

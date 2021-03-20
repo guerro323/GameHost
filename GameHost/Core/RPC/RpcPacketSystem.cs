@@ -1,18 +1,27 @@
 ﻿using System.Collections.Generic;
 using DefaultEcs;
 using GameHost.Applications;
+using GameHost.Core.Client;
 using GameHost.Core.Ecs;
 
 namespace GameHost.Core.RPC
 {
 	[RestrictToApplication(typeof(ExecutiveEntryApplication))]
+	[UpdateAfter(typeof(StartGameHostListener))]
 	public abstract class RpcPacketSystem<T> : AppSystem
 		where T : IGameHostRpcPacket
 	{
 		protected RpcSystem RpcSystem;
 
+		private readonly EntitySet notificationSet;
+		
 		protected RpcPacketSystem(WorldCollection collection) : base(collection)
 		{
+			notificationSet = World.Mgr.GetEntities()
+			                       .With<T>()
+			                       .With<RpcSystem.NotificationTag>()
+			                       .AsSet();
+			
 			DependencyResolver.Add(() => ref RpcSystem);
 		}
 
@@ -24,6 +33,16 @@ namespace GameHost.Core.RPC
 
 			RpcSystem.RegisterPacket<T>(MethodName);
 		}
+
+		protected override void OnUpdate()
+		{
+			base.OnUpdate();
+			
+			foreach (ref readonly var entity in notificationSet.GetEntities())
+				OnNotification(entity.Get<T>());
+		}
+
+		protected abstract void OnNotification(T notification);
 	}
 
 	[RestrictToApplication(typeof(ExecutiveEntryApplication))]
