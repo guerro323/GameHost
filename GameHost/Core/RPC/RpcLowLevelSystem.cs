@@ -15,20 +15,15 @@ namespace GameHost.Core.RPC
 	[RestrictToApplication(typeof(ExecutiveEntryApplication))]
 	public class RpcLowLevelSystem : AppSystem
 	{
-		public RpcEventCollection Events;
-		
 		private ILogger                                                             logger;
 		private RpcSystem                                                           rpcSystem;
 
 		public RpcLowLevelSystem(WorldCollection collection) : base(collection)
 		{
-			DependencyResolver.Add(() => ref Events);
 			DependencyResolver.Add(() => ref logger);
 			DependencyResolver.Add(() => ref rpcSystem);
 		}
-
-
-
+		
 		public Entity CreateConnection(Action<(RpcClientState state, Entity packet)> sendPacket)
 		{
 			var state     = new RpcClientState();
