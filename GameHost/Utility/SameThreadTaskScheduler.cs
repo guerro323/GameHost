@@ -32,6 +32,9 @@ namespace GameHost.Utility
 
 		public void Execute()
 		{
+			// make sure that the current thread is reset each time we do Execute()
+			currentThread = Thread.CurrentThread;
+			
 			var count = tasks.Count;
 			while (count-->0)
 			{
