@@ -35,6 +35,9 @@ namespace GameHost.Utility
 			var count = tasks.Count;
 			while (count-->0)
 			{
+				if (tasks[0] is null)
+					throw new NullReferenceException("null task");
+				
 				TryExecuteTask(tasks[0]);
 				tasks.RemoveAt(0);
 			}
@@ -57,8 +60,22 @@ namespace GameHost.Utility
 			           .StartNew(() => taskCreator(cancellationToken), cancellationToken, TaskCreationOptions.AttachedToParent, taskScheduler)
 			           .Unwrap();
 		}
+		
+		public static Task<T> StartUnwrap<T>(this TaskScheduler taskScheduler, Func<CancellationToken, Task<T>> taskCreator, CancellationToken cancellationToken)
+		{
+			return Task.Factory
+			           .StartNew(() => taskCreator(cancellationToken), cancellationToken, TaskCreationOptions.AttachedToParent, taskScheduler)
+			           .Unwrap();
+		}
 
 		public static Task StartUnwrap(this TaskScheduler taskScheduler, Func<Task> taskCreator)
+		{
+			return Task.Factory
+			           .StartNew(taskCreator, CancellationToken.None, TaskCreationOptions.AttachedToParent, taskScheduler)
+			           .Unwrap();
+		}
+		
+		public static Task<T> StartUnwrap<T>(this TaskScheduler taskScheduler, Func<Task<T>> taskCreator)
 		{
 			return Task.Factory
 			           .StartNew(taskCreator, CancellationToken.None, TaskCreationOptions.AttachedToParent, taskScheduler)

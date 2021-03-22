@@ -57,7 +57,7 @@ namespace GameHost.Core.RPC
 			}
 
 			followEntity = rpcSystem.AddIncomingRequest(methodProperty.GetString(), paramsProperty, connection);
-
+			
 			var id = idProperty.GetUInt32();
 			connection.Get<RpcClientState>().AddRequest(id, followEntity);
 			followEntity.Set(new FollowUpId(id));

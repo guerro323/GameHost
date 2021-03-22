@@ -338,15 +338,20 @@ namespace GameHost.Core.RPC
 
 		public string Method { get; }
 
+		public JsonSerializerOptions Options = new ()
+		{
+			IncludeFields = true
+		};
+
 		public virtual void Send(Entity entity, Utf8JsonWriter writer)
 		{
 			var t = entity.Get<T>();
-			JsonSerializer.Serialize(writer, t);
+			JsonSerializer.Serialize(writer, t, Options);
 		}
 
 		public virtual void Receive(Entity entity, JsonElement element)
 		{
-			entity.Set(JsonSerializer.Deserialize<T>(element.ToString()));
+			entity.Set(JsonSerializer.Deserialize<T>(element.ToString(), Options));
 		}
 	}
 

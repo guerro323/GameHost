@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
@@ -38,7 +39,7 @@ namespace GameHost.Core.RPC.AvailableRpcCommands
 
 			public override string MethodName => "GameHost.GetDisplayedConnection";
 			
-			protected override Response GetResponse(in GetDisplayedConnectionRpc request)
+			protected override ValueTask<Response> GetResponse(GetDisplayedConnectionRpc request)
 			{
 				var connectionMap = new Dictionary<string, List<Response.Connection>>();
 				foreach (var connection in connectionSet.GetEntities())
@@ -57,7 +58,7 @@ namespace GameHost.Core.RPC.AvailableRpcCommands
 					});
 				}
 
-				return new() {Connections = connectionMap};
+				return WithResult(new() {Connections = connectionMap});
 			}
 		}
 	}

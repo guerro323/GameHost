@@ -1,8 +1,11 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Client;
 using GameHost.Core.Ecs;
+using GameHost.Core.Threading;
+using GameHost.Utility;
 
 namespace GameHost.Core.RPC
 {
@@ -54,13 +57,14 @@ namespace GameHost.Core.RPC
 
 		private RpcPacketError? lastError;
 
-		protected RpcSystem RpcSystem;
+		protected RpcSystem     RpcSystem;
 
 		protected RpcPacketWithResponseSystem(WorldCollection collection) : base(collection)
 		{
 			awaitingResponseSet = collection.Mgr.GetEntities()
-			                                .With<TResponse>()
+			                                .With<T>()
 			                                .With<RpcSystem.ClientRequestTag>()
+			                                .Without<Task>()
 			                                .AsSet();
 
 			DependencyResolver.Add(() => ref RpcSystem);
@@ -75,6 +79,9 @@ namespace GameHost.Core.RPC
 			RpcSystem.RegisterPacketWithResponse<T, TResponse>(MethodName);
 		}
 
+		private IScheduler    scheduler = new Scheduler();
+		private TaskScheduler taskScheduler = new SameThreadTaskScheduler();
+		
 		protected override void OnUpdate()
 		{
 			base.OnUpdate();
@@ -84,27 +91,42 @@ namespace GameHost.Core.RPC
 				lastError = null;
 
 				var rpcRequest = RpcSystem.PrepareReply<T, TResponse>(entity);
-				var response   = GetResponse(rpcRequest.Request);
-
-				if (lastError is { } packetError)
-					rpcRequest.SetError(packetError);
-				else
-					rpcRequest.ReplyWith(response);
+				scheduler.Schedule(ent =>
+				{
+					previousRequest = ent;
+					ent.Entity.Set<Task>(taskScheduler.StartUnwrap(PrivateGetResponse));
+				}, rpcRequest, default);
 			}
+
+			scheduler.Run();
+			(taskScheduler as SameThreadTaskScheduler).Execute();
 		}
 
-		protected abstract TResponse GetResponse(in T request);
+		private RpcClientRequestEntity<T, TResponse> previousRequest;
 
-		protected TResponse WithError(RpcPacketError packet)
+		private async Task PrivateGetResponse()
+		{
+			var currentRequest = previousRequest;
+			if (lastError is { } error)
+				currentRequest.SetError(error);
+			else
+				currentRequest.ReplyWith(await GetResponse(currentRequest.Request));
+		}
+
+		protected abstract ValueTask<TResponse> GetResponse(T request);
+
+		protected ValueTask<TResponse> WithError(RpcPacketError packet)
 		{
 			lastError = packet;
-			return default;
+			return ValueTask.FromResult(default(TResponse));
 		}
 
-		protected TResponse WithError(int code, string message)
+		protected ValueTask<TResponse> WithError(int code, string message)
 		{
 			lastError = new RpcPacketError(code, message);
-			return default;
+			return ValueTask.FromResult(default(TResponse));
 		}
+
+		protected ValueTask<TResponse> WithResult(TResponse response) => ValueTask.FromResult(response);
 	}
 }

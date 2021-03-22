@@ -1,4 +1,5 @@
-﻿using DefaultEcs;
+﻿using System.Threading.Tasks;
+using DefaultEcs;
 using GameHost.Core.Ecs;
 using GameHost.Core.Modules.Feature;
 using JetBrains.Annotations;
@@ -23,7 +24,7 @@ namespace GameHost.Core.RPC.AvailableRpcCommands
 
 			public override string MethodName => "GameHost.LoadModule";
 
-			protected override NoMembersResponsePacket GetResponse(in LoadModuleRpc request)
+			protected override ValueTask<NoMembersResponsePacket> GetResponse(LoadModuleRpc request)
 			{
 				foreach (var entity in moduleSet.GetEntities())
 				{
