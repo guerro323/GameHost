@@ -10,6 +10,8 @@ namespace GameHost.Utility
 		private List<Task> tasks = new List<Task>();
 		private Thread     currentThread;
 
+		public override int MaximumConcurrencyLevel => 1;
+
 		public SameThreadTaskScheduler()
 		{
 			currentThread = Thread.CurrentThread;
@@ -17,32 +19,47 @@ namespace GameHost.Utility
 			
 		protected override IEnumerable<Task> GetScheduledTasks()
 		{
-			return tasks;
+			return ArraySegment<Task>.Empty;
 		}
 
 		protected override void QueueTask(Task task)
 		{
-			tasks.Add(task);
+			lock (tasks)
+			{
+				tasks.Add(task);
+			}
 		}
 
 		protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
 		{
-			return Thread.CurrentThread == currentThread && TryExecuteTask(task);
+			if (Thread.CurrentThread == currentThread && TryExecuteTask(task)) 
+				return true;
+			
+			// If the task wasn't started, this mean it wanted to be on another thread, so let's queue it.
+			if (Thread.CurrentThread != currentThread)
+				QueueTask(task);
+				
+			// else it's finished, so no need to re-execute it
+			return false;
+
 		}
 
 		public void Execute()
 		{
 			// make sure that the current thread is reset each time we do Execute()
 			currentThread = Thread.CurrentThread;
-			
-			var count = tasks.Count;
-			while (count-->0)
+
+			lock (tasks)
 			{
-				if (tasks[0] is null)
-					throw new NullReferenceException("null task");
-				
-				TryExecuteTask(tasks[0]);
-				tasks.RemoveAt(0);
+				var count = tasks.Count;
+				for (var i = 0; i < count; i++)
+				{
+					if (tasks[0] is null)
+						throw new NullReferenceException("null task");
+
+					TryExecuteTask(tasks[0]);
+					tasks.RemoveAt(0);
+				}
 			}
 		}
 	}
