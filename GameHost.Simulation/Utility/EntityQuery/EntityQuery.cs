@@ -198,6 +198,19 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		/// <returns></returns>
 		public bool MatchAgainst(GameEntityHandle entityHandle)
 		{
+			#if DEBUG
+			if (entityHandle.Id > 0) GameWorld.ThrowOnInvalidHandle(entityHandle);
+
+			var archetype = GameWorld.GetArchetype(entityHandle).Id;
+			if (archetype >= archetypeIsValid.Length)
+			{
+				if (GameWorld.Boards.Archetype.Registered.Length > lastArchetypeCount)
+					throw new InvalidOperationException($"{nameof(CheckForNewArchetypes)} was not called and resulted in an archetype out of bounds in this query. (arch={archetype}, lastCount={lastArchetypeCount}, currentCount={GameWorld.Boards.Archetype.Registered.Length})");
+
+				throw new IndexOutOfRangeException($"Archetype '{archetype}' is out of bounds from '{archetypeIsValid.Length}'");
+			}
+			
+			#endif
 			return archetypeIsValid[GameWorld.GetArchetype(entityHandle).Id];
 		}
 

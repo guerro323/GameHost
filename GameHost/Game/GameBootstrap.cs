@@ -72,7 +72,7 @@ namespace GameHost.Game
 					var loggerFactory = LoggerFactory.Create(builder =>
 					{
 						static void opt(ZLoggerOptions options)
-						{
+						{	
 							var prefixFormat = ZString.PrepareUtf8<LogLevel, DateTime, string>("[{0}, {1}, {2}] ");
 							options.PrefixFormatter = (writer, info) => prefixFormat.FormatTo(ref writer, info.LogLevel, info.Timestamp.DateTime.ToLocalTime(), info.CategoryName);
 						}

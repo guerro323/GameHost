@@ -132,7 +132,10 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 					
 					spin.SpinOnce(30);
 					if (hasRanBatch)
+					{
 						spin.Reset();
+						sleepCount = 0;
+					}
 				}
 			}
 			catch (Exception ex)

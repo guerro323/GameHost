@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using DefaultEcs;
 using GameHost.Applications;
@@ -106,11 +107,18 @@ namespace GameHost.Core.RPC
 
 		private async Task PrivateGetResponse()
 		{
-			var currentRequest = previousRequest;
-			if (lastError is { } error)
-				currentRequest.SetError(error);
-			else
-				currentRequest.ReplyWith(await GetResponse(currentRequest.Request));
+			try
+			{
+				var currentRequest = previousRequest;
+				if (lastError is { } error)
+					currentRequest.SetError(error);
+				else
+					currentRequest.ReplyWith(await GetResponse(currentRequest.Request));
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex);
+			}
 		}
 
 		protected abstract ValueTask<TResponse> GetResponse(T request);

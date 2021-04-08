@@ -72,6 +72,10 @@ namespace GameHost.Simulation.TabEcs
 		public bool Contains<T1>(PredicateDelegate<T1> variable, T1 wanted)
 		{
 			var span = Span;
+			if (span.IsEmpty)
+			{
+				return false;
+			}
 
 			var d      = default(T);
 			// What happens:
