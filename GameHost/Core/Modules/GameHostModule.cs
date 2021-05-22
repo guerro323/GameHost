@@ -10,19 +10,19 @@ namespace GameHost.Core.Modules
 {
 	public abstract class GameHostModule : IDisposable
 	{
+		private Bindable<IStorage> storage;
+
 		public readonly Entity  Source;
 		public readonly Context Ctx;
 
 		/// <summary>
 		/// Get the mod storage
 		/// </summary>
-		public readonly Bindable<IStorage> Storage;
+		public readonly ReadOnlyBindable<IStorage> Storage;
 
 		public readonly DllStorage DllStorage;
 
 		public readonly ModuleAssemblyLoadContext AssemblyLoadContext;
-
-		private object bindableProtection = new object();
 
 		protected List<IDisposable> ReferencedDisposables;
 
@@ -33,7 +33,7 @@ namespace GameHost.Core.Modules
 
 			Source                = source;
 			Ctx                   = new Context(ctxParent);
-			Storage               = new Bindable<IStorage>(protection: bindableProtection);
+			Storage               = this.storage = new();
 			DllStorage            = new DllStorage(GetType().Assembly);
 			ReferencedDisposables = new List<IDisposable>();
 
@@ -51,9 +51,7 @@ namespace GameHost.Core.Modules
 			if (task.Result == null)
 				return;
 
-			Storage.EnableProtection(false, bindableProtection);
-			Storage.Value = task.Result;
-			Storage.EnableProtection(true, bindableProtection);
+			storage.Value = task.Result;
 		}
 
 		public void AddDisposable(IDisposable disposable) => ReferencedDisposables.Add(disposable);
@@ -80,7 +78,7 @@ namespace GameHost.Core.Modules
 
 			ReferencedDisposables.Clear();
 
-			Storage.Dispose();
+			storage.Dispose();
 			Ctx.Dispose();
 		}
 	}

@@ -9,11 +9,11 @@ namespace GameHost.Core
     {
         public abstract void Dispose();
     }
-    
+
     public class BindableListener<T> : BindableListener
     {
         private readonly ValueChanged<T> valueChanged;
-        private readonly WeakReference  bindableReference;
+        private readonly WeakReference   bindableReference;
 
         public BindableListener(WeakReference bindableReference, ValueChanged<T> valueChanged)
         {
@@ -37,9 +37,6 @@ namespace GameHost.Core
             get => value;
             set
             {
-                if (!protection.CanModifyValue)
-                    throw new InvalidOperationException("Can not modify values");
-
                 if (EqualityComparer<T>.Default.Equals(this.value, value))
                     return;
                 InvokeOnUpdate(ref value);
@@ -50,30 +47,21 @@ namespace GameHost.Core
         {
             get => defaultValue;
             // should we also do a subscription format when default get changed?
-            set
-            {
-                if (!protection.CanModifyValue)
-                    throw new InvalidOperationException("Can not modify values");
-
-                defaultValue = value;
-            }
+            set => defaultValue = value;
         }
 
-        private ProtectedValue protection;
-        private T              value;
-        private T              defaultValue;
+        private T value;
+        private T defaultValue;
 
         protected virtual IEnumerable<ValueChanged<T>> SubscribedListeners { get; set; } = new List<ValueChanged<T>>();
 
-        public Bindable(T defaultValue = default, T initialValue = default, object protection = null)
+        public Bindable(T defaultValue = default, T initialValue = default)
         {
             this.defaultValue = defaultValue;
             if (EqualityComparer<T>.Default.Equals(initialValue, default) && !EqualityComparer<T>.Default.Equals(defaultValue, default))
                 this.value = defaultValue;
             else
                 this.value = initialValue;
-
-            this.protection = new ProtectedValue(protection);
         }
 
         public virtual void Dispose()
@@ -81,6 +69,7 @@ namespace GameHost.Core
         }
 
         private ValueChanged<T> currentListener;
+
         protected virtual void InvokeOnUpdate(ref T value)
         {
             var currentList = new List<ValueChanged<T>>((List<ValueChanged<T>>) SubscribedListeners);
@@ -124,34 +113,29 @@ namespace GameHost.Core
         }
 
         public void SetDefault() => Value = Default;
+    }
 
-        public void EnableProtection(bool state, object protectedObject)
+    public readonly struct ReadOnlyBindable<T>
+    {
+        private readonly Bindable<T> source;
+
+        public T Value   => source.Value;
+        public T Default => source.Default;
+
+        public ReadOnlyBindable(Bindable<T> source)
         {
-            if (!protection.SetEnabled(protectedObject, state))
-                throw new InvalidOperationException("Invalid protection object");
+            this.source = source;
         }
 
-        private struct ProtectedValue
+        public void UnsubscribeCurrent() => source.UnsubscribeCurrent();
+
+        public bool Unsubscribe(ValueChanged<T> listener) => source.Unsubscribe(listener);
+
+        public BindableListener Subscribe(in ValueChanged<T> listener, bool invokeNow = false) => source.Subscribe(listener, invokeNow);
+
+        public static implicit operator ReadOnlyBindable<T>(Bindable<T> origin)
         {
-            private object Protection;
-            private bool   IsEnabled;
-
-            public bool CanModifyValue => Protection == null || (Protection != null && !IsEnabled);
-
-            public ProtectedValue(object protection)
-            {
-                Protection = protection;
-                IsEnabled  = true;
-            }
-
-            public bool SetEnabled(object protection, bool state)
-            {
-                if (Protection != null && Protection != protection)
-                    return false;
-
-                IsEnabled = state;
-                return true;
-            }
+            return new(origin);
         }
     }
 }

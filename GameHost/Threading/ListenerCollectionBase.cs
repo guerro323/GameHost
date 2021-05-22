@@ -143,6 +143,11 @@ namespace GameHost.Threading
 			scheduler.Run();
 		}
 
+		public void Add<T>(T task) where T : ISchedulerTask
+		{
+			scheduler.Add(task);
+		}
+
 		public void Schedule(Action action, in SchedulingParameters parameters)
 		{
 			scheduler.Schedule(action, parameters);

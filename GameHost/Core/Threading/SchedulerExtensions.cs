@@ -49,5 +49,21 @@ namespace GameHost.Core.Threading
 			scheduler.Schedule(WithArgs<T>.ScheduleAsyncCached, (action, args, t), parameters);
 			return t.Task;
 		}
+		
+		public static void ContinueWithScheduler(this Task task, IScheduler scheduler, Action action)
+		{
+			task.ContinueWith(_ =>
+			{
+				scheduler.Schedule(action, default);
+			});
+		}
+
+		public static void ContinueWithScheduler<T>(this Task<T> task, IScheduler scheduler, Action<T> action)
+		{
+			task.ContinueWith(t =>
+			{
+				scheduler.Schedule(action, t.Result, default);
+			});
+		}
 	}
 }

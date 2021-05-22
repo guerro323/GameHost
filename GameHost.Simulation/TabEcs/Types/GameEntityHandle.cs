@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace GameHost.Simulation.TabEcs
 {
@@ -90,6 +91,7 @@ namespace GameHost.Simulation.TabEcs
 		public readonly uint Id;
 		public readonly uint Version;
 
+		[JsonConstructor]
 		public GameEntity(uint id, uint version)
 		{
 			Id      = id;

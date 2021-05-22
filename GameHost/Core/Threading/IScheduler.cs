@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Loader;
 using System.Threading;
 
 namespace GameHost.Core.Threading
@@ -21,10 +22,43 @@ namespace GameHost.Core.Threading
         public static readonly SchedulingParametersWithArgs AsOnceWithArgs = new SchedulingParametersWithArgs {OnceWithMethodAndArgs = true};
     }
 
-    public interface IScheduler
+    public interface ISchedulerTask
+    {
+        void OnAdd(IScheduler    scheduler);
+        bool Run(IScheduler      scheduler);
+        void OnRemove(IScheduler scheduler);
+    }
+
+    public struct DelaySchedulerTask<T> : ISchedulerTask
+    {
+        public readonly TimeSpan  Target;
+        public readonly Action<T> Action;
+
+        public DelaySchedulerTask(TimeSpan delay, Action<T> action)
+        {
+            Target = delay;
+            Action = action;
+        }
+
+        public void OnAdd(IScheduler scheduler)
+        {
+        }
+
+        public bool Run(IScheduler scheduler)
+        {
+            return Environment.TickCount64 < Target.Ticks;
+        }
+
+        public void OnRemove(IScheduler scheduler)
+        {
+        }
+    }
+
+    public interface IScheduler : IDisposable
     {
         void Run();
 
+        void Add<T>(T task) where T : ISchedulerTask;
         void Schedule(Action       action, in SchedulingParameters parameters);
         void Schedule<T>(Action<T> action, T                       args, in SchedulingParametersWithArgs parameters);
     }
@@ -40,6 +74,8 @@ namespace GameHost.Core.Threading
             public abstract Delegate DequeueAndInvoke();
             public abstract bool     Contains(Delegate   del);
             public abstract void     TakeFrom(Collection other);
+
+            public abstract void Clear();
         }
 
         private class NoArgCollection : Collection
@@ -73,6 +109,11 @@ namespace GameHost.Core.Threading
                 var same = (NoArgCollection) other;
                 while (same.Scheduled.TryDequeue(out var action))
                     Scheduled.Enqueue(action);
+            }
+
+            public override void Clear()
+            {
+                Scheduled.Clear();
             }
         }
 
@@ -111,6 +152,11 @@ namespace GameHost.Core.Threading
                 while (same.Scheduled.TryDequeue(out var action))
                     Scheduled.Enqueue(action);
             }
+
+            public override void Clear()
+            {
+                Scheduled.Clear();
+            }
         }
 
         /// <summary>
@@ -127,6 +173,23 @@ namespace GameHost.Core.Threading
         private Delegate debugLastTask;
 
         private SpinLock spinLock;
+        
+        public void Dispose()
+        {
+            debugLastTask = null;
+            foreach (var (_, value) in scheduledCollectionTypeMap)
+                value.Clear();
+            foreach (var (_, value) in runningCollectionTypeMap)
+                value.Clear();
+            
+            scheduledCollectionTypeMap.Clear();
+            runningCollectionTypeMap.Clear();
+            
+            scheduledValueTasks.Clear();
+            nextRunningTasks.Clear();
+
+            OnExceptionFound = null;
+        }
 
         public Scheduler(Func<Exception, bool> onExceptionFound = null)
         {
@@ -190,6 +253,24 @@ namespace GameHost.Core.Threading
                 }
             }
         }
+        
+        // TODO: add real support for custom scheduler tasks (no gc alloc)
+        public void Add<T>(T task) where T : ISchedulerTask
+        {
+            static void addInternal((T obj, Scheduler scheduler, bool firstRun) args)
+            {
+                var (obj, scheduler, firstRun) = args;
+                if (firstRun)
+                    obj.OnAdd(scheduler);
+
+                if (obj.Run(scheduler))
+                    scheduler.Schedule(addInternal, (obj, scheduler, false), default);
+                else
+                    obj.OnRemove(scheduler);
+            }
+
+            Schedule(addInternal, (task, this, true), default);
+        }
 
         public void Schedule(Action action, in SchedulingParameters parameters)
         {
@@ -224,6 +305,14 @@ namespace GameHost.Core.Threading
 
                     scheduledCollectionTypeMap[typeof(T)] = collection;
                     runningCollectionTypeMap[typeof(T)]   = new Collection<T>();
+
+                    // Make sure that when the assembly of that type is getting unloaded we don't keep a reference to it.
+                    AssemblyLoadContext.GetLoadContext(typeof(T).Assembly)!
+                                       .Unloading += ctx =>
+                    {
+                        scheduledCollectionTypeMap.Remove(typeof(T));
+                        runningCollectionTypeMap.Remove(typeof(T));
+                    };
                 }
 
                 if (parameters.OnceWithMethod && collection.Contains(action))

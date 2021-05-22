@@ -175,6 +175,14 @@ namespace GameHost.Core.Ecs
 
 			systemList.Clear();
 			systemList = null;
+			
+			systemMap.Clear();
+			systemMap = null;
+			
+			availablePasses.Clear(); 
+			passToLoop.Clear();
+
+			ExecutingRegister = null;
 		}
 	}
 }

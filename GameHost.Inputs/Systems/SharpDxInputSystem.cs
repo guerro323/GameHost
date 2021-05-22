@@ -129,5 +129,39 @@ namespace GameHost.Inputs.Systems
 				return true;
 			}
 		}
+		
+		public class KeyboardListenerSimple : IKeyboardListener
+		{
+			public class Input
+			{
+				public string Id;
+				public bool   IsPressed;
+			}
+		
+			public KeyboardListenerSimple()
+			{
+				foreach (KeyCode e in Enum.GetValues(typeof(KeyCode)))
+				{
+					var key = $"keyboard/{e.ToString()!.ToLower().Replace("key_", string.Empty)}";
+					ControlMap[e] = new() {Id = key};
+				}
+			}
+
+			public Dictionary<KeyCode, Input> ControlMap = new(256);
+
+			public bool KeyPressed(KeyEventArgs e)
+			{
+				var control = ControlMap[e.Key];
+				control.IsPressed = true;
+				return true;
+			}
+
+			public bool KeyReleased(KeyEventArgs e)
+			{
+				var control = ControlMap[e.Key];
+				control.IsPressed = false;
+				return true;
+			}
+		}
 	}
 }

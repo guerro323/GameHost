@@ -49,7 +49,7 @@ namespace GameHost.IO
         }
     }
 
-    public class LocalFile : IFile
+    public class LocalFile : IWriteFile
     {
         private readonly FileInfo file;
 
@@ -63,6 +63,13 @@ namespace GameHost.IO
             var mem = new byte[stream.Length];
             await stream.ReadAsync(mem, 0, mem.Length);
             return mem;
+        }
+
+        public Task WriteContentAsync(byte[] content)
+        {
+            // TODO: Async
+            File.WriteAllBytes(FullName, content);
+            return Task.CompletedTask;
         }
 
         public LocalFile(FileInfo file)

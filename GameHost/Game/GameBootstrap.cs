@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Text;
@@ -38,15 +39,19 @@ namespace GameHost.Game
 			DefaultListenerCollection = Global.World.CreateEntity();
 			DefaultListenerCollection.Set<ListenerCollectionBase>(new ListenerCollection());
 
-			AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
-			{
-				OnException((Exception) args.ExceptionObject);
-			};
-			TaskScheduler.UnobservedTaskException += (sender, args) =>
-			{
-				args.SetObserved();
-				OnException((Exception) args.Exception);
-			};
+			AppDomain.CurrentDomain.UnhandledException += onDomainUnhandledException;
+			TaskScheduler.UnobservedTaskException += onUnobservedTaskException;
+		}
+
+		private void onUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs args)
+		{
+			args.SetObserved();
+			OnException((Exception) args.Exception);
+		}
+
+		private void onDomainUnhandledException(object sender, UnhandledExceptionEventArgs args)
+		{
+			OnException((Exception) args.ExceptionObject);
 		}
 
 		public void Setup()
@@ -72,7 +77,7 @@ namespace GameHost.Game
 					var loggerFactory = LoggerFactory.Create(builder =>
 					{
 						static void opt(ZLoggerOptions options)
-						{	
+						{
 							var prefixFormat = ZString.PrepareUtf8<LogLevel, DateTime, string>("[{0}, {1}, {2}] ");
 							options.PrefixFormatter = (writer, info) => prefixFormat.FormatTo(ref writer, info.LogLevel, info.Timestamp.DateTime.ToLocalTime(), info.CategoryName);
 						}
@@ -84,7 +89,16 @@ namespace GameHost.Game
 							8196,
 							opt);
 						builder.AddZLoggerFile("log.json");
-						builder.AddZLoggerConsole(opt);
+						try
+						{
+							Console.OutputEncoding = Encoding.UTF8;
+							
+							builder.AddZLoggerConsole(opt);
+						}
+						catch
+						{
+							// ignored (no console)
+						}
 					});
 					GameEntity.Set(new GameLoggerFactory(loggerFactory));
 				}
@@ -146,7 +160,13 @@ namespace GameHost.Game
 		{
 			CancellationTokenSource.Cancel();
 			Global.Scheduler.Run();
+			Global.Scheduler.Dispose();
+
+			Global.Context.Dispose();
 			Global.Collection.Dispose();
+
+			AppDomain.CurrentDomain.UnhandledException -= onDomainUnhandledException;
+			TaskScheduler.UnobservedTaskException      -= onUnobservedTaskException;
 		}
 
 

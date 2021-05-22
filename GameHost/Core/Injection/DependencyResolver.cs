@@ -128,7 +128,7 @@ namespace GameHost.Injection
                 //Console.WriteLine($"completed {Source}");
                 unresolvedFrames = 0;
             }
-            else if (unresolvedFrames++ > 100)
+            else if (unresolvedFrames++ > 1000)
             {
                 unresolvedFrames = 0;
             

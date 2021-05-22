@@ -88,6 +88,11 @@ namespace GameHost.Threading.Apps
 			Scheduler.Run();
 		}
 
+		public void Add<T>(T task) where T : ISchedulerTask
+		{
+			Scheduler.Add(task);
+		}
+
 		public void Schedule(Action action, in SchedulingParameters parameters)
 		{
 			Scheduler.Schedule(action, parameters);
@@ -101,5 +106,12 @@ namespace GameHost.Threading.Apps
 		public Entity          AssignedEntity { get; set; }
 		public GlobalWorld     Global         { get; }
 		public ApplicationData Data           { get; }
+
+		public void Dispose()
+		{
+			Scheduler?.Dispose();
+			Data?.Collection?.Dispose();
+			Data?.World?.Dispose();
+		}
 	}
 }

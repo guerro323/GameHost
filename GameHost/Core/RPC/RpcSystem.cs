@@ -340,7 +340,7 @@ namespace GameHost.Core.RPC
 
 		public JsonSerializerOptions Options = new ()
 		{
-			IncludeFields = true
+			IncludeFields = true,
 		};
 
 		public virtual void Send(Entity entity, Utf8JsonWriter writer)

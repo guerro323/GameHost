@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Collections.Pooled;
+using JetBrains.Annotations;
+using TabEcs;
 
 namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 {
@@ -11,6 +13,11 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 	{
 		int  PrepareBatch(int taskCount);
 		void Execute(int index, int maxUseIndex, int task, int taskCount);
+	}
+
+	public interface IBatchOnComplete
+	{
+		void OnCompleted([CanBeNull] Exception exception);
 	}
 
 	public struct BatchRequest
@@ -95,7 +102,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 		private BatchResult[]                batchResults;
 
 		private int[] batchVersions;
-
+		
 		private static void runTask(object obj)
 		{
 			if (obj is not TaskState state)
@@ -116,7 +123,11 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 					while (state.Batches.TryTake(out var queued))
 					{
 						queued.Batch.Execute(queued.Index, queued.MaxUseIndex, state.TaskIndex, state.TaskCount);
-						Interlocked.Increment(ref state.Results[queued.BatchId].SuccessfulWrite);
+						if (Interlocked.Increment(ref state.Results[queued.BatchId].SuccessfulWrite) == state.Results[queued.BatchId].MaxIndex
+						&& queued.Batch is IBatchOnComplete onComplete)
+						{
+							onComplete.OnCompleted(null);
+						}
 					}
 
 					if (state.IsPerformanceCritical)

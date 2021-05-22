@@ -19,8 +19,9 @@ namespace GameHost.Injection.Dependency
 
 		public override void Resolve()
 		{
-			IsResolved       = Task.IsCompleted;
-			ResolveException = Task.Exception;
+			IsResolved = Task.IsCompleted;
+			if (Task.IsFaulted)
+				ResolveException = Task.Exception;
 		}
 
 		public override string ToString()

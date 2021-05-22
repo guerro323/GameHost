@@ -104,7 +104,6 @@ namespace GameHost.Audio.Systems
 				}
 				else if (entity.Has<LoadResourceViaFile>())
 				{
-					// todo: async
 					entity.Set(new IsLoadingFile
 					{
 						AttachedTask = Task.Run(() => entity
