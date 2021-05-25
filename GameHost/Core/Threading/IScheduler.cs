@@ -173,10 +173,15 @@ namespace GameHost.Core.Threading
         private Delegate debugLastTask;
 
         private SpinLock spinLock;
+
+        private List<Action> contextUnloadMethods = new();
         
         public void Dispose()
         {
             debugLastTask = null;
+            foreach (var method in contextUnloadMethods)
+                method();
+            
             foreach (var (_, value) in scheduledCollectionTypeMap)
                 value.Clear();
             foreach (var (_, value) in runningCollectionTypeMap)
@@ -306,13 +311,23 @@ namespace GameHost.Core.Threading
                     scheduledCollectionTypeMap[typeof(T)] = collection;
                     runningCollectionTypeMap[typeof(T)]   = new Collection<T>();
 
-                    // Make sure that when the assembly of that type is getting unloaded we don't keep a reference to it.
-                    AssemblyLoadContext.GetLoadContext(typeof(T).Assembly)!
-                                       .Unloading += ctx =>
+                    void remove(AssemblyLoadContext ctx)
                     {
+                        ctx.Unloading -= remove;
+                        
                         scheduledCollectionTypeMap.Remove(typeof(T));
                         runningCollectionTypeMap.Remove(typeof(T));
-                    };
+                    }
+                    
+                    // Make sure that when the assembly of that type is getting unloaded we don't keep a reference to it.
+                    AssemblyLoadContext.GetLoadContext(typeof(T).Assembly)!
+                                       .Unloading += remove;
+                    
+                    contextUnloadMethods.Add(() =>
+                    {
+                        AssemblyLoadContext.GetLoadContext(typeof(T).Assembly)!
+                                           .Unloading -= remove;
+                    });
                 }
 
                 if (parameters.OnceWithMethod && collection.Contains(action))

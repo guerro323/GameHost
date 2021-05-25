@@ -65,9 +65,14 @@ namespace GameHost.Injection
 
     public class Context : IDisposable
     {
-        private HashSet<object> registeredObjects;
+        private struct Registration
+        {
+            public bool AllowDisposal;
+        }
+        
+        private Dictionary<object, Registration> registeredObjects;
 
-        private List<Context> childs;
+        private List<Context> children;
 
         public IContainer Container { get; }
         public Context    Parent    { get; }
@@ -75,19 +80,19 @@ namespace GameHost.Injection
         public Context(Context parent)
         {
             Parent = parent;
-            Parent?.childs?.Add(this);
+            Parent?.children?.Add(this);
 
             Container         = new Container();
-            registeredObjects = new HashSet<object>();
-            childs            = new List<Context>();
+            registeredObjects = new();
+            children          = new();
         }
 
-        public void Register(object obj, Type type = null)
+        public void Register(object obj, Type type = null, bool allowDisposal = false)
         {
             if (type == null && obj == null)
                 return;
             
-            registeredObjects.Add(obj);
+            registeredObjects[obj] = new() {AllowDisposal = allowDisposal};
             Container.Use(obj, type);
         }
 
@@ -100,28 +105,38 @@ namespace GameHost.Injection
                 throw new InvalidOperationException($"{obj.GetType()} should have been removed from this context");
         }
 
-        public void BindExisting<TIn, TOut>(TOut o) where TOut : TIn
+        public void BindExisting<TIn, TOut>(TOut o, bool allowDisposal = false) where TOut : TIn
         {
             // bind self
-            Register(o);
+            Register(o, allowDisposal: allowDisposal);
             Container.Use(o, typeof(TIn));
         }
 
-        public void BindExisting<TInOut>(TInOut o)
+        public void BindExisting<TInOut>(TInOut o, bool allowDisposal = false)
         {
-            BindExisting<TInOut, TInOut>(o);
+            BindExisting<TInOut, TInOut>(o, allowDisposal);
         }
 
         public void Dispose()
         {
-            Parent?.childs.Remove(this);
+            Parent?.children.Remove(this);
             
             Container?.Dispose();
+
+            foreach (var (obj, registration) in registeredObjects)
+            {
+                if (!registration.AllowDisposal || obj is not IDisposable disposable)
+                    continue;
+
+                disposable.Dispose();
+            }
+
             registeredObjects.Clear();
-            foreach (var child in childs)
+            
+            foreach (var child in children.ToArray()) // make a copy since the child will remove itself in "children" list
                 child.Dispose();
 
-            childs.Clear();
+            children.Clear();
         }
     }
 }

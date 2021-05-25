@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using DefaultEcs;
 using GameHost.Applications;
@@ -18,6 +19,9 @@ namespace GameHost.Threading.Apps
 		public IScheduler    Scheduler     { get; protected set; }
 		public TaskScheduler TaskScheduler { get; protected set; }
 
+		protected TaskCompletionSource disposalStartTask = new();
+		protected TaskCompletionSource disposalEndTask   = new();
+		
 		public CommonApplicationThreadListener(GlobalWorld source, Context overrideContext)
 		{
 			Scheduler = new Scheduler();
@@ -55,6 +59,31 @@ namespace GameHost.Threading.Apps
 			return OnUpdate();
 		}
 
+		public bool IsDisposed => disposalEndTask.Task.IsCompleted;
+
+		public virtual bool QueueDisposal()
+		{
+			if (IsDisposed || disposalStartTask.Task.IsCompleted)
+				return false;
+
+			disposalStartTask.SetResult();
+			Global.Scheduler.Schedule(task =>
+			{
+				if (task.Task.IsCompleted)
+					return;
+
+				try
+				{
+					Dispose();
+				}
+				finally
+				{
+					task.SetResult();
+				}
+			}, disposalEndTask, SchedulingParametersWithArgs.AsOnceWithArgs);
+			return true;
+		}
+
 		// This is done so SimulationApplication can call the scheduler from here
 		protected bool TryExecuteScheduler()
 		{
@@ -66,9 +95,12 @@ namespace GameHost.Threading.Apps
 
 			return false;
 		}
-		
+
 		protected virtual ListenerUpdate OnUpdate()
 		{
+			if (IsDisposed || disposalStartTask.Task.IsCompleted)
+				return default;
+			
 			using (CurrentUpdater.SynchronizeThread())
 			{
 				Scheduler.Run();
@@ -107,11 +139,22 @@ namespace GameHost.Threading.Apps
 		public GlobalWorld     Global         { get; }
 		public ApplicationData Data           { get; }
 
-		public void Dispose()
+		public virtual void Dispose()
 		{
+			if (!IsMainThread)
+				throw new InvalidOperationException("Dispose can only be called by the Main Thread");
+			
+			Scheduler?.Run();
 			Scheduler?.Dispose();
+			
+			Data?.Context?.Dispose();
 			Data?.Collection?.Dispose();
-			Data?.World?.Dispose();
 		}
+		
+		[ThreadStatic]
+		// ReSharper disable ThreadStaticFieldHasInitializer
+		// We disable that warning since it's intended.
+		public static readonly bool IsMainThread = true;
+		// ReSharper restore ThreadStaticFieldHasInitializer
 	}
 }

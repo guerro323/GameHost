@@ -17,6 +17,7 @@ namespace GameHost.Threading
 		public abstract IReadOnlyCollection<IListener> RetrieveAll(IListenerKey   key);
 		public abstract TimeSpan                       Update();
 
+		public          bool IsDisposed { get; protected set; }
 		public abstract void Dispose();
 
 		public abstract SynchronizationManager.SyncContext SynchronizeThread(TimeSpan span = default);
@@ -90,6 +91,9 @@ namespace GameHost.Threading
 
 		public override TimeSpan Update()
 		{
+			if (IsDisposed)
+				return default;
+			
 			var timeToSleep = TimeSpan.MaxValue;
 			using (SynchronizeThread())
 			{
@@ -107,6 +111,8 @@ namespace GameHost.Threading
 
 		public override void Dispose()
 		{
+			IsDisposed = true;
+			
 			using (SynchronizeThread())
 			{
 				foreach (var map in ListenersMap)

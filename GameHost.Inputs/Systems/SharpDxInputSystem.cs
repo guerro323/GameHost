@@ -13,6 +13,7 @@ using ZLogger;
 
 namespace GameHost.Inputs.Systems
 {
+	//[DontInjectSystemToWorld]
 	public class SharpDxInputSystem : AppSystem, IUpdateInputPass
 	{
 		private InputBackendSystem backendSystem;
@@ -32,6 +33,13 @@ namespace GameHost.Inputs.Systems
 
 		private Keyboard _kb;
 
+		public override void Dispose()
+		{
+			base.Dispose();
+			
+			_kb?.Dispose();
+		}
+
 		protected override void OnDependenciesResolved(IEnumerable<object> dependencies)
 		{
 			base.OnDependenciesResolved(dependencies);
@@ -42,11 +50,10 @@ namespace GameHost.Inputs.Systems
 				var process = Process.GetCurrentProcess();
 				while (!cc.IsCancellationRequested)
 				{
-					await Task.Delay(2500, cc);
-						
 					if (process.MainWindowHandle == IntPtr.Zero)
 					{
 						logger.ZLogInformation("Not yet found!");
+						await Task.Delay(2500, cc);
 
 						continue;
 					}

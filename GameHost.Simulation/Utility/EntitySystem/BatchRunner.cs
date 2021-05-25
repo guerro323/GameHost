@@ -185,6 +185,19 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 		public void Dispose()
 		{
 			ccs.Dispose();
+
+			foreach (var t in tasks)
+			{
+				var state = t.AsyncState as TaskState;
+				state.Batches.Clear();
+				state.Batches = null;
+
+				state.Results.AsSpan().Clear();
+				state.Results = null;
+			}
+
+			tasks.AsSpan()
+			     .Clear();
 		}
 
 		public bool IsCompleted()

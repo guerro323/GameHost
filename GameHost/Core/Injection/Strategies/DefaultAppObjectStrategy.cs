@@ -86,7 +86,14 @@ namespace GameHost.Injection
                 return instance;
             }*/
 
-            return new ContextBindingStrategy(collection.Ctx, true).Resolve(type);
+            var result = new ContextBindingStrategy(collection.Ctx, true).Resolve(type);
+            if (result is AppObject)
+            {
+                resolving = result;
+                return null;
+            }
+
+            return result;
         }
 
         public Func<object> GetResolver(Type type)

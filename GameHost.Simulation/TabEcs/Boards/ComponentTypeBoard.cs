@@ -43,10 +43,25 @@
 		 {
 			 base.Dispose();
 
+			 for (var i = 0; i < column.componentBoard.Length; i++)
+			 {
+				 var componentBoardBase = column.componentBoard[i];
+				 if (componentBoardBase == null)
+					 continue;
+				 
+				 try
+				 {
+					 componentBoardBase.Dispose();
+				 }
+				 catch (Exception)
+				 {
+					 Console.WriteLine($"Error when disposing component type {column.name[i]}");
+					 throw;
+				 }
+			 }
+			 
 			 column.name = null;
 			 column.size = null;
-			 foreach (var componentBoardBase in column.componentBoard)
-				 componentBoardBase.Dispose();
 		 }
 	 }
  }

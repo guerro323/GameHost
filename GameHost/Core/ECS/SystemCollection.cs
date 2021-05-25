@@ -133,8 +133,16 @@ namespace GameHost.Core.Ecs
 			return obj;
 		}
 
+		private void checkState()
+		{
+			if (isDisposing)
+				throw new InvalidOperationException("SystemCollection has been disposed. It's not allowed to do modifications to it anymore.");
+		}
+		
 		public void ForceSystemOrder(object obj, Type[] updateBefore, Type[] updateAfter)
 		{
+			checkState();
+			
 			if (!systemMap.ContainsKey(obj.GetType()))
 				throw new InvalidOperationException("The system does not exit in world database.");
 			systemList.Set(obj, updateBefore, updateAfter);
@@ -142,6 +150,8 @@ namespace GameHost.Core.Ecs
 
 		public void Add(object obj, Type[] updateBefore, Type[] updateAfter)
 		{
+			checkState();
+			
 			if (systemMap.TryGetValue(obj.GetType(), out var prev))
 				Unregister(prev);
 			
@@ -152,6 +162,8 @@ namespace GameHost.Core.Ecs
 
 		public void Unregister(object obj)
 		{
+			checkState();
+			
 			Console.WriteLine("unregister " + obj);
 			if (systemMap.TryGetValue(obj.GetType(), out var currInMap) && currInMap == obj)
 			{
@@ -161,8 +173,11 @@ namespace GameHost.Core.Ecs
 			}
 		}
 
+		private bool isDisposing = false;
 		public void Dispose()
 		{
+			isDisposing = true;
+			
 			disposedToUnregister.Clear();
 			
 			foreach (var sys in systemList)

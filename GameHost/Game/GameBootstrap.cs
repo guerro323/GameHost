@@ -13,6 +13,7 @@ using GameHost.Core.Ecs;
 using GameHost.Core.Modules.Feature;
 using GameHost.IO;
 using GameHost.Threading;
+using GameHost.Utility;
 using GameHost.Worlds;
 using Microsoft.Extensions.Logging;
 using ZLogger;
@@ -158,12 +159,23 @@ namespace GameHost.Game
 
 		public void Dispose()
 		{
+			// Force dispose the final applications 
+			foreach (var app in Global.World.Get<IListener>())
+			{
+				if (!app.IsDisposed)
+				{
+					app.QueueDisposal();
+				}
+			}
+			
 			CancellationTokenSource.Cancel();
 			Global.Scheduler.Run();
 			Global.Scheduler.Dispose();
 
 			Global.Context.Dispose();
 			Global.Collection.Dispose();
+			
+			//CleanUntrackedWorlds.Clean();
 
 			AppDomain.CurrentDomain.UnhandledException -= onDomainUnhandledException;
 			TaskScheduler.UnobservedTaskException      -= onUnobservedTaskException;

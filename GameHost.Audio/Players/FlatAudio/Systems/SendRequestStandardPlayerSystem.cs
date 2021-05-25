@@ -30,7 +30,7 @@ namespace GameHost.Audio.Features
 		{
 			base.OnInit();
 
-			var baseSet = new Func<EntityRuleBuilder>(() => World.Mgr.GetEntities()
+			var baseSet = new Func<EntityQueryBuilder>(() => World.Mgr.GetEntities()
 			                   .With<AudioPlayerId>()
 			                   .With<StandardAudioPlayerComponent>());
 

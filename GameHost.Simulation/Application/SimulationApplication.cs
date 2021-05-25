@@ -46,6 +46,9 @@ namespace GameHost.Simulation.Application
 		private Stopwatch sleepTime = new Stopwatch();
 		protected override ListenerUpdate OnUpdate()
 		{
+			if (IsDisposed || disposalStartTask.Task.IsCompleted)
+				return default;
+
 			gameWorld.SwitchStructuralThread();
 			
 			sleepTime.Stop();
@@ -90,6 +93,14 @@ namespace GameHost.Simulation.Application
 			{
 				TimeToSleep = timeToSleep
 			};
+		}
+
+		public override void Dispose()
+		{
+			base.Dispose();
+
+			gameWorld.Dispose();
+			batchRunner.Dispose();
 		}
 
 		private class TimeApp : AppObject

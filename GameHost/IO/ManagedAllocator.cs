@@ -3,12 +3,31 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Runtime.Loader;
 
 namespace GameHost.IO
 {
 	public class ManagedAllocator : IAllocator
 	{
 		public static readonly ManagedAllocator Default = new ManagedAllocator();
+
+		static ManagedAllocator()
+		{
+			static void unload(AssemblyLoadContext ctx)
+			{
+				ctx.Unloading -= unload;
+				
+				foreach (var handle in Default.handles)
+				{
+					GCHandle.FromIntPtr(handle.Key)
+					        .Free();
+				}
+
+				Default.handles.Clear();
+			}
+
+			AssemblyLoadContext.Default.Unloading += unload;
+		}
 
 		private readonly ArrayPool<byte>         pool;
 		private readonly ConcurrentDictionary<IntPtr, byte> handles;

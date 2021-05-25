@@ -107,7 +107,13 @@ namespace GameHost.Simulation.TabEcs
 					world => MappedComponentType[world]);
 
 				// We need to remove ourselves when this assembly get unloaded, so that GC can collect this static type.
-				AssemblyLoadContext.GetLoadContext(typeof(T).Assembly).Unloading += _ => { Remove(); };
+				void remove(AssemblyLoadContext ctx)
+				{
+					ctx.Unloading -= remove;
+					Remove();
+				}
+				
+				AssemblyLoadContext.GetLoadContext(typeof(T).Assembly).Unloading += remove;
 			}
 
 			// This function does nothing but call the static function
