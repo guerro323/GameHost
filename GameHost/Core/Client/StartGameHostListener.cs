@@ -145,14 +145,14 @@ namespace GameHost.Core.Client
 				var (state, packetEntity) = args;
 
 				var isError = false == packetEntity.TryGet(out EntityRpcMultiHandler handler);
-				
-					// If the request handler is null, then it's a response
-					var isResponse = handler.Request is null;
-					var rpcHandler = isResponse ? handler.Response : handler.Request;
-					if (rpcHandler is null && false == isError)
-						throw new NullReferenceException(nameof(rpcHandler));
 
-					writtenBytes.Clear();
+				// If the request handler is null, then it's a response
+				var isResponse = handler.Request is null;
+				var rpcHandler = isResponse ? handler.Response : handler.Request;
+				if (rpcHandler is null && false == isError)
+					throw new NullReferenceException(nameof(rpcHandler));
+
+				writtenBytes.Clear();
 				jsonWriter.Reset();
 				jsonWriter.WriteStartObject();
 				{

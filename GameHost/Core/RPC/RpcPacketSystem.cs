@@ -94,22 +94,18 @@ namespace GameHost.Core.RPC
 				var rpcRequest = RpcSystem.PrepareReply<T, TResponse>(entity);
 				scheduler.Schedule(ent =>
 				{
-					previousRequest = ent;
-					ent.Entity.Set<Task>(taskScheduler.StartUnwrap(PrivateGetResponse));
+					ent.Entity.Set<Task>(taskScheduler.StartUnwrap(() => PrivateGetResponse(ent)));
 				}, rpcRequest, default);
 			}
 
 			scheduler.Run();
 			(taskScheduler as SameThreadTaskScheduler).Execute();
 		}
-
-		private RpcClientRequestEntity<T, TResponse> previousRequest;
-
-		private async Task PrivateGetResponse()
+		
+		private async Task PrivateGetResponse(RpcClientRequestEntity<T, TResponse> currentRequest)
 		{
 			try
 			{
-				var currentRequest = previousRequest;
 				if (lastError is { } error)
 					currentRequest.SetError(error);
 				else

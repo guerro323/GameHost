@@ -44,6 +44,7 @@ namespace GameHost.Utility
 
 		}
 
+		private List<Task> runQueue = new();
 		public void Execute()
 		{
 			// make sure that the current thread is reset each time we do Execute()
@@ -51,15 +52,19 @@ namespace GameHost.Utility
 
 			lock (tasks)
 			{
-				var count = tasks.Count;
-				for (var i = 0; i < count; i++)
+				runQueue.Clear();
+				foreach (var task in tasks)
 				{
-					if (tasks[0] is null)
+					if (task is null)
 						throw new NullReferenceException("null task");
-
-					TryExecuteTask(tasks[0]);
-					tasks.RemoveAt(0);
+					runQueue.Add(task);
 				}
+				tasks.Clear();
+			}
+
+			foreach (var task in runQueue)
+			{
+				TryExecuteTask(task);
 			}
 		}
 	}

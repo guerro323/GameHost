@@ -10,6 +10,18 @@ namespace GameHost.Simulation.TabEcs
 	{
 		public const int RecursionLimit = 10;
 
+		public string DebugCreateErrorMessage(GameEntityHandle handle, string @base)
+		{
+			var msg           = $"{Safe(handle)} error: {@base}.\n Component List:\n";
+			var componentList = Boards.Archetype.GetComponentTypes(GetArchetype(handle).Id);
+			foreach (var comp in componentList)
+			{
+				msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int) comp]}\n";
+			}
+
+			return msg;
+		}
+		
 		/// <summary>
 		/// Create a new component
 		/// </summary>

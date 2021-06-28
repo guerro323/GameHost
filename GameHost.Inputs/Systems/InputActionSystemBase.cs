@@ -20,6 +20,14 @@ namespace GameHost.Inputs.Systems
 			SystemLayoutMap = new Dictionary<string, InputActionSystemBase>();
 		}
 
+		public override void Dispose()
+		{
+			base.Dispose();
+			
+			SystemActionMap.Clear();
+			SystemLayoutMap.Clear();
+		}
+
 		public Dictionary<string,InputActionSystemBase>.ValueCollection Systems => SystemActionMap.Values;
 
 		public void Add(InputActionSystemBase system)

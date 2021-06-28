@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using GameHost.Core.IO;
 
@@ -40,7 +41,7 @@ namespace GameHost.IO
             var result = new HashSet<IFile>(32);
             foreach (var storage in storageList)
             {
-                result.UnionWith(await storage.GetFilesAsync(pattern));
+                result.UnionWith((await storage.GetFilesAsync(pattern)).Select(f => new StorageCollectionFileSource(storage, f)));
             }
 
             return result;
@@ -59,7 +60,7 @@ namespace GameHost.IO
                 {
                     // todo: we need a better way to display this error, the user may think it would make the application crash
 #if DEBUG
-                   // Console.WriteLine("Minimal Impact Exception: " + ex);
+                    // Console.WriteLine("Minimal Impact Exception: " + ex);
 #endif
                 }
             }
@@ -79,8 +80,28 @@ namespace GameHost.IO
             {
                 start += "\t" + s + "\n";
             }
+
             start += "}";
             return start;
+        }
+    }
+
+    public class StorageCollectionFileSource : IFile
+    {
+        public readonly IStorage Source;
+        public readonly IFile    File;
+        public          string   Name     => File.Name;
+        public          string   FullName => File.FullName;
+
+        public Task<byte[]> GetContentAsync()
+        {
+            return File.GetContentAsync();
+        }
+
+        public StorageCollectionFileSource(IStorage storage, IFile file)
+        {
+            Source = storage;
+            File   = file;
         }
     }
 }

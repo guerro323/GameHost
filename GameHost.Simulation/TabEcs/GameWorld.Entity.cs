@@ -8,7 +8,7 @@ namespace GameHost.Simulation.TabEcs
 	public partial class GameWorld
 	{
 		[System.Diagnostics.Conditional("DEBUG")]
-		public void ThrowOnInvalidHandle(GameEntityHandle handle)
+		public void ThrowOnInvalidHandle(GameEntityHandle handle) 
 		{
 			if (handle.Id == 0)
 				throw new InvalidOperationException("You've passed an invalid handle");

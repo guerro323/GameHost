@@ -120,7 +120,8 @@ namespace GameHost.Simulation.TabEcs
 			else if (typeof(IComponentBuffer).IsAssignableFrom(typeof(T)))
 				board = new BufferComponentBoard(Unsafe.SizeOf<T>(), 0);
 			else
-				throw new InvalidOperationException();
+				// it's not possible to create nor destroy component of this type
+				board = new ReadOnlyComponentBoard(0, 0);
 
 			string componentName;
 			if (default(T) is IMetadataCustomComponentName metadataCustomComponentName)

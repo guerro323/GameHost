@@ -16,14 +16,15 @@ using Array = System.Array;
 
 namespace GameHost.Simulation.Features.ShareWorldState
 {
+	[DontInjectSystemToWorld]
 	[RestrictToApplication(typeof(SimulationApplication))]
 	public class SendWorldStateSystem : AppSystemWithFeature<ShareWorldStateFeature>
 	{
 		private GameWorld gameWorld;
 
-		private (IShareComponentSerializer[] serializer, byte h) custom_column;
-		private DataBufferWriter                                 dataBuffer;
-		private DataBufferWriter                                 compressedBuffer;
+		private (IShareComponentSerializer[] serializer, bool[] disabled, byte h) custom_column;
+		private DataBufferWriter                                                  dataBuffer;
+		private DataBufferWriter                                                  compressedBuffer;
 
 		private ParallelOptions parallelOptions;
 		
@@ -35,6 +36,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			getDataParallelBody = GetDataParallel_Body;
 
 			custom_column.serializer = new IShareComponentSerializer[0];
+			custom_column.disabled    = new bool[0];
 			dataBuffer               = new DataBufferWriter(0);
 			compressedBuffer         = new DataBufferWriter(0);
 		}
@@ -86,6 +88,14 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				Array.Resize(ref custom_column.serializer, (int) componentType.Id + 1);
 
 			custom_column.serializer[(int) componentType.Id] = serializer;
+		}
+
+		public void SetDisabled(ComponentType componentType, bool isEnabled)
+		{
+			if (componentType.Id + 1 >= custom_column.disabled.Length)
+				Array.Resize(ref custom_column.disabled, (int) componentType.Id + 1);
+
+			custom_column.disabled[componentType.Id] = isEnabled;
 		}
 
 		private Action<StateData, ParallelLoopState, long> getDataParallelBody;
@@ -231,6 +241,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 		{
 			var skipMarker = buffer.WriteInt(0);
 			var serializer = world.Boards.ComponentType.GetColumn(row, ref custom_column.serializer);
+			var isDisabled  = world.Boards.ComponentType.GetColumn(row, ref custom_column.disabled);
 
 			var componentBoard = world.Boards.ComponentType.ComponentBoardColumns[(int) row];
 			buffer.Capacity += (sizeof(EntityBoardContainer.ComponentMetadata) + sizeof(int) + componentBoard.Size) * entities.Length + 64;
@@ -238,6 +249,10 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			if (serializer != null && serializer.CanSerialize(world, entities, componentBoard))
 			{
 				serializer.SerializeBoard(ref buffer, world, entities, componentBoard);
+			}
+			else if (isDisabled)
+			{
+				buffer.WriteInt(0);
 			}
 			else
 				switch (componentBoard)

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
@@ -56,7 +57,7 @@ namespace GameHost.Core.RPC
 
 			var action = client.Get<EntityRpcClientInvokeOnSendPacket>().OnSendPacket;
 			Debug.Assert(action != null, "action != null");
-
+			
 			action(packet);
 		}
 
