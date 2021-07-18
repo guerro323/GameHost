@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Collections.Pooled;
 using NetFabric.Hyperlinq;
+using RevolutionSnapshot.Core.Buffers;
 
 namespace GameHost.Simulation.TabEcs
 {
@@ -95,7 +96,7 @@ namespace GameHost.Simulation.TabEcs
 			var span = Span;
 			for (var i = 0; i != span.Length; i++)
 			{
-				if (Unsafe.AreSame(ref span[i], ref item))
+				if (UnsafeUtility.SameData(ref span[i], ref item))
 					return i;
 			}
 
@@ -104,12 +105,12 @@ namespace GameHost.Simulation.TabEcs
 
 		public void Insert(int index, T item)
 		{
-			backing.InsertRange(index, MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref item, 1)));
+			backing.InsertRange(index * Unsafe.SizeOf<T>(), MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref item, 1)));
 		}
 
 		public void RemoveAt(int index)
 		{
-			backing.RemoveRange(index, Unsafe.SizeOf<T>());
+			backing.RemoveRange(index * Unsafe.SizeOf<T>(), Unsafe.SizeOf<T>());
 		}
 
 		public T this[int index]

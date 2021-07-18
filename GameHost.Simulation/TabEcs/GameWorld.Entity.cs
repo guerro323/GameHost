@@ -56,8 +56,15 @@ namespace GameHost.Simulation.TabEcs
 				RemoveEntity(entity.Handle);
 		}
 
-		public void RemoveEntityBulk(ReadOnlySpan<GameEntityHandle> handles)
+		public void RemoveEntityBulk(ReadOnlySpan<GameEntityHandle> handles, bool safe = false)
 		{
+			if (safe)
+			{
+				foreach (var handle in handles)
+					RemoveEntity(handle);
+				return;
+			}
+			
 			// We actually copy the handles since it's possible that it's originally from a list that is automatically resized after an entity is deleted.
 			// To make sure there are no stack overflow, we copy a max of 64 entities every iteration (and if there are less than 64, we just use this number)
 
@@ -188,6 +195,22 @@ namespace GameHost.Simulation.TabEcs
 			return isLinked
 				? Boards.Entity.AddLinked(owner.Id, child.Id)
 				: Boards.Entity.RemoveLinked(owner.Id, child.Id);
+		}
+
+		/// <summary>
+		/// Set if a child entity should be linked to owner entities. If one of the owner get removed, the child will too
+		/// </summary>
+		/// <param name="child"></param>
+		/// <param name="owners"></param>
+		/// <param name="isLinked"></param>
+		/// <returns>Return if the linking state has been changed on atleast one owner</returns>
+		public bool Link(GameEntityHandle child, Span<GameEntityHandle> owners, bool isLinked)
+		{
+			var b = false;
+			foreach (var o in owners)
+				b |= Link(child, o, isLinked);
+
+			return b;
 		}
 	}
 }

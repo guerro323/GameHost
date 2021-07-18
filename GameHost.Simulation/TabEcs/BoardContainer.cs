@@ -17,7 +17,7 @@
 	 {
 		 protected internal UIntBoardBase board;
 
-		 private   Thread callerThread;
+		 internal  Thread callerThread;
 		 protected bool   CheckSafetyIssue;
 		 
 		 public BoardContainer(int capacity)

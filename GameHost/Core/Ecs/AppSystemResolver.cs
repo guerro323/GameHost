@@ -9,7 +9,7 @@ namespace GameHost.Core.Ecs
 {
     public static class AppSystemResolver
     {
-        public static void ResolveFor<TApplication>(List<Type> foundTypes, Func<Type, bool> isSystemValid = null)
+        public static void ResolveFor<TApplication>(IList<Type> foundTypes, Func<Type, bool> isSystemValid = null)
         {
             var sw = new Stopwatch();
             sw.Start();
@@ -22,7 +22,7 @@ namespace GameHost.Core.Ecs
             sw.Stop();
         }
 
-        public static void ResolveFor<TApplication>(Assembly assembly, List<Type> foundTypes, Func<Type, bool> isSystemValid = null)
+        public static void ResolveFor<TApplication>(Assembly assembly, IList<Type> foundTypes, Func<Type, bool> isSystemValid = null)
         {
             isSystemValid ??= t =>
             {

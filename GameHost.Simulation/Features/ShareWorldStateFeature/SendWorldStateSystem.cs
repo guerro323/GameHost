@@ -214,6 +214,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			foreach (var buffer in pooledWriters)
 				capacityIncrease += buffer.Capacity;
 
+
 			dataBuffer.Capacity = Math.Max(dataBuffer.Capacity, dataBuffer.Length + capacityIncrease + 1);
 
 			var biggestIdx       = 0;

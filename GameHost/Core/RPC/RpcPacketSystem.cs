@@ -7,6 +7,8 @@ using GameHost.Core.Client;
 using GameHost.Core.Ecs;
 using GameHost.Core.Threading;
 using GameHost.Utility;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace GameHost.Core.RPC
 {
@@ -60,6 +62,7 @@ namespace GameHost.Core.RPC
 
 		protected RpcSystem     RpcSystem;
 
+		private ILogger logger;
 		protected RpcPacketWithResponseSystem(WorldCollection collection) : base(collection)
 		{
 			awaitingResponseSet = collection.Mgr.GetEntities()
@@ -69,6 +72,7 @@ namespace GameHost.Core.RPC
 			                                .AsSet();
 
 			DependencyResolver.Add(() => ref RpcSystem);
+			DependencyResolver.Add(() => ref logger);
 		}
 
 		public abstract string MethodName { get; }
@@ -106,10 +110,14 @@ namespace GameHost.Core.RPC
 		{
 			try
 			{
+				var response = await GetResponse(currentRequest.Request);
 				if (lastError is { } error)
+				{
+					logger.ZLogError("Code {0}: {1}", error.Code, error.Message);
 					currentRequest.SetError(error);
+				}
 				else
-					currentRequest.ReplyWith(await GetResponse(currentRequest.Request));
+					currentRequest.ReplyWith(response);
 			}
 			catch (Exception ex)
 			{

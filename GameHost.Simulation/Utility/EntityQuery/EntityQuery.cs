@@ -182,7 +182,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 				try
 				{
 					entitySpan.CopyTo(rented);
-					GameWorld.RemoveEntityBulk(rented.AsSpan(0, entitySpan.Length));
+					GameWorld.RemoveEntityBulk(rented.AsSpan(0, entitySpan.Length), true);
 				}
 				finally
 				{

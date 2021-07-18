@@ -100,49 +100,57 @@ namespace GameHost.Simulation.TabEcs
 			var componentType = TypedComponent<T>.MappedComponentType[WorldId];
 			if (componentType.Id > 0)
 				return componentType;
-			
-			ComponentBoardBase board = null;
-			if (default(T) is IMetadataCustomComponentBoard metadataCustomComponentBoard)
+
+			lock (lockedComponentTypeSynchronization)
 			{
-				board = metadataCustomComponentBoard.ProvideComponentBoard(this);
-			}
-			else if (typeof(IComponentData).IsAssignableFrom(typeof(T)))
-			{
-				if (ComponentTypeUtility.IsZeroSizeStruct(typeof(T)))
+				// This can happen if a thread [A] started creating a component while thread [B] was also going to
+				componentType = TypedComponent<T>.MappedComponentType[WorldId];
+				if (componentType.Id > 0)
+					return componentType;
+				
+				ComponentBoardBase board = null;
+				if (default(T) is IMetadataCustomComponentBoard metadataCustomComponentBoard)
 				{
-					board = new TagComponentBoard(0);
+					board = metadataCustomComponentBoard.ProvideComponentBoard(this);
+				}
+				else if (typeof(IComponentData).IsAssignableFrom(typeof(T)))
+				{
+					if (ComponentTypeUtility.IsZeroSizeStruct(typeof(T)))
+					{
+						board = new TagComponentBoard(0);
+					}
+					else
+					{
+						board = new SingleComponentBoard(Unsafe.SizeOf<T>(), 0);
+					}
+				}
+				else if (typeof(IComponentBuffer).IsAssignableFrom(typeof(T)))
+					board = new BufferComponentBoard(Unsafe.SizeOf<T>(), 0);
+				else
+					// it's not possible to create nor destroy component of this type
+					board = new ReadOnlyComponentBoard(0, 0);
+
+				string componentName;
+				if (default(T) is IMetadataCustomComponentName metadataCustomComponentName)
+				{
+					componentName = metadataCustomComponentName.ProvideName(this);
 				}
 				else
 				{
-					board = new SingleComponentBoard(Unsafe.SizeOf<T>(), 0);
+					componentName = TypeExt.GetFriendlyName(typeof(T));
 				}
-			}
-			else if (typeof(IComponentBuffer).IsAssignableFrom(typeof(T)))
-				board = new BufferComponentBoard(Unsafe.SizeOf<T>(), 0);
-			else
-				// it's not possible to create nor destroy component of this type
-				board = new ReadOnlyComponentBoard(0, 0);
 
-			string componentName;
-			if (default(T) is IMetadataCustomComponentName metadataCustomComponentName)
-			{
-				lock (lockedComponentTypeSynchronization)
-					componentName = metadataCustomComponentName.ProvideName(this);
-			}
-			else
-			{
-				componentName = TypeExt.GetFriendlyName(typeof(T));
-			}
-			
-			ComponentType parent = default;
-			if (default(T) is IMetadataSubComponentOf metadataSubComponentOf)
-			{
-				lock (lockedComponentTypeSynchronization)
-					parent = metadataSubComponentOf.ProvideComponentParent(this);
+				ComponentType parent = default;
+				if (default(T) is IMetadataSubComponentOf metadataSubComponentOf)
+				{
+					lock (lockedComponentTypeSynchronization)
+						parent = metadataSubComponentOf.ProvideComponentParent(this);
+				}
+
+				componentType = RegisterComponent(componentName, board, optionalParentType: parent);
+				TypedComponentRegister.AddComponent(WorldId, typeof(T), componentType);
 			}
 
-			componentType = RegisterComponent(componentName, board, optionalParentType: parent);
-			TypedComponentRegister.AddComponent(WorldId, typeof(T), componentType);
 			return componentType;
 		}
 
