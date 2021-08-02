@@ -53,8 +53,9 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 
 	public interface IBatchRunner
 	{
+		bool         IsWarmed();
 		bool         IsCompleted(BatchRequest request);
-		BatchRequest Queue(IBatch    batch);
+		BatchRequest Queue(IBatch             batch);
 
 		void TryDivergeRequest(BatchRequest request, bool canDivergeOnMainThread);
 	}
@@ -71,8 +72,17 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 				runner.TryDivergeRequest(request, canExecuteOnMainThread);
 			}
 
+			var       sleep0    = 0;
+			const int threshold = 100;
+
 			while (!runner.IsCompleted(request))
-				Thread.Sleep(0);
+			{
+				if (sleep0++ >= threshold)
+				{
+					Thread.Sleep(0);
+					sleep0 = 0;
+				}
+			}
 		}
 	}
 
@@ -222,6 +232,8 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 				{
 					Runner = this,
 					
+					ProcessorId = -1,
+					
 					Token     = ccs.Token,
 					TaskIndex = index,
 					TaskCount = ts.Length,
@@ -253,6 +265,17 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 		public bool IsCompleted()
 		{
 			return queuedBatches.IsEmpty;
+		}
+
+		public bool IsWarmed()
+		{
+			foreach (var task in states)
+			{
+				if (Volatile.Read(ref task.ProcessorId) == -1)
+					return false;
+			}
+
+			return true;
 		}
 
 		public bool IsCompleted(BatchRequest request)
@@ -311,9 +334,9 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			{
 				while (queuedBatches.TryTake(out var queued))
 				{
-					if (queued.BatchId == request.Id && execute(this, queued, 0, 0, batchResults)) 
+					if (queued.BatchId == request.Id && execute(this, queued, 0, tasks.Length, batchResults))
 						continue;
-					
+
 					queuedBatches.Add(queued);
 				}
 			}

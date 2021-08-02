@@ -101,5 +101,21 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 				action(span, currentState);
 			}
 		}
+
+		/// <summary>
+		/// Update the system for one entity
+		/// </summary>
+		public void Update(GameEntityHandle handle, T state)
+		{
+			action(stackalloc GameEntityHandle[] { handle }, new() { Data = state, World = query.GameWorld });
+		}
+
+		public void Update(T state)
+		{
+			var start = 0;
+			var count = query.GetEntityCount();
+			while (query.EntitySliceAt(ref start, ref count, out var span))
+				action(span, new() { Data = state, World = query.GameWorld });
+		}
 	}
 }

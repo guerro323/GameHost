@@ -35,6 +35,11 @@ namespace GameHost.Simulation.Tests
 			using var runner = new ThreadBatchRunner(1f);
 			runner.StartPerformanceCriticalSection();
 
+			// make sure that the runner is warmed up or else the main threads would finish more tasks
+			while (!runner.IsWarmed())
+			{
+			}
+
 			var query = new EntityQuery(gameWorld, new[] {componentType});
 			var system = new ArchetypeSystem<int>((in ReadOnlySpan<GameEntityHandle> entities, in SystemState<int> state) =>
 			{
@@ -44,30 +49,21 @@ namespace GameHost.Simulation.Tests
 			}, query);
 				
 			system.PrepareData(0);
-			
-			Thread.Sleep(10); // make sure that threads are correctly initialized and are in critical context
-			for (var i = 0; i < 1000; i++)
+
+			for (var i = 0; i < 5000; i++)
 			{
 				var request = runner.Queue(system);
 				sw.Restart();
-				while (!runner.IsCompleted(request))
 				{
+					runner.WaitForCompletion(request, true);
 				}
-
-				/*var accessor = new ComponentDataAccessor<IntComponent>(gameWorld);
-				foreach (var archetype in query.Archetypes)
-				{
-					foreach (ref readonly var entity in MemoryMarshal.Cast<uint, GameEntityHandle>(gameWorld.Boards.Archetype.GetEntities(archetype)))
-						accessor[entity].Value++;
-				}*/
-				
 				sw.Stop();
 
 				if (lowest > sw.Elapsed)
 					lowest = sw.Elapsed;
 				Thread.Sleep(0);
 			}
-			
+
 			runner.StopPerformanceCriticalSection();
 
 			Console.WriteLine($"Elapsed={lowest.TotalMilliseconds}ms");

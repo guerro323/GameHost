@@ -175,6 +175,12 @@ namespace GameHost.Simulation.Utility.EntityQuery
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool EntitySliceAt(ref int start, ref int count, out Span<GameEntityHandle> outSpan)
 		{
+			if (count == 0)
+			{
+				outSpan = Span<GameEntityHandle>.Empty;
+				return false;
+			}
+
 			var board = GameWorld.Boards.Archetype;
 			foreach (var arch in matchedArchetypes.Span)
 			{
@@ -192,7 +198,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 					count -= outSpan.Length;
 
 					start = 0; // Next iteration will start on 0
-					return count > 0; // Stop if the list is exhausted (<= 0) or continue if it's not
+					return count >= 0; // Stop if the list is exhausted (< 0) or continue if it's not
 				}
 			}
 
