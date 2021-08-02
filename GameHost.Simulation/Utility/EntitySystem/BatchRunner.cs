@@ -15,6 +15,11 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 		void Execute(int index, int maxUseIndex, int task, int taskCount);
 	}
 
+	public interface IBatchExecuteOnCondition
+	{
+		bool CanExecute(IBatchRunner runner, int index, int maxUseIndex, int task, int taskCount);
+	}
+
 	public interface IBatchOnComplete
 	{
 		void OnCompleted([CanBeNull] Exception exception);
@@ -50,12 +55,22 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 	{
 		bool         IsCompleted(BatchRequest request);
 		BatchRequest Queue(IBatch    batch);
+
+		void TryDivergeRequest(BatchRequest request, bool canDivergeOnMainThread);
 	}
 
 	public static class BatchRunnerExtensions
 	{
-		public static void WaitForCompletion(this IBatchRunner runner, BatchRequest request)
+		public static void WaitForCompletion(this IBatchRunner runner, BatchRequest request, bool canExecuteOnMainThread = true)
 		{
+			var spinWait = new SpinWait();
+			while (!runner.IsCompleted(request) && !spinWait.NextSpinWillYield)
+			{
+				spinWait.SpinOnce();
+
+				runner.TryDivergeRequest(request, canExecuteOnMainThread);
+			}
+
 			while (!runner.IsCompleted(request))
 				Thread.Sleep(0);
 		}
@@ -68,13 +83,15 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 
 		private class TaskState
 		{
+			public ThreadBatchRunner Runner;
+			
 			public CancellationToken Token;
 			public int               TaskIndex;
 			public int               TaskCount;
 
 			public bool IsPerformanceCritical;
 			public int  ProcessorId;
-			
+
 			public ConcurrentBag<QueuedBatch> Batches;
 			public BatchResult[]              Results;
 		}
@@ -96,12 +113,40 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			public bool IsCompleted => SuccessfulWrite >= MaxIndex;
 		}
 
-		private Task[]                       tasks;
-		private TaskState[]                  states;
-		private ConcurrentBag<QueuedBatch>[] taskBatches;
-		private BatchResult[]                batchResults;
+		private Task[]                     tasks;
+		private TaskState[]                states;
+		private ConcurrentBag<QueuedBatch> queuedBatches;
+		private BatchResult[]              batchResults;
 
 		private int[] batchVersions;
+
+		private static bool execute(IBatchRunner runner, QueuedBatch queued, int taskIndex, int taskCount, BatchResult[] results)
+		{
+			// Don't execute batch if the conditions aren't met (if it's false then the batch will be put back to the queue)
+			if (queued.Batch is IBatchExecuteOnCondition executeOnCondition
+			    && !executeOnCondition.CanExecute(runner, queued.Index, queued.MaxUseIndex, taskIndex, taskCount))
+			{
+				return false;
+			}
+
+			Exception exception = null;
+			try
+			{
+				queued.Batch.Execute(queued.Index, queued.MaxUseIndex, taskIndex, taskCount);
+			}
+			catch (Exception ex)
+			{
+				exception = ex;
+			}
+
+			if (Interlocked.Increment(ref results[queued.BatchId].SuccessfulWrite) == results[queued.BatchId].MaxIndex
+			    && queued.Batch is IBatchOnComplete onComplete)
+			{
+				onComplete.OnCompleted(exception);
+			}
+
+			return true;
+		}
 		
 		private static void runTask(object obj)
 		{
@@ -112,26 +157,34 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			{
 				Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
 
+				using var endList = new PooledList<QueuedBatch>();
+
 				var spin            = new SpinWait();
 				var sleep0Threshold = 10;
 				var sleepCount      = 0;
 				while (false == state.Token.IsCancellationRequested)
 				{
+					endList.Clear();
+					
 					Volatile.Write(ref state.ProcessorId, Thread.GetCurrentProcessorId());
 					
-					var hasRanBatch = !state.Batches.IsEmpty;
+					var hasRanBatch = false;
 					while (state.Batches.TryTake(out var queued))
 					{
-						queued.Batch.Execute(queued.Index, queued.MaxUseIndex, state.TaskIndex, state.TaskCount);
-						if (Interlocked.Increment(ref state.Results[queued.BatchId].SuccessfulWrite) == state.Results[queued.BatchId].MaxIndex
-						&& queued.Batch is IBatchOnComplete onComplete)
-						{
-							onComplete.OnCompleted(null);
-						}
+						hasRanBatch = true;
+
+						if (!execute(state.Runner, queued, state.TaskIndex, state.TaskCount, state.Results))
+							endList.Add(queued);
 					}
+					
+					foreach (var batch in endList)
+						state.Batches.Add(batch);
 
 					if (state.IsPerformanceCritical)
 					{
+						if (hasRanBatch)
+							sleepCount = 0;
+						
 						if (sleepCount++ > sleep0Threshold)
 						{
 							Thread.Sleep(0);
@@ -142,11 +195,6 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 					}
 					
 					spin.SpinOnce(30);
-					if (hasRanBatch)
-					{
-						spin.Reset();
-						sleepCount = 0;
-					}
 				}
 			}
 			catch (Exception ex)
@@ -164,7 +212,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			ccs           = new CancellationTokenSource();
 			tasks         = new Task[coreCount];
 			states        = new TaskState[coreCount];
-			taskBatches   = new ConcurrentBag<QueuedBatch>[coreCount];
+			queuedBatches = new ConcurrentBag<QueuedBatch>();
 			batchResults  = new BatchResult[MaxRunningBatches];
 			batchVersions = new int[MaxRunningBatches];
 			var ts = tasks.AsSpan();
@@ -172,10 +220,12 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			{
 				ts[index] = new Task(runTask, states[index] = new TaskState
 				{
+					Runner = this,
+					
 					Token     = ccs.Token,
 					TaskIndex = index,
 					TaskCount = ts.Length,
-					Batches   = taskBatches[index] = new(),
+					Batches   = queuedBatches,
 					Results   = batchResults
 				}, TaskCreationOptions.LongRunning);
 				ts[index].Start();
@@ -202,11 +252,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 
 		public bool IsCompleted()
 		{
-			foreach (var batches in taskBatches)
-				if (batches.IsEmpty == false)
-					return false;
-
-			return true;
+			return queuedBatches.IsEmpty;
 		}
 
 		public bool IsCompleted(BatchRequest request)
@@ -242,26 +288,9 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 				MaxIndex        = use - 1
 			};
 
-			var sortByPerformanceCritical = IsPerformanceCritical && ThreadInCriticalContext > 0 ? tasks.Length : 0;
 			for (var i = 0; i < use; i++)
 			{
-				var taskIndex = i % tasks.Length;
-				if (sortByPerformanceCritical > 0)
-				{
-					var beginning = taskIndex;
-					while (states[taskIndex] is {IsPerformanceCritical: false})
-					{
-						taskIndex++;
-						if (taskIndex >= tasks.Length)
-							taskIndex = 0;
-						if (taskIndex == beginning)
-							break;
-					}
-
-					sortByPerformanceCritical--;
-				}
-
-				taskBatches[taskIndex].Add(new QueuedBatch
+				queuedBatches.Add(new()
 				{
 					BatchId     = batchNumber,
 					Batch       = batch,
@@ -271,6 +300,23 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			}
 
 			return new BatchRequest(batchNumber, batchVersion);
+		}
+
+		public void TryDivergeRequest(BatchRequest request, bool canDivergeOnMainThread)
+		{
+			if (batchVersions[request.Id] != request.Version)
+				throw new InvalidOperationException("invalid ver");
+
+			if (canDivergeOnMainThread)
+			{
+				while (queuedBatches.TryTake(out var queued))
+				{
+					if (queued.BatchId == request.Id && execute(this, queued, 0, 0, batchResults)) 
+						continue;
+					
+					queuedBatches.Add(queued);
+				}
+			}
 		}
 
 		public bool IsPerformanceCritical   { get; private set; }
