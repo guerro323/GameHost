@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Collections.Pooled;
@@ -50,11 +51,12 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			currentState.Data  = data;
 		}
 
-		private PooledList<GameEntityHandle> batchHandles = new (64);
+		private int entityCount;
+		//private PooledList<GameEntityHandle> batchHandles = new (64);
 
 		private int GetEntityToProcess(int taskCount)
 		{
-			return Math.Max((int) Math.Ceiling((float) batchHandles.Count / taskCount), 1);
+			return Math.Max((int)Math.Ceiling((float)entityCount / taskCount), 1);
 		}
 
 		public int PrepareBatch(int taskCount)
@@ -62,47 +64,63 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			currentState.World = query.GameWorld;
 			query.CheckForNewArchetypes();
 
-			batchHandles.Clear();
+			entityCount = query.GetEntityCount();
 
-			var targetCount = query.GetEntityCount();
-			if (targetCount > batchHandles.Capacity)
-				batchHandles.Capacity = targetCount;
-
-			query.AddEntitiesTo(batchHandles);
-
-			return batchHandles.Count == 0
+			return entityCount == 0
 				? 0
 				: ForceSingleThread
 					? 1
-					: Math.Max((int) Math.Ceiling((float) batchHandles.Count / GetEntityToProcess(taskCount)), 1);
+					: Math.Max((int)Math.Ceiling((float)entityCount / GetEntityToProcess(taskCount)), 1);
 		}
 
 		public void Execute(int index, int maxUseIndex, int task, int taskCount)
 		{
-			var handleSpan = batchHandles.Span;
-
 			int start, end;
 			if (ForceSingleThread)
 			{
 				start = 0;
-				end   = batchHandles.Count;
+				end   = entityCount;
 			}
 			else
 			{
 				var entityToProcess = GetEntityToProcess(taskCount);
 
 				var batchSize = index == maxUseIndex
-					? handleSpan.Length - (entityToProcess * index)
+					? entityCount - (entityToProcess * index)
 					: entityToProcess;
 
 				start = entityToProcess * index;
 				end   = start + batchSize;
-				
-				if (start >= handleSpan.Length)
+
+				if (start >= entityCount)
 					return;
 			}
 
-			action(handleSpan.Slice(start, Math.Min(handleSpan.Length, end) - start), currentState);
+			var count = Math.Min(entityCount, end) - start;
+			var board = query.GameWorld.Boards.Archetype;
+			foreach (var archetype in query.Archetypes)
+			{
+				var span = board.GetEntities(archetype);
+				// Decrease start until it goes in the negative
+				// The reason why it's like that is to not introduce another variable with the role of a counter
+				start -= span.Length;
+				if (start < 0)
+				{
+					// Get a slice of entities from start and count
+					var slice = MemoryMarshal.Cast<uint, GameEntityHandle>(span)
+					                         .Slice(start + span.Length, Math.Min(span.Length - (start + span.Length), count));
+					action(slice, currentState);
+					// Decrease count by the result length
+					// If it's superior than 0 this mean we need to go onto the next archetype
+					count -= slice.Length;
+
+					// List exhausted, terminate
+					if (count <= 0)
+						break;
+
+					start = 0; // Next iteration will start on 0
+				}
+			}
 		}
 	}
 }

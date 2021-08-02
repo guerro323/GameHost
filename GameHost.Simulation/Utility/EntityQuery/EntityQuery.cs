@@ -137,6 +137,32 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			return count;
 		}
 
+		/// <summary>
+		/// Get an entity at a specific index
+		/// </summary>
+		/// <param name="index">Index between 0 and <see cref="GetEntityCount"/></param>
+		/// <returns>An entity handle</returns>
+		/// <exception cref="IndexOutOfRangeException">Thrown when index is negative or superior/equal to <see cref="GetEntityCount"/></exception>
+		/// <remarks><see cref="CheckForNewArchetypes"/> isn't called on invocation</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public GameEntityHandle EntityAt(int index)
+		{
+			if (index < 0)
+				throw new IndexOutOfRangeException("Index is negative");
+			
+			var board = GameWorld.Boards.Archetype;
+			foreach (var arch in matchedArchetypes.Span)
+			{
+				var span = board.GetEntities(arch);
+				
+				index -= span.Length;
+				if (index < 0)
+					return Unsafe.As<uint, GameEntityHandle>(ref span[index + span.Length]);
+			}
+
+			throw new IndexOutOfRangeException($"{index} out of range {GetEntityCount()}");
+		}
+
 		public bool Any()
 		{
 			CheckForNewArchetypes();
