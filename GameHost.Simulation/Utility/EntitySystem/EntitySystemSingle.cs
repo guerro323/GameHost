@@ -52,7 +52,6 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 		}
 
 		private int entityCount;
-		//private PooledList<GameEntityHandle> batchHandles = new (64);
 
 		private int GetEntityToProcess(int taskCount)
 		{
@@ -97,29 +96,9 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			}
 
 			var count = Math.Min(entityCount, end) - start;
-			var board = query.GameWorld.Boards.Archetype;
-			foreach (var archetype in query.Archetypes)
+			while (query.EntitySliceAt(ref start, ref count, out var span))
 			{
-				var span = board.GetEntities(archetype);
-				// Decrease start until it goes in the negative
-				// The reason why it's like that is to not introduce another variable with the role of a counter
-				start -= span.Length;
-				if (start < 0)
-				{
-					// Get a slice of entities from start and count
-					var slice = MemoryMarshal.Cast<uint, GameEntityHandle>(span)
-					                         .Slice(start + span.Length, Math.Min(span.Length - (start + span.Length), count));
-					action(slice, currentState);
-					// Decrease count by the result length
-					// If it's superior than 0 this mean we need to go onto the next archetype
-					count -= slice.Length;
-
-					// List exhausted, terminate
-					if (count <= 0)
-						break;
-
-					start = 0; // Next iteration will start on 0
-				}
+				action(span, currentState);
 			}
 		}
 	}

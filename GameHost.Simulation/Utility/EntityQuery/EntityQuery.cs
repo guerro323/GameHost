@@ -163,6 +163,43 @@ namespace GameHost.Simulation.Utility.EntityQuery
 			throw new IndexOutOfRangeException($"{index} out of range {GetEntityCount()}");
 		}
 
+		/// <summary>
+		/// Get entities from a ranged slice
+		/// </summary>
+		/// <param name="start">Start index</param>
+		/// <param name="count">How much entities from start</param>
+		/// <param name="outSpan">The sliced result</param>
+		/// <returns>True if there is still entities when this method is called (in this case keep calling it until it's false)</returns>
+		/// <remarks><see cref="CheckForNewArchetypes"/> isn't called on invocation</remarks>
+		/// <remarks>This method should be called in a while loop with it as a condition since it may not fully return all entities in one call</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool EntitySliceAt(ref int start, ref int count, out Span<GameEntityHandle> outSpan)
+		{
+			var board = GameWorld.Boards.Archetype;
+			foreach (var arch in matchedArchetypes.Span)
+			{
+				var span = board.GetEntities(arch);
+				// Decrease start until it goes in the negative
+				// The reason why it's like that is to not introduce another variable with the role of a counter
+				start -= span.Length;
+				if (start < 0)
+				{
+					// Get a slice of entities from start and count
+					outSpan = MemoryMarshal.Cast<uint, GameEntityHandle>(span)
+					                       .Slice(start + span.Length, Math.Min(span.Length - (start + span.Length), count));
+					// Decrease count by the result length
+					// If it's superior than 0 this mean we need to go onto the next archetype
+					count -= outSpan.Length;
+
+					start = 0; // Next iteration will start on 0
+					return count > 0; // Stop if the list is exhausted (<= 0) or continue if it's not
+				}
+			}
+
+			outSpan = Span<GameEntityHandle>.Empty;
+			return false;
+		}
+
 		public bool Any()
 		{
 			CheckForNewArchetypes();
