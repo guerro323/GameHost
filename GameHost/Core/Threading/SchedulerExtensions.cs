@@ -37,7 +37,7 @@ namespace GameHost.Core.Threading
 		}
 
 		public static Task ScheduleAsync(this IScheduler scheduler, Action action, SchedulingParameters parameters)
-		{	
+		{
 			var t = new TaskCompletionSource<bool>();
 			scheduler.Schedule(ScheduleAsyncCached, (action, t), parameters.Once ? SchedulingParametersWithArgs.AsOnceWithArgs : default);
 			return t.Task;
@@ -49,21 +49,26 @@ namespace GameHost.Core.Threading
 			scheduler.Schedule(WithArgs<T>.ScheduleAsyncCached, (action, args, t), parameters);
 			return t.Task;
 		}
-		
+
 		public static void ContinueWithScheduler(this Task task, IScheduler scheduler, Action action)
 		{
-			task.ContinueWith(_ =>
-			{
-				scheduler.Schedule(action, default);
-			});
+			task.ContinueWith(_ => { scheduler.Schedule(action, default); });
 		}
 
 		public static void ContinueWithScheduler<T>(this Task<T> task, IScheduler scheduler, Action<T> action)
 		{
-			task.ContinueWith(t =>
-			{
-				scheduler.Schedule(action, t.Result, default);
-			});
+			task.ContinueWith(t => { scheduler.Schedule(action, t.Result, default); });
+		}
+
+		private static Action<(IScheduler scheduler, Func<bool> func)> loopScheduling = args =>
+		{
+			if (!args.func())
+				args.scheduler.Schedule(loopScheduling, args, default);
+		};
+
+		public static void ScheduleWithCondition(this IScheduler scheduler, Func<bool> action)
+		{
+			scheduler.Schedule(loopScheduling, (scheduler, action), default);
 		}
 	}
 }
