@@ -5,6 +5,7 @@ using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
 using GameHost.Core.Features.Systems;
+using GameHost.Core.Threading;
 
 namespace GameHost.Core.Modules.Feature
 {
@@ -16,11 +17,19 @@ namespace GameHost.Core.Modules.Feature
 		private AssemblyLoadContext assemblyLoadContext;
 		private ModuleManager       moduleMgr;
 
+		private IScheduler scheduler;
+		
 		public ManageModuleLoadSystem(WorldCollection collection) : base(collection)
 		{
 			DependencyResolver.Add(() => ref moduleStorage);
 			DependencyResolver.Add(() => ref assemblyLoadContext);
 			DependencyResolver.Add(() => ref moduleMgr);
+
+			scheduler = new Scheduler(ex =>
+			{
+				Console.WriteLine(ex);
+				return true;
+			});
 		}
 
 		private EntitySet loadSet, unloadSet;
@@ -42,14 +51,7 @@ namespace GameHost.Core.Modules.Feature
 				if (request.Module.Get<RegisteredModule>().State != ModuleState.None)
 					continue; // should we report that?
 
-				try
-				{
-					moduleMgr.LoadModule(request.Module);
-				}
-				catch (Exception ex)
-				{
-					Console.WriteLine(ex);
-				}
+				scheduler.Schedule(args => args.mgr.LoadModule(args.mod), (mgr: moduleMgr, mod: request.Module), default);
 			}
 			
 			loadSet.DisposeAllEntities();
@@ -60,14 +62,7 @@ namespace GameHost.Core.Modules.Feature
 				if (request.Module.Get<RegisteredModule>().State != ModuleState.Loaded)
 					continue; // should we report that?
 				
-				try
-				{
-					moduleMgr.UnloadModule(request.Module);
-				}
-				catch (Exception ex)
-				{
-					Console.WriteLine(ex);
-				}
+				scheduler.Schedule(args => args.mgr.UnloadModule(args.mod), (mgr: moduleMgr, mod: request.Module), default);
 			}
 			
 			unloadSet.DisposeAllEntities();
