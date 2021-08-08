@@ -80,14 +80,12 @@ namespace GameHost.Inputs.Systems
 
 			TaskRunUtility.StartUnwrap(async cc =>
 			{
-				logger.ZLogInformation("Tryin' to get MainWindowHandle");
 				var process = Process.GetCurrentProcess();
 				while (!cc.IsCancellationRequested)
 				{
-
 					if (process.MainWindowHandle == IntPtr.Zero)
 					{
-						logger.ZLogInformation("Not yet found!");
+						logger.ZLogInformation("Input Handle Not Yet Found");
 						await Task.Delay(2500, cc);
 
 						foreach (var other in Process.GetProcesses())

@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Text.Json;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
@@ -65,12 +66,32 @@ namespace GameHost.Core.Modules.Feature
                 if (rm.Has<RegisteredModule>() && rm.Get<RegisteredModule>().State != ModuleState.None)
                     continue;
 
+                var jsonConfigurationFiles = await moduleStorage.GetFilesAsync(assemblyName + ".json");
+
+                var jsonConfiguration = new ModuleConfigurationFile();
+                foreach (var jsonFile in jsonConfigurationFiles)
+                {
+                    jsonConfiguration = JsonSerializer.Deserialize<ModuleConfigurationFile>(await jsonFile.GetContentAsync());
+                    break;
+                }
+
                 scheduler.Schedule(moduleEntity =>
                 {
-                    logger.ZLogInformation($"Discovered Module {assemblyName}.dll (fullPath={file.FullName})");
-                    
-                    moduleEntity.Set(new RegisteredModule {Description = {NameId = assemblyName, DisplayName = assemblyName, Author = "not-loaded"}});
+                    logger.ZLogInformation($"Discovered Module\n\tAssembly={assemblyName}.dll\n\tPath={file.FullName}\n\tc.AutoLoad={jsonConfiguration.AutoLoad}");
+
+                    moduleEntity.Set(new RegisteredModule { Description = { NameId = assemblyName, DisplayName = assemblyName, Author = "not-loaded" } });
                     moduleEntity.Set(file);
+
+                    if (jsonConfiguration.AutoLoad)
+                    {
+                        // ReSharper disable VariableHidesOuterVariable
+                        scheduler.Schedule(moduleEntity =>
+                        {
+                            World.Mgr.CreateEntity()
+                                 .Set(new RequestLoadModule { Module = moduleEntity });
+                        }, moduleEntity, default);
+                        // ReSharper restore VariableHidesOuterVariable
+                    }
                 }, rm, default);
             }
 
