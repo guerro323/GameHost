@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
@@ -56,12 +57,12 @@ namespace GameHost.Core.Modules.Feature
             isTaskRunning = true;
             var files = (await moduleStorage.GetFilesAsync("*.dll")).ToList();
             // Destroy unloaded modules...
-            scheduler.Schedule(DestroyUnloadedModules, SchedulingParameters.AsOnce);
+            // no? scheduler.Schedule(DestroyUnloadedModules, SchedulingParameters.AsOnce);
 
             foreach (var file in files)
             {
                 var assemblyName = file.Name.Replace(".dll", "");
-                var rm           = FindOrCreateEntity(assemblyName, out var wasCreated);
+                var (rm, _) = await FindOrCreateEntity(assemblyName);
                 // We have found an already existing module, does not do further operation on it...
                 if (rm.Has<RegisteredModule>() && rm.Get<RegisteredModule>().State != ModuleState.None)
                     continue;
@@ -88,7 +89,7 @@ namespace GameHost.Core.Modules.Feature
                         scheduler.Schedule(moduleEntity =>
                         {
                             World.Mgr.CreateEntity()
-                                 .Set(new RequestLoadModule { Module = moduleEntity });
+                                 .Set(new RequestLoadModule($"AutoLoad({moduleEntity.Get<RegisteredModule>().Description.NameId})", moduleEntity));
                         }, moduleEntity, default);
                         // ReSharper restore VariableHidesOuterVariable
                     }
@@ -106,17 +107,27 @@ namespace GameHost.Core.Modules.Feature
         /// </summary>
         /// <param name="assemblyName"></param>
         /// <returns>An existing or new entity.</returns>
-        private Entity FindOrCreateEntity(string assemblyName, out bool wasCreated)
+        private async Task<(Entity module, bool wasCreated)> FindOrCreateEntity(string assemblyName)
         {
-            wasCreated = false;
-            foreach (var entity in moduleSet.GetEntities())
+            var entityTcs     = new TaskCompletionSource<Entity>();
+            var wasCreatedTcs = new TaskCompletionSource<bool>();
+            scheduler.Schedule(() =>
             {
-                if (entity.Get<RegisteredModule>().Description.NameId == assemblyName)
-                    return entity;
-            }
+                foreach (var entity in moduleSet.GetEntities())
+                {
+                    if (entity.Get<RegisteredModule>().Description.NameId == assemblyName)
+                    {
+                        wasCreatedTcs.SetResult(false);
+                        entityTcs.SetResult(entity);
+                        return;
+                    }
+                }
 
-            wasCreated = true;
-            return World.Mgr.CreateEntity();
+                wasCreatedTcs.SetResult(true);
+                entityTcs.SetResult(World.Mgr.CreateEntity());
+            }, default);
+
+            return (await entityTcs.Task, await wasCreatedTcs.Task);
         }
 
         /// <summary>

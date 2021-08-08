@@ -48,6 +48,9 @@ namespace GameHost.Core.Modules.Feature
 			foreach (var entity in loadSet.GetEntities())
 			{
 				var request = entity.Get<RequestLoadModule>();
+				if (!request.Module.IsAlive)
+					throw new InvalidOperationException($"Module Entity was destroyed (Given Name: {request.Name})");
+				
 				if (request.Module.Get<RegisteredModule>().State != ModuleState.None)
 					continue; // should we report that?
 
@@ -66,7 +69,7 @@ namespace GameHost.Core.Modules.Feature
 			}
 			
 			unloadSet.DisposeAllEntities();
-			
+
 			scheduler.Run();
 		}
 	}

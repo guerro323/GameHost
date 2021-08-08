@@ -22,9 +22,16 @@ namespace GameHost.Core.Modules.Feature
 		Zombie
 	}
 
-	public struct RequestLoadModule
+	public readonly struct RequestLoadModule
 	{
-		public Entity Module;
+		public readonly string Name;
+		public readonly Entity Module;
+
+		public RequestLoadModule(string name, Entity module)
+		{
+			Name   = name;
+			Module = module;
+		}
 	}
 
 	public struct RequestUnloadModule

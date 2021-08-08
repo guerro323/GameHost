@@ -35,7 +35,7 @@ namespace GameHost.Core.RPC.AvailableRpcCommands
 					if (m.State == ModuleState.None)
 					{
 						World.Mgr.CreateEntity()
-						     .Set(new RequestLoadModule {Module = entity});
+						     .Set(new RequestLoadModule($"RpcLoadModule({request.ModuleId})", entity));
 
 						return default;
 					}
