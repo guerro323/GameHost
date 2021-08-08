@@ -66,6 +66,8 @@ namespace GameHost.Core.Modules.Feature
 			}
 			
 			unloadSet.DisposeAllEntities();
+			
+			scheduler.Run();
 		}
 	}
 }
