@@ -197,7 +197,7 @@ namespace GameHost.Simulation.Utility.EntityQuery
 					// If it's superior than 0 this mean we need to go onto the next archetype
 					count -= outSpan.Length;
 
-					start = 0; // Next iteration will start on 0
+					start = outSpan.Length; // Next iteration will start on previous length
 					return count >= 0; // Stop if the list is exhausted (< 0) or continue if it's not
 				}
 			}
