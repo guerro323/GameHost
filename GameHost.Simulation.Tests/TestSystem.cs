@@ -15,6 +15,57 @@ namespace GameHost.Simulation.Tests
 	public class TestSystem
 	{
 		[Test]
+		public void TestBatchComplete()
+		{
+			var taskCount        = 4;
+			var entityPerTask    = 3;
+			var additionalEntity = 4;
+			
+			var gameWorld = new GameWorld();
+			var entities  = new GameEntityHandle[taskCount * entityPerTask + additionalEntity];
+
+			for (var i = 0; i < entities.Length; i++)
+			{
+				entities[i] = gameWorld.CreateEntity();
+
+				gameWorld.AddComponent(entities[i], new IntComponent());
+			}
+
+			var query = new EntityQuery(gameWorld, new[] { gameWorld.AsComponentType<IntComponent>() });
+			var system = new ArchetypeSystem<int>((in ReadOnlySpan<GameEntityHandle> span, in SystemState<int> state) =>
+			{
+				Console.WriteLine(span.Length);
+				
+				var accessor = new ComponentDataAccessor<IntComponent>(state.World);
+				foreach (ref readonly var entity in span)
+					accessor[entity].Value++;
+			}, query);
+
+			var maxUseIndex = system.PrepareBatch(taskCount);
+			var taskIdx     = 0;
+			for (var i = 0; i < maxUseIndex; i++)
+			{
+				if (i >= entityPerTask)
+					taskIdx++;
+				system.Execute(i, maxUseIndex, taskIdx, 1);
+			}
+
+			foreach (var entity in entities)
+			{
+				Assert.AreEqual(1, gameWorld.GetComponentData<IntComponent>(entity).Value, entity.ToString());
+			}
+			
+			// with runner
+			using var runner = new ThreadBatchRunner(0.3f);
+			runner.WaitForCompletion(runner.Queue(system));
+			
+			foreach (var entity in entities)
+			{
+				Assert.AreEqual(2, gameWorld.GetComponentData<IntComponent>(entity).Value, entity.ToString());
+			}
+		}
+		
+		[Test]
 		public void TestMillionEntitySystem()
 		{
 			const int size = 100_000;

@@ -95,7 +95,10 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 					return;
 			}
 
-			var count = Math.Min(entityCount, end) - start;
+			var currStart = start;
+
+			var count     = Math.Min(entityCount, end) - start;
+			var prevCount = count;
 			while (query.EntitySliceAt(ref start, ref count, out var span))
 			{
 				action(span, currentState);
@@ -115,7 +118,9 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			var start = 0;
 			var count = query.GetEntityCount();
 			while (query.EntitySliceAt(ref start, ref count, out var span))
+			{
 				action(span, new() { Data = state, World = query.GameWorld });
+			}
 		}
 	}
 }

@@ -181,7 +181,8 @@ namespace GameHost.Simulation.Utility.EntityQuery
 				return false;
 			}
 
-			var board = GameWorld.Boards.Archetype;
+			var board    = GameWorld.Boards.Archetype;
+			var oldStart = start;
 			foreach (var arch in matchedArchetypes.Span)
 			{
 				var span = board.GetEntities(arch);
@@ -193,11 +194,12 @@ namespace GameHost.Simulation.Utility.EntityQuery
 					// Get a slice of entities from start and count
 					outSpan = MemoryMarshal.Cast<uint, GameEntityHandle>(span)
 					                       .Slice(start + span.Length, Math.Min(span.Length - (start + span.Length), count));
+
+					start = oldStart + outSpan.Length; // Next iteration will start on previous length
+					
 					// Decrease count by the result length
 					// If it's superior than 0 this mean we need to go onto the next archetype
 					count -= outSpan.Length;
-
-					start = outSpan.Length; // Next iteration will start on previous length
 					return count >= 0; // Stop if the list is exhausted (< 0) or continue if it's not
 				}
 			}
