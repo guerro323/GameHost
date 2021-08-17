@@ -7,7 +7,7 @@ namespace GameHost.Transports.Transports.Ipc
 {
 	public class IpcTransportAddress : TransportAddress
 	{
-		public string QueueName { get; init; }
+		public string QueueName { get; set; }
 
 		public override TransportDriver Connect()
 		{

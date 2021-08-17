@@ -21,9 +21,7 @@ namespace GameHost.Core.Modules
 		public readonly ReadOnlyBindable<IStorage> Storage;
 
 		public readonly DllStorage DllStorage;
-
-		public readonly ModuleAssemblyLoadContext AssemblyLoadContext;
-
+		
 		protected List<IDisposable> ReferencedDisposables;
 
 		public GameHostModule(Entity source, Context ctxParent, GameHostModuleDescription description)

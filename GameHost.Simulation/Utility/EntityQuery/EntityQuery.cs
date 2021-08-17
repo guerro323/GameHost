@@ -77,14 +77,32 @@ namespace GameHost.Simulation.Utility.EntityQuery
 				var componentSpan = archetypeBoard.GetComponentTypes(archetype.Id);
 				for (var comp = 0; comp != All.Length; comp++)
 				{
+#if NETSTANDARD
+					foreach (var element in componentSpan)
+						if (element == All[comp].Id)
+						{
+							matches++;
+							break;
+						}
+#else
 					if (componentSpan.Contains(All[comp].Id))
 						matches++;
+#endif
 				}
 
 				for (var comp = 0; comp != Or.Length; comp++)
 				{
+#if NETSTANDARD
+					foreach (var element in componentSpan)
+						if (element == Or[comp].Id)
+						{
+							matches++;
+							break;
+						}
+#else
 					if (componentSpan.Contains(Or[comp].Id))
-						orMatches++;
+						matches++;
+#endif
 				}
 
 				if (matches != All.Length || (Or.Length > 0 && orMatches == 0))
@@ -93,8 +111,17 @@ namespace GameHost.Simulation.Utility.EntityQuery
 				matches = 0;
 				for (var comp = 0; comp != None.Length && matches == 0; comp++)
 				{
+#if NETSTANDARD
+					foreach (var element in componentSpan)
+						if (element == None[comp].Id)
+						{
+							matches++;
+							break;
+						}
+#else
 					if (componentSpan.Contains(None[comp].Id))
 						matches++;
+#endif
 				}
 
 				if (matches > 0)
@@ -260,6 +287,11 @@ namespace GameHost.Simulation.Utility.EntityQuery
 					ArrayPool<GameEntityHandle>.Shared.Return(rented);
 				}
 			}
+		}
+
+		public bool MatchAgainst(EntityArchetype archetype)
+		{
+			return archetypeIsValid[archetype.Id];
 		}
 
 		/// <summary>

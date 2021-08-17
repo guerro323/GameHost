@@ -114,7 +114,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 		}
 
 		public void Update(T state)
-		{
+		{	
 			var start = 0;
 			var count = query.GetEntityCount();
 			while (query.EntitySliceAt(ref start, ref count, out var span))

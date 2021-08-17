@@ -130,6 +130,7 @@ namespace GameHost.Core.Modules.Feature
 
         private void UnloadAssembly(Entity entity, out WeakReference weakReference)
         {
+#if !NETSTANDARD
             var asmCtx = entity.Get<AssemblyLoadContext>();
             foreach (var assembly in asmCtx.Assemblies)
             {
@@ -152,6 +153,9 @@ namespace GameHost.Core.Modules.Feature
             }
 
             weakReference = new WeakReference(asmCtx, true);
+#else
+            throw new NotImplementedException("Unloading modules isn't supported on NET Standard");
+#endif
         }
 
         private void unloadModuleScheduling((Entity entity, int frameCount, WeakReference weakReference) args)

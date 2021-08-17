@@ -41,12 +41,13 @@ namespace GameHost.Simulation.TabEcs
 		protected virtual void OnResize()
 		{
 			var previousLength = column.componentTypes.Length;
-			Array.Resize(ref column.componentTypes, (int) ((board.MaxId + 1) * 2));
-			Array.Resize(ref column.entity, (int) ((board.MaxId + 1) * 2));
+			Array.Resize(ref column.componentTypes, (int)((board.MaxId + 1) * 2));
+			Array.Resize(ref column.entity, (int)((board.MaxId + 1) * 2));
 			for (var i = previousLength; i < column.componentTypes.Length; i++)
 			{
-				column.componentTypes[i] = Array.Empty<uint>();
-				column.entity[i]         = new PooledList<uint>();
+				// Since there is pooling, we only create if needed
+				column.componentTypes[i] ??= Array.Empty<uint>();
+				column.entity[i]         ??= new PooledList<uint>();
 			}
 		}
 
@@ -125,6 +126,17 @@ namespace GameHost.Simulation.TabEcs
 			column.entity         = null;
 			column.sum            = null;
 			column.componentTypes = null;
+		}
+		
+		public override void Clear()
+		{
+			base.Clear();
+
+			foreach (var list in column.entity)
+				list.Clear();
+			
+			column.sum.AsSpan().Clear();
+			column.componentTypes.AsSpan().Clear();
 		}
 	}
 }

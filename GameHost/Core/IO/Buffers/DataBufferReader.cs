@@ -9,7 +9,12 @@ namespace RevolutionSnapshot.Core.Buffers
     {
         public int CurrReadIndex;
         public int Length => Span.Length;
-        
+
+        public Span<byte> AsSpan()
+        {
+            return Span;
+        }
+
         public unsafe DataBufferReader(IntPtr dataPtr, int length) : this((byte*) dataPtr, length)
         {
         }

@@ -130,15 +130,15 @@ namespace GameHost.Core.RPC
 		protected ValueTask<TResponse> WithError(RpcPacketError packet)
 		{
 			lastError = packet;
-			return ValueTask.FromResult(default(TResponse));
+			return new(default(TResponse));
 		}
 
 		protected ValueTask<TResponse> WithError(int code, string message)
 		{
 			lastError = new RpcPacketError(code, message);
-			return ValueTask.FromResult(default(TResponse));
+			return new(default(TResponse));
 		}
 
-		protected ValueTask<TResponse> WithResult(TResponse response) => ValueTask.FromResult(response);
+		protected ValueTask<TResponse> WithResult(TResponse response) => new(response);
 	}
 }

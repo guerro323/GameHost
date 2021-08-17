@@ -89,7 +89,7 @@ namespace GameHost.Simulation.TabEcs
 			foreach (ref readonly var componentType in componentTypeSpan)
 			{
 				// TODO: support for shared component
-				if (entityBoard.GetComponentColumn(componentType.Id)[(int) entityHandle.Id].Valid)
+				if (componentType == default || entityBoard.GetComponentColumn(componentType.Id)[(int) entityHandle.Id].Valid)
 					continue;
 
 				var componentBoard = GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType);

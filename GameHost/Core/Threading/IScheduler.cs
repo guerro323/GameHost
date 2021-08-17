@@ -46,7 +46,7 @@ namespace GameHost.Core.Threading
 
         public bool Run(IScheduler scheduler)
         {
-            return Environment.TickCount64 < Target.Ticks;
+            return Environment.TickCount < Target.Ticks;
         }
 
         public void OnRemove(IScheduler scheduler)

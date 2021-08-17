@@ -28,8 +28,17 @@ namespace GameHost.Simulation.Utility.EntityQuery
 				var componentSpan = Board.GetComponentTypes(arch.Id);
 				for (var i = 0; i != finalizedQuery.All.Length; i++)
 				{
+#if NETSTANDARD
+					foreach (var element in componentSpan)
+						if (element == finalizedQuery.All[i].Id)
+						{
+							matches++;
+							break;
+						}
+#else
 					if (componentSpan.Contains(finalizedQuery.All[i].Id))
 						matches++;
+#endif
 				}
 
 				if (matches != finalizedQuery.All.Length)
@@ -38,8 +47,17 @@ namespace GameHost.Simulation.Utility.EntityQuery
 				matches = 0;
 				for (var i = 0; i != finalizedQuery.None.Length && matches == 0; i++)
 				{
+#if NETSTANDARD
+					foreach (var element in componentSpan)
+						if (element == finalizedQuery.None[i].Id)
+						{
+							matches++;
+							break;
+						}
+#else
 					if (componentSpan.Contains(finalizedQuery.None[i].Id))
 						matches++;
+#endif
 				}
 
 				if (matches > 0)

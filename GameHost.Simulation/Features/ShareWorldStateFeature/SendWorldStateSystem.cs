@@ -44,9 +44,9 @@ namespace GameHost.Simulation.Features.ShareWorldState
 		protected override void OnUpdate()
 		{
 			base.OnUpdate();
-			
-			GetDataParallel(gameWorld);
 
+			Serialize(out _);
+			
 			compressedBuffer.Length = 0;
 
 			var compressedSize = LZ4Codec.MaximumOutputSize(dataBuffer.Length);
@@ -58,7 +58,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				var originalCapacity = compressedBuffer.Capacity;
 				var encoder          = LZ4Level.L04_HC;
 				var size = LZ4Codec.Encode(dataBuffer.Span,
-					new Span<byte>((byte*) compressedBuffer.GetSafePtr() + sizeof(int) * 2, compressedBuffer.Capacity - sizeof(int) * 2), encoder);
+					new Span<byte>((byte*)compressedBuffer.GetSafePtr() + sizeof(int) * 2, compressedBuffer.Capacity - sizeof(int) * 2), encoder);
 				compressedBuffer.WriteInt(size);
 				compressedBuffer.WriteInt(dataBuffer.Length);
 				compressedBuffer.Length += size;
@@ -68,7 +68,7 @@ namespace GameHost.Simulation.Features.ShareWorldState
 				if (originalCapacity < compressedBuffer.Capacity)
 					throw new InvalidOperationException("The capacity shouldn't have been modified. This does remove the compression data.");
 			}
-
+			
 			foreach (var (entity, feature) in Features)
 			{
 				feature.Transport.Broadcast(default, compressedBuffer.Span);
@@ -80,6 +80,12 @@ namespace GameHost.Simulation.Features.ShareWorldState
 			base.Dispose();
 
 			dataBuffer.Dispose();
+		}
+
+		public void Serialize(out Span<byte> uncompressed)
+		{
+			GetDataParallel(gameWorld);
+			uncompressed = dataBuffer.Span;
 		}
 
 		public void SetComponentSerializer(ComponentType componentType, IShareComponentSerializer serializer)

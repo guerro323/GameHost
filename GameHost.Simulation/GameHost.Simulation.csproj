@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFrameworks>net5.0;netstandard2.1</TargetFrameworks>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>9</LangVersion>
     </PropertyGroup>
@@ -14,7 +14,7 @@
       <PackageReference Include="BidirectionalMap" Version="1.0.0" />
       <PackageReference Include="Collections.Pooled" Version="2.0.0-preview.27" />
       <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta29" />
-      <PackageReference Include="TabEcs.LLAPI" Version="1.0.6" />
+      <PackageReference Include="TabEcs.LLAPI" Version="1.0.8" />
     </ItemGroup>
 
 </Project>

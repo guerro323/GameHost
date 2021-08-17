@@ -63,5 +63,30 @@
 			 column.name = null;
 			 column.size = null;
 		 }
+
+		 public override void Clear()
+		 {
+			 base.Clear();
+			 
+			 for (var i = 0; i < column.componentBoard.Length; i++)
+			 {
+				 var componentBoardBase = column.componentBoard[i];
+				 if (componentBoardBase == null)
+					 continue;
+				 
+				 try
+				 {
+					 componentBoardBase.Clear();
+				 }
+				 catch (Exception)
+				 {
+					 Console.WriteLine($"Error when clearing component type {column.name[i]}");
+					 throw;
+				 }
+			 }
+			 
+			 column.name.AsSpan().Clear();
+			 column.size.AsSpan().Clear();
+		 }
 	 }
  }

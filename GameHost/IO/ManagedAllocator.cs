@@ -13,6 +13,7 @@ namespace GameHost.IO
 
 		static ManagedAllocator()
 		{
+#if NET
 			static void unload(AssemblyLoadContext ctx)
 			{
 				ctx.Unloading -= unload;
@@ -27,6 +28,7 @@ namespace GameHost.IO
 			}
 
 			AssemblyLoadContext.Default.Unloading += unload;
+#endif
 		}
 
 		private readonly ArrayPool<byte>         pool;

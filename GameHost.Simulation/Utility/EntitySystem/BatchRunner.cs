@@ -149,10 +149,14 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 				exception = ex;
 			}
 
-			if (Interlocked.Increment(ref results[queued.BatchId].SuccessfulWrite) == results[queued.BatchId].MaxIndex
+			// Check if the next increment will be MaxIndex - 1 (the -1 is a hack to make the OnComplete increment it to the max and to make sure that it's not completed from the outside)
+			if (Interlocked.Increment(ref results[queued.BatchId].SuccessfulWrite) == results[queued.BatchId].MaxIndex - 1
 			    && queued.Batch is IBatchOnComplete onComplete)
 			{
 				onComplete.OnCompleted(exception);
+
+				// Increment it
+				Interlocked.Increment(ref results[queued.BatchId].SuccessfulWrite);
 			}
 
 			return true;
@@ -175,9 +179,9 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 				while (false == state.Token.IsCancellationRequested)
 				{
 					endList.Clear();
-					
+
 					Volatile.Write(ref state.ProcessorId, Thread.GetCurrentProcessorId());
-					
+
 					var hasRanBatch = false;
 					while (state.Batches.TryTake(out var queued))
 					{
@@ -186,7 +190,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 						if (!execute(state.Runner, queued, state.TaskIndex, state.TaskCount, state.Results))
 							endList.Add(queued);
 					}
-					
+
 					foreach (var batch in endList)
 						state.Batches.Add(batch);
 
@@ -194,7 +198,7 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 					{
 						if (hasRanBatch)
 							sleepCount = 0;
-						
+
 						if (sleepCount++ > sleep0Threshold)
 						{
 							Thread.Sleep(0);
@@ -203,8 +207,12 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 
 						continue;
 					}
-					
+
+#if NETSTANDARD
+					spin.SpinOnce();
+#else
 					spin.SpinOnce(30);
+#endif
 				}
 			}
 			catch (Exception ex)
@@ -308,7 +316,9 @@ namespace StormiumTeam.GameBase.Utility.Misc.EntitySystem
 			batchResults[batchNumber] = new BatchResult
 			{
 				SuccessfulWrite = -1,
-				MaxIndex        = use - 1
+				// Make sure that batch with OnComplete method has an additional index for it;
+				// It's used to make sure that when you call IsCompleted(...) it only return true if OnComplete has been called
+				MaxIndex        = use - (batch is IBatchOnComplete ? 0 : 1)
 			};
 
 			for (var i = 0; i < use; i++)

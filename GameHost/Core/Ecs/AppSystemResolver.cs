@@ -15,6 +15,9 @@ namespace GameHost.Core.Ecs
             sw.Start();
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
+                if (asm.FullName.Contains("System.Runtime"))
+                    continue;
+                
                 if (asm.GetCustomAttribute<AllowAppSystemResolvingAttribute>() != null)
                     ResolveFor<TApplication>(asm, foundTypes, isSystemValid);
             }
@@ -30,8 +33,10 @@ namespace GameHost.Core.Ecs
                 return attr == null || attr.IsValid<TApplication>();
             };
 
+            Console.WriteLine(assembly.FullName);
             foreach (var type in assembly.GetTypes())
             {
+                Console.WriteLine(type);
                 if (!type.IsAbstract
                     && !type.ContainsGenericParameters
                     && type.GetCustomAttribute<InjectSystemToWorldAttribute>() != null

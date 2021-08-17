@@ -63,14 +63,31 @@ namespace GameHost.Simulation.TabEcs
 			lock (lockedComponentTypeSynchronization)
 			{
 				var componentTypeBoard = Boards.ComponentType;
-				for (var i = 1; i < componentTypeBoard.Registered.Length; i++)
+				foreach (var componentType in componentTypeBoard.Registered)
 				{
-					if (componentTypeBoard.NameColumns[i] == name)
-						return new ComponentType((uint) i);
+					var i = componentType.Id;
+					if (componentTypeBoard.NameColumns[(int) i] == name)
+						return new ComponentType(i);
+				}
+			}
+			
+			return default;
+		}
+
+		public ComponentType GetComponentType(ReadOnlySpan<char> span)
+		{
+			lock (lockedComponentTypeSynchronization)
+			{
+				var componentTypeBoard = Boards.ComponentType;
+				foreach (var componentType in componentTypeBoard.Registered)
+				{
+					var i = componentType.Id;
+					if (componentTypeBoard.NameColumns[(int) i].AsSpan().SequenceEqual(span))
+						return new ComponentType(i);
 				}
 			}
 
-			throw new KeyNotFoundException(name);
+			return default;
 		}
 
 		public ComponentType RegisterComponent(string name, ComponentBoardBase componentBoard, Type optionalManagedType = null, ComponentType optionalParentType = default)
@@ -78,6 +95,7 @@ namespace GameHost.Simulation.TabEcs
 			if (HasComponentType(name))
 				throw new InvalidOperationException($"[{WorldId}] A component named '{name}' already exist");
 
+			Console.WriteLine("register " + name);
 			lock (lockedComponentTypeSynchronization)
 				return new ComponentType(Boards.ComponentType.CreateRow(name, componentBoard, optionalParentType: optionalParentType));
 		}
@@ -158,6 +176,13 @@ namespace GameHost.Simulation.TabEcs
 			where TBoard : ComponentBoardBase
 		{
 			return (TBoard) Boards.ComponentType.ComponentBoardColumns[(int) componentType.Id];
+		}
+
+		public void Clear()
+		{
+			Boards.Entity.Clear();
+			Boards.Archetype.Clear();
+			Boards.ComponentType.Clear();
 		}
 
 		public void Dispose()

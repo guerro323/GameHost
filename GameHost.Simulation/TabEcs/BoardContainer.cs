@@ -68,5 +68,10 @@
 			 while (board.Count > 0)
 				 DeleteRow(board.UsedRows[0]);
 		 }
+
+		 public virtual void Clear()
+		 {
+			 board.Clear();
+		 }
 	 }
  }

@@ -10,6 +10,7 @@ using Cysharp.Text;
 using DefaultEcs;
 using GameHost.Applications;
 using GameHost.Core.Ecs;
+using GameHost.Core.Modules;
 using GameHost.Core.Modules.Feature;
 using GameHost.IO;
 using GameHost.Threading;
@@ -114,7 +115,9 @@ namespace GameHost.Game
 			{
 				Global.Context.BindExisting(GameEntity.Get<GameLogger>().Value);
 				Global.Context.BindExisting(GameEntity.Get<GameLoggerFactory>().Value);
-				Global.Context.BindExisting(new AssemblyLoadContext("DefaultContext"));
+#if NET
+				Global.Context.BindExisting((AssemblyLoadContext) new NamedAssemblyLoadContext("DefaultContext"));
+#endif
 
 				var moduleStorageCollection = new StorageCollection();
 
