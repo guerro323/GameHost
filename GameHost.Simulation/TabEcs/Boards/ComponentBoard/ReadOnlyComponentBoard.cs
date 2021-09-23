@@ -1,9 +1,9 @@
-﻿namespace GameHost.Simulation.TabEcs
+﻿namespace GameHost.Simulation.TabEcs.Boards.ComponentBoard
 {
-	public class ReadOnlyComponentBoard : ComponentBoardBase
-	{
-		public ReadOnlyComponentBoard(int size, int capacity) : base(size, capacity)
-		{
-		}
-	}
+    public class ReadOnlyComponentBoard : ComponentBoardBase
+    {
+        public ReadOnlyComponentBoard(int size, int capacity) : base(size, capacity)
+        {
+        }
+    }
 }

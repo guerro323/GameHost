@@ -1,65 +1,69 @@
 ﻿using GameHost.Simulation.TabEcs;
+using GameHost.Simulation.TabEcs.Types;
 
 namespace GameHost.Simulation.Utility.EntityQuery
 {
-	public ref struct EntityEnumerator
-	{
-		public ArchetypeEnumerator Inner;
-		public GameWorld World;
+    public ref struct EntityEnumerator
+    {
+        public ArchetypeEnumerator Inner;
+        public GameWorld World;
 
-		public GameEntityHandle Current { get; private set; }
+        public GameEntityHandle Current { get; private set; }
 
-		private int  index;
-		private bool canMove;
+        private int index;
+        private bool canMove;
 
-		private bool MoveInnerNext()
-		{
-			index   = 0;
-			canMove = Inner.MoveNext();
+        private bool MoveInnerNext()
+        {
+            index = 0;
+            canMove = Inner.MoveNext();
 
-			return canMove;
-		}
+            return canMove;
+        }
 
-		public bool MoveNext()
-		{
-			while (true)
-			{
-				if (!canMove && !MoveInnerNext()) return false;
+        public bool MoveNext()
+        {
+            while (true)
+            {
+                if (!canMove && !MoveInnerNext()) return false;
 
-				var entitySpan = Inner.Board.GetEntities(Inner.Current.Id);
-				if (entitySpan.Length <= index)
-				{
-					canMove = false;
-					continue;
-				}
+                var entitySpan = Inner.Board.GetEntities(Inner.Current.Id);
+                if (entitySpan.Length <= index)
+                {
+                    canMove = false;
+                    continue;
+                }
 
-				Current = new GameEntityHandle(entitySpan[index++]);
-				return true;
-			}
-		}
+                Current = new GameEntityHandle(entitySpan[index++]);
+                return true;
+            }
+        }
 
-		public EntityEnumerator GetEnumerator() => this;
+        public EntityEnumerator GetEnumerator()
+        {
+            return this;
+        }
 
-		public GameEntityHandle First
-		{
-			get
-			{
-				while (MoveNext())
-					return Current;
-				return default;
-			}
-		}
+        public GameEntityHandle First
+        {
+            get
+            {
+                while (MoveNext())
+                    return Current;
+                return default;
+            }
+        }
 
-		public bool TryGetFirst(out GameEntityHandle entityHandle)
-		{
-			if (World.Contains(First))
-			{
-				entityHandle = Current;
-				return true;
-			}
+        public bool TryGetFirst(out GameEntityHandle entityHandle)
+        {
+            if (World.Contains(First))
+            {
+                entityHandle = Current;
+                return true;
+            }
 
-			entityHandle = default;
-			return false;
-		}
-	}
+            entityHandle = default;
+            return false;
+        }
+    }
 }

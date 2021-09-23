@@ -1,29 +1,29 @@
 ﻿using System;
 
-namespace GameHost.Simulation.TabEcs
+namespace GameHost.Simulation.TabEcs.Types
 {
-	public readonly struct EntityArchetype : IEquatable<EntityArchetype>
-	{
-		public readonly uint Id;
+    public readonly struct EntityArchetype : IEquatable<EntityArchetype>
+    {
+        public readonly uint Id;
 
-		public EntityArchetype(uint id)
-		{
-			Id = id;
-		}
+        public EntityArchetype(uint id)
+        {
+            Id = id;
+        }
 
-		public bool Equals(EntityArchetype other)
-		{
-			return Id == other.Id;
-		}
+        public bool Equals(EntityArchetype other)
+        {
+            return Id == other.Id;
+        }
 
-		public override bool Equals(object obj)
-		{
-			return obj is EntityArchetype other && Equals(other);
-		}
+        public override bool Equals(object obj)
+        {
+            return obj is EntityArchetype other && Equals(other);
+        }
 
-		public override int GetHashCode()
-		{
-			return (int)Id;
-		}
-	}
+        public override int GetHashCode()
+        {
+            return (int) Id;
+        }
+    }
 }

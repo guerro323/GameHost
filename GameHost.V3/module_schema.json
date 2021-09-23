@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JSON schema for GameHost modules",
+  "type": "object",
+  "definitions": {
+    "stringArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human readable name of the module."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["bin", "project"],
+      "description": "How will the module be loaded."
+    },
+    "description": {
+      "type": "string",
+      "description": "A description of the module."
+    },
+    "version": {
+      "type": ["number", "string"],
+      "description": "Version of the module"
+    },
+    "author": {
+      "type": "string",
+      "description": "The person who created the module"
+    },
+    "authors": {
+      "type": "array",
+      "description": "The persons who created the module. Cannot be used if 'author' is present"
+    }
+  },
+  "required": ["name", "description", "version"],
+  "oneOf": [{"required": ["author"]}, {"required": ["authors"]}]
+}

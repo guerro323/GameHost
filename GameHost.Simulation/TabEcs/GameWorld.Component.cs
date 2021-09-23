@@ -1,275 +1,291 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+using GameHost.Simulation.TabEcs.Boards;
+using GameHost.Simulation.TabEcs.Boards.ComponentBoard;
 using GameHost.Simulation.TabEcs.Interfaces;
 using GameHost.Simulation.TabEcs.LLAPI;
+using GameHost.Simulation.TabEcs.Types;
 
 namespace GameHost.Simulation.TabEcs
 {
-	public partial class GameWorld
-	{
-		public const int RecursionLimit = 10;
+    public partial class GameWorld
+    {
+        public const int RecursionLimit = 10;
 
-		public string DebugCreateComponentList(GameEntityHandle handle)
-		{
-			var msg           = string.Empty;
-			var componentList = Boards.Archetype.GetComponentTypes(GetArchetype(handle).Id);
-			foreach (var comp in componentList)
-			{
-				msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int)comp]}\n";
-			}
+        public string DebugCreateComponentList(GameEntityHandle handle)
+        {
+            var msg = string.Empty;
+            var componentList = Boards.Archetype.GetComponentTypes(GetArchetype(handle).Id);
+            foreach (var comp in componentList) msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int) comp]}\n";
 
-			return msg;
-		}
+            return msg;
+        }
 
-		public string DebugCreateErrorMessage(GameEntityHandle handle, string @base)
-		{
-			var msg           = $"{Safe(handle)} error: {@base}.\n Component List:\n";
-			var componentList = Boards.Archetype.GetComponentTypes(GetArchetype(handle).Id);
-			foreach (var comp in componentList)
-			{
-				msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int) comp]}\n";
-			}
+        public string DebugCreateErrorMessage(GameEntityHandle handle, string @base)
+        {
+            var msg = $"{Safe(handle)} error: {@base}.\n Component List:\n";
+            var componentList = Boards.Archetype.GetComponentTypes(GetArchetype(handle).Id);
+            foreach (var comp in componentList) msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int) comp]}\n";
 
-			return msg;
-		}
-		
-		/// <summary>
-		/// Create a new component
-		/// </summary>
-		/// <param name="componentType"></param>
-		/// <returns></returns>
-		public ComponentReference CreateComponent(ComponentType componentType)
-		{
-			return new ComponentReference(componentType, GameWorldLL.CreateComponent(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType)));
-		}
+            return msg;
+        }
 
-		/// <summary>
-		/// Create a new component
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <returns></returns>
-		public ComponentReference CreateComponent<T>()
-			where T : struct, IEntityComponent
-		{
-			var componentType = AsComponentType<T>();
-			return new ComponentReference(componentType, GameWorldLL.CreateComponent(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType)));
-		}
+        /// <summary>
+        ///     Create a new component
+        /// </summary>
+        /// <param name="componentType"></param>
+        /// <returns></returns>
+        public ComponentReference CreateComponent(ComponentType componentType)
+        {
+            return new ComponentReference(componentType,
+                GameWorldLL.CreateComponent(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType)));
+        }
 
-		public EntityBoardContainer.ComponentMetadata GetComponentMetadata(GameEntityHandle entityHandle, ComponentType componentType)
-		{
-			ThrowOnInvalidHandle(entityHandle);
+        /// <summary>
+        ///     Create a new component
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public ComponentReference CreateComponent<T>()
+            where T : struct, IEntityComponent
+        {
+            var componentType = AsComponentType<T>();
+            return new ComponentReference(componentType,
+                GameWorldLL.CreateComponent(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, componentType)));
+        }
 
-			return Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id];
-		}
+        public EntityBoardContainer.ComponentMetadata GetComponentMetadata(GameEntityHandle entityHandle,
+            ComponentType componentType)
+        {
+            ThrowOnInvalidHandle(entityHandle);
 
-		public ComponentReference GetComponentReference<T>(GameEntityHandle entityHandle)
-			where T : struct, IEntityComponent
-		{
-			ThrowOnInvalidHandle(entityHandle);
+            return Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id];
+        }
 
-			var componentType = AsComponentType<T>();
-			return new ComponentReference(componentType, Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id].Id);
-		}
+        public ComponentReference GetComponentReference<T>(GameEntityHandle entityHandle)
+            where T : struct, IEntityComponent
+        {
+            ThrowOnInvalidHandle(entityHandle);
 
-		public GameEntityHandle GetComponentOwner(ComponentReference component)
-		{
-			return GameWorldLL.GetOwner(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type), component);
-		}
+            var componentType = AsComponentType<T>();
+            return new ComponentReference(componentType,
+                Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id].Id);
+        }
 
-		public Span<GameEntityHandle> GetReferencedEntities(ComponentReference component)
-		{
-			return GameWorldLL.GetReferences(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type), component);
-		}
+        public ComponentReference GetComponentReference(GameEntityHandle entityHandle, ComponentType componentType)
+        {
+            ThrowOnInvalidHandle(entityHandle);
 
-		/// <summary>
-		/// Check whether or not an entity has a component
-		/// </summary>
-		/// <param name="entityHandle"></param>
-		/// <param name="componentType"></param>
-		/// <returns></returns>
-		public bool HasComponent(GameEntityHandle entityHandle, ComponentType componentType)
-		{
-			var recursionLeft  = RecursionLimit;
-			var originalEntity = entityHandle;
-			while (recursionLeft-- > 0)
-			{
-				var link = Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id];
-				if (link.IsShared)
-				{
-					entityHandle = new GameEntityHandle(link.Entity);
-					continue;
-				}
+            return new ComponentReference(componentType,
+                Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id].Id);
+        }
 
-				return link.Id > 0;
-			}
+        public GameEntityHandle GetComponentOwner(ComponentReference component)
+        {
+            return GameWorldLL.GetOwner(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type),
+                component);
+        }
 
-			throw new InvalidOperationException($"HasComponent - Recursion limit reached with '{originalEntity}' and component (backing: {componentType})");
-		}
+        public Span<GameEntityHandle> GetReferencedEntities(ComponentReference component)
+        {
+            return GameWorldLL.GetReferences(GameWorldLL.GetComponentBoardBase(Boards.ComponentType, component.Type),
+                component);
+        }
 
-		/// <summary>
-		/// Check whether or not an entity has a component
-		/// </summary>
-		/// <param name="entityHandle"></param>
-		/// <typeparam name="T"></typeparam>
-		/// <returns></returns>
-		public bool HasComponent<T>(GameEntityHandle entityHandle)
-			where T : struct, IEntityComponent
-		{
-			return HasComponent(entityHandle, AsComponentType<T>());
-		}
+        /// <summary>
+        ///     Check whether or not an entity has a component
+        /// </summary>
+        /// <param name="entityHandle"></param>
+        /// <param name="componentType"></param>
+        /// <returns></returns>
+        public bool HasComponent(GameEntityHandle entityHandle, ComponentType componentType)
+        {
+            var recursionLeft = RecursionLimit;
+            var originalEntity = entityHandle;
+            while (recursionLeft-- > 0)
+            {
+                var link = Boards.Entity.GetComponentColumn(componentType.Id)[(int) entityHandle.Id];
+                if (link.IsShared)
+                {
+                    entityHandle = new GameEntityHandle(link.Entity);
+                    continue;
+                }
 
-		public void GetComponentOf<TList>(GameEntityHandle entityHandle, ComponentType baseType, TList list)
-			where TList : IList<ComponentReference>
-		{
-			ThrowOnInvalidHandle(entityHandle);
+                return link.Id > 0;
+            }
 
-			var archetype = GetArchetype(entityHandle);
-			foreach (var componentTypeId in Boards.Archetype.GetComponentTypes(archetype.Id))
-			{
-				if (Boards.ComponentType.ParentTypeColumns[(int) componentTypeId] != baseType)
-					continue;
+            throw new InvalidOperationException(
+                $"HasComponent - Recursion limit reached with '{originalEntity}' and component (backing: {componentType})");
+        }
 
-				var componentType = new ComponentType(componentTypeId);
-				var metadata      = GetComponentMetadata(entityHandle, componentType);
-				if (metadata.Null)
-					continue;
+        /// <summary>
+        ///     Check whether or not an entity has a component
+        /// </summary>
+        /// <param name="entityHandle"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public bool HasComponent<T>(GameEntityHandle entityHandle)
+            where T : struct, IEntityComponent
+        {
+            return HasComponent(entityHandle, AsComponentType<T>());
+        }
 
-				list.Add(new ComponentReference(componentType, metadata.Id));
-			}
-		}
+        public void GetComponentOf<TList>(GameEntityHandle entityHandle, ComponentType baseType, TList list)
+            where TList : IList<ComponentReference>
+        {
+            ThrowOnInvalidHandle(entityHandle);
 
-		/// <summary>
-		/// Get the reference to a component data from an entity
-		/// </summary>
-		/// <param name="entityHandle"></param>
-		/// <typeparam name="T"></typeparam>
-		/// <returns></returns>
-		/// <exception cref="InvalidOperationException"></exception>
-		public ref T GetComponentData<T>(GameEntityHandle entityHandle)
-			where T : struct, IComponentData
-		{
-			ThrowOnInvalidHandle(entityHandle);
+            var archetype = GetArchetype(entityHandle);
+            foreach (var componentTypeId in Boards.Archetype.GetComponentTypes(archetype.Id))
+            {
+                if (Boards.ComponentType.ParentTypeColumns[(int) componentTypeId] != baseType)
+                    continue;
 
-			var componentType = AsComponentType<T>().Id;
-			var board         = Boards.ComponentType.ComponentBoardColumns[(int) componentType];
-			if (board is TagComponentBoard)
-				return ref TagComponentBoard.Default<T>.V;
+                var componentType = new ComponentType(componentTypeId);
+                var metadata = GetComponentMetadata(entityHandle, componentType);
+                if (metadata.Null)
+                    continue;
 
-			if (!(board is SingleComponentBoard componentColumn))
-				throw new InvalidOperationException($"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
+                list.Add(new ComponentReference(componentType, metadata.Id));
+            }
+        }
 
-#if DEBUG
-			if (!HasComponent(entityHandle, new ComponentType(componentType)))
-			{
-				var msg           = $"{Safe(entityHandle)} has no {Boards.ComponentType.NameColumns[(int) componentType]}. Existing:\n";
-				var componentList = Boards.Archetype.GetComponentTypes(GetArchetype(entityHandle).Id);
-				foreach (var comp in componentList)
-				{
-					msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int) comp]}\n";
-				}
-				
-				throw new InvalidOperationException(msg);
-			}
-#endif
+        /// <summary>
+        ///     Get the reference to a component data from an entity
+        /// </summary>
+        /// <param name="entityHandle"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public ref T GetComponentData<T>(GameEntityHandle entityHandle)
+            where T : struct, IComponentData
+        {
+            ThrowOnInvalidHandle(entityHandle);
 
-			return ref componentColumn.AsSpan<T>()[Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id].Assigned];
-		}
+            var componentType = AsComponentType<T>().Id;
+            var board = Boards.ComponentType.ComponentBoardColumns[(int) componentType];
+            if (board is TagComponentBoard)
+                return ref TagComponentBoard.Default<T>.V;
 
-		/// <summary>
-		/// Get the reference to a component data from an entity
-		/// </summary>
-		/// <param name="entityHandle"></param>
-		/// <typeparam name="T"></typeparam>
-		/// <returns></returns>
-		/// <exception cref="InvalidOperationException"></exception>
-		public ref T GetComponentData<T>(ComponentReference componentReference)
-			where T : struct, IComponentData
-		{
-			var board         = Boards.ComponentType.ComponentBoardColumns[(int) componentReference.Type.Id];
-			if (board is TagComponentBoard)
-				return ref TagComponentBoard.Default<T>.V;
-
-			if (!(board is SingleComponentBoard componentColumn))
-				throw new InvalidOperationException($"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
-			
-			return ref componentColumn.AsSpan<T>()[(int) componentReference.Id];
-		}
-
-		/// <summary>
-		/// Get the reference to a component data from an entity
-		/// </summary>
-		/// <param name="entityHandle"></param>
-		/// <typeparam name="T"></typeparam>
-		/// <returns></returns>
-		/// <exception cref="InvalidOperationException"></exception>
-		public ref T GetComponentData<T>(GameEntityHandle entityHandle, ComponentType baseType)
-			where T : struct, IComponentData
-		{
-			ThrowOnInvalidHandle(entityHandle);
-
-			var componentType = baseType.Id;
-			var board         = Boards.ComponentType.ComponentBoardColumns[(int) componentType];
-			if (board is TagComponentBoard)
-				return ref TagComponentBoard.Default<T>.V;
-
-			if (!(board is SingleComponentBoard componentColumn))
-				throw new InvalidOperationException($"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
+            if (!(board is SingleComponentBoard componentColumn))
+                throw new InvalidOperationException(
+                    $"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
 
 #if DEBUG
-			if (!HasComponent(entityHandle, new ComponentType(componentType)))
-			{
-				var msg           = $"{Safe(entityHandle)} has no {Boards.ComponentType.NameColumns[(int) componentType]}. Existing:\n";
-				var componentList = Boards.Archetype.GetComponentTypes(GetArchetype(entityHandle).Id);
-				foreach (var comp in componentList)
-				{
-					msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int) comp]}\n";
-				}
+            if (!HasComponent(entityHandle, new ComponentType(componentType)))
+            {
+                var msg =
+                    $"{Safe(entityHandle)} has no {Boards.ComponentType.NameColumns[(int) componentType]}. Existing:\n";
+                var componentList = Boards.Archetype.GetComponentTypes(GetArchetype(entityHandle).Id);
+                foreach (var comp in componentList)
+                    msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int) comp]}\n";
 
-				throw new InvalidOperationException(msg);
-			}
+                throw new InvalidOperationException(msg);
+            }
 #endif
-			
-			return ref componentColumn.AsSpan<T>()[Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id].Assigned];
-		}
 
-		/// <summary>
-		/// Get a component buffer from an entity
-		/// </summary>
-		/// <param name="entityHandle"></param>
-		/// <typeparam name="T"></typeparam>
-		/// <returns></returns>
-		/// <exception cref="InvalidOperationException"></exception>
-		public ComponentBuffer<T> GetBuffer<T>(GameEntityHandle entityHandle) where T : struct, IComponentBuffer
-		{
-			ThrowOnInvalidHandle(entityHandle);
+            return ref componentColumn.AsSpan<T>()[
+                Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id].Assigned];
+        }
 
-			var componentType = AsComponentType<T>().Id;
-			if (!(Boards.ComponentType.ComponentBoardColumns[(int) componentType] is BufferComponentBoard componentColumn))
-				throw new InvalidOperationException($"A board made from an {nameof(IComponentBuffer)} should be a {nameof(BufferComponentBoard)}");
+        /// <summary>
+        ///     Get the reference to a component data from an entity
+        /// </summary>
+        /// <param name="entityHandle"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public ref T GetComponentData<T>(ComponentReference componentReference)
+            where T : struct, IComponentData
+        {
+            var board = Boards.ComponentType.ComponentBoardColumns[(int) componentReference.Type.Id];
+            if (board is TagComponentBoard)
+                return ref TagComponentBoard.Default<T>.V;
+
+            if (!(board is SingleComponentBoard componentColumn))
+                throw new InvalidOperationException(
+                    $"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
+
+            return ref componentColumn.AsSpan<T>()[(int) componentReference.Id];
+        }
+
+        /// <summary>
+        ///     Get the reference to a component data from an entity
+        /// </summary>
+        /// <param name="entityHandle"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public ref T GetComponentData<T>(GameEntityHandle entityHandle, ComponentType baseType)
+            where T : struct, IComponentData
+        {
+            ThrowOnInvalidHandle(entityHandle);
+
+            var componentType = baseType.Id;
+            var board = Boards.ComponentType.ComponentBoardColumns[(int) componentType];
+            if (board is TagComponentBoard)
+                return ref TagComponentBoard.Default<T>.V;
+
+            if (!(board is SingleComponentBoard componentColumn))
+                throw new InvalidOperationException(
+                    $"A board made from an {nameof(IComponentData)} should be a {nameof(SingleComponentBoard)}");
 
 #if DEBUG
-			if (!HasComponent(entityHandle, new ComponentType(componentType)))
-			{
-				throw new InvalidOperationException($"{Safe(entityHandle)} has no {Boards.ComponentType.NameColumns[(int) componentType]}.");
-			}
+            if (!HasComponent(entityHandle, new ComponentType(componentType)))
+            {
+                var msg =
+                    $"{Safe(entityHandle)} has no {Boards.ComponentType.NameColumns[(int) componentType]}. Existing:\n";
+                var componentList = Boards.Archetype.GetComponentTypes(GetArchetype(entityHandle).Id);
+                foreach (var comp in componentList)
+                    msg += $"  [{comp}] {Boards.ComponentType.NameColumns[(int) comp]}\n";
+
+                throw new InvalidOperationException(msg);
+            }
 #endif
 
-			var recursionLeft  = RecursionLimit;
-			var originalEntity = entityHandle;
-			while (recursionLeft-- > 0)
-			{
-				var link = Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id];
-				if (link.IsShared)
-				{
-					entityHandle = new GameEntityHandle(link.Entity);
-					continue;
-				}
+            return ref componentColumn.AsSpan<T>()[
+                Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id].Assigned];
+        }
 
-				return new ComponentBuffer<T>(componentColumn.AsSpan()[(int) link.Id]);
-			}
+        /// <summary>
+        ///     Get a component buffer from an entity
+        /// </summary>
+        /// <param name="entityHandle"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public ComponentBuffer<T> GetBuffer<T>(GameEntityHandle entityHandle) where T : struct, IComponentBuffer
+        {
+            ThrowOnInvalidHandle(entityHandle);
 
-			throw new InvalidOperationException($"GetBuffer - Recursion limit reached with '{originalEntity}' and component <{typeof(T)}> (backing: {componentType})");
-		}
-	}
+            var componentType = AsComponentType<T>().Id;
+            if (!(Boards.ComponentType.ComponentBoardColumns[(int) componentType] is BufferComponentBoard
+                componentColumn))
+                throw new InvalidOperationException(
+                    $"A board made from an {nameof(IComponentBuffer)} should be a {nameof(BufferComponentBoard)}");
+
+#if DEBUG
+            if (!HasComponent(entityHandle, new ComponentType(componentType)))
+                throw new InvalidOperationException(
+                    $"{Safe(entityHandle)} has no {Boards.ComponentType.NameColumns[(int) componentType]}.");
+#endif
+
+            var recursionLeft = RecursionLimit;
+            var originalEntity = entityHandle;
+            while (recursionLeft-- > 0)
+            {
+                var link = Boards.Entity.GetComponentColumn(componentType)[(int) entityHandle.Id];
+                if (link.IsShared)
+                {
+                    entityHandle = new GameEntityHandle(link.Entity);
+                    continue;
+                }
+
+                return new ComponentBuffer<T>(componentColumn.AsSpan()[(int) link.Id]);
+            }
+
+            throw new InvalidOperationException(
+                $"GetBuffer - Recursion limit reached with '{originalEntity}' and component <{typeof(T)}> (backing: {componentType})");
+        }
+    }
 }

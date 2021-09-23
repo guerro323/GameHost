@@ -1,14 +1,14 @@
-﻿namespace GameHost.Simulation.TabEcs
+﻿namespace GameHost.Simulation.TabEcs.Types
 {
-	public readonly struct ComponentReference
-	{
-		public readonly ComponentType Type;
-		public readonly uint          Id;
+    public readonly struct ComponentReference
+    {
+        public readonly ComponentType Type;
+        public readonly uint Id;
 
-		public ComponentReference(ComponentType type, uint id)
-		{
-			Type = type;
-			Id   = id;
-		}
-	}
+        public ComponentReference(ComponentType type, uint id)
+        {
+            Type = type;
+            Id = id;
+        }
+    }
 }

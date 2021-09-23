@@ -1,44 +1,45 @@
 ﻿using System;
 using GameHost.Simulation.TabEcs;
+using GameHost.Simulation.TabEcs.Types;
 using GameHost.Simulation.Utility.Resource.Interfaces;
 
 namespace GameHost.Simulation.Utility.Resource
 {
-	public readonly struct GameResource<T> : IEquatable<GameResource<T>>
-		where T : IGameResourceDescription
-	{
-		public static bool operator ==(GameResource<T> left, GameResource<T> right)
-		{
-			return left.Equals(right);
-		}
+    public readonly struct GameResource<T> : IEquatable<GameResource<T>>
+        where T : IGameResourceDescription
+    {
+        public static bool operator ==(GameResource<T> left, GameResource<T> right)
+        {
+            return left.Equals(right);
+        }
 
-		public static bool operator !=(GameResource<T> left, GameResource<T> right)
-		{
-			return !left.Equals(right);
-		}
-		
-		public readonly GameEntity       Entity;
-		
-		public         GameEntityHandle Handle => Entity.Handle;
+        public static bool operator !=(GameResource<T> left, GameResource<T> right)
+        {
+            return !left.Equals(right);
+        }
 
-		public GameResource(GameEntity target)
-		{
-			Entity = target;
-		}
+        public readonly GameEntity Entity;
 
-		public bool Equals(GameResource<T> other)
-		{
-			return Entity.Equals(other.Entity);
-		}
+        public GameEntityHandle Handle => Entity.Handle;
 
-		public override bool Equals(object obj)
-		{
-			return obj is GameResource<T> other && Equals(other);
-		}
+        public GameResource(GameEntity target)
+        {
+            Entity = target;
+        }
 
-		public override int GetHashCode()
-		{
-			return Entity.GetHashCode();
-		}
-	}
+        public bool Equals(GameResource<T> other)
+        {
+            return Entity.Equals(other.Entity);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is GameResource<T> other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return Entity.GetHashCode();
+        }
+    }
 }

@@ -1,11 +1,8 @@
-﻿using System;
-using GameHost.Native.Char;
-using GameHost.Simulation.TabEcs.Interfaces;
-using GameHost.Simulation.Utility.Resource.Components;
+﻿using GameHost.Simulation.TabEcs.Interfaces;
 
 namespace GameHost.Simulation.Utility.Resource.Interfaces
 {
-	public interface IGameResourceDescription : IComponentData
-	{
-	}
+    public interface IGameResourceDescription : IComponentData
+    {
+    }
 }
