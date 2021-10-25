@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <LangVersion>10</LangVersion>
+        <PackageVersion>2021.9.23.2147</PackageVersion>
+        <Copyright>guerro323</Copyright>
+        <PackageProjectUrl>https://github.com/guerro323/GameHost</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/guerro323/GameHost/blob/v3-dev/LICENSE</PackageLicenseUrl>
+        <RepositoryUrl>https://github.com/guerro323/GameHost</RepositoryUrl>
+        <PackageTags>hosting,host</PackageTags>
+        <AssemblyName>revghost</AssemblyName>
+        <RootNamespace>revghost</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Collections.Pooled" Version="2.0.0-preview.27" />
+        <PackageReference Include="DefaultEcs" Version="0.16.2" />
+        <PackageReference Include="System.Reflection.MetadataLoadContext" Version="6.0.0-preview.7.21377.19" />
+        <PackageReference Include="System.Text.Json" Version="6.0.0-preview.7.21377.19" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\revghost.Shared\revghost.Shared.csproj" />
+    </ItemGroup>
+
+</Project>
