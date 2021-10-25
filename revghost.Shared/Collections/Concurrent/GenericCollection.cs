@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.Loader;
 
-namespace revecs.Utility.Threading;
+namespace revghost.Shared.Collections.Concurrent;
 
 public abstract class GenericCollection<TConstraints, TCollection> : IDisposable
 {

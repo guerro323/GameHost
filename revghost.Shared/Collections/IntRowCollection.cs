@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace revecs.Utility
+namespace revghost.Shared.Collections
 {
     public struct IntRowCollection
     {
