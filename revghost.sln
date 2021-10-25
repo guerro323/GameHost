@@ -2,8 +2,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "revghost", "revghost\revghost.csproj", "{A38D0323-8F61-4F15-AE82-7D6EC1B7B79B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestExecutable", "TestExecutable\TestExecutable.csproj", "{7AF1B2A0-99E4-4247-B46A-E91790BD01A6}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "revghost.Shared", "revghost.Shared\revghost.Shared.csproj", "{55714A0F-38C3-4B7D-9710-3DA5764BE946}"
 EndProject
 Global
@@ -16,10 +14,6 @@ Global
 		{A38D0323-8F61-4F15-AE82-7D6EC1B7B79B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A38D0323-8F61-4F15-AE82-7D6EC1B7B79B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A38D0323-8F61-4F15-AE82-7D6EC1B7B79B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7AF1B2A0-99E4-4247-B46A-E91790BD01A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7AF1B2A0-99E4-4247-B46A-E91790BD01A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7AF1B2A0-99E4-4247-B46A-E91790BD01A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7AF1B2A0-99E4-4247-B46A-E91790BD01A6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{55714A0F-38C3-4B7D-9710-3DA5764BE946}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{55714A0F-38C3-4B7D-9710-3DA5764BE946}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{55714A0F-38C3-4B7D-9710-3DA5764BE946}.Release|Any CPU.ActiveCfg = Release|Any CPU
