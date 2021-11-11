@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
         <LangVersion>10</LangVersion>
-        <PackageVersion>2021.9.23.2147</PackageVersion>
+        <PackageVersion>2021.1111.2254</PackageVersion>
         <Copyright>guerro323</Copyright>
         <PackageProjectUrl>https://github.com/guerro323/GameHost</PackageProjectUrl>
         <PackageLicenseUrl>https://github.com/guerro323/GameHost/blob/v3-dev/LICENSE</PackageLicenseUrl>
