@@ -11,6 +11,7 @@
         <PackageTags>hosting,host</PackageTags>
         <AssemblyName>revghost</AssemblyName>
         <RootNamespace>revghost</RootNamespace>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
     </PropertyGroup>
 
     <ItemGroup>
