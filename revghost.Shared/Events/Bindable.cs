@@ -118,7 +118,7 @@ public class Bindable<T> : IDisposable
         }
 
         if (invokeNow)
-            listener(value, value);
+            listener(Default, value);
 
         return new BindableListener<T>(new WeakReference(this, true), listener);
     }
