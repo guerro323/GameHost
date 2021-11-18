@@ -25,7 +25,7 @@ public partial struct ValueList<T>
     private void Resize(int newSize)
     {
         var length = _array?.Length ?? 0;
-        if (newSize <= length)
+        if (newSize == 0)
         {
             _array = Array.Empty<T>();
             return;
