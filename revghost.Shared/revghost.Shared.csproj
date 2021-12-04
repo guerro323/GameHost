@@ -11,6 +11,7 @@
         <PackageLicenseUrl>https://github.com/guerro323/GameHost/blob/v3-dev/LICENSE</PackageLicenseUrl>
         <RepositoryUrl>https://github.com/guerro323/GameHost</RepositoryUrl>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
 </Project>

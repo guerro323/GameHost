@@ -19,6 +19,22 @@ public partial struct ValueList<T> : IList<T>, IDisposable
         _count = 0;
     }
 
+    public ValueList(ReadOnlySpan<T> span)
+    {
+        _array = null;
+        _count = 0;
+
+        AddRange(span);
+    }
+
+    public ValueList(IEnumerable<T> enumerable)
+    {
+        _array = null;
+        _count = 0;
+        
+        AddRange(enumerable);
+    }
+
     public bool Remove(T item)
     {
         var index = IndexOf(item);
@@ -47,6 +63,36 @@ public partial struct ValueList<T> : IList<T>, IDisposable
         _array[count] = item;
     }
 
+    public void AddRange(ReadOnlySpan<T> span)
+    {
+        var count = _count;
+
+        _count += span.Length;
+        Resize(_count);
+
+        span.CopyTo(Span[count..]);
+    }
+
+    public void AddRange<TEnumerable>(TEnumerable enumerable)
+        where TEnumerable : IEnumerable<T>
+    {
+        if (enumerable is T[] array)
+        {
+            AddRange(array.AsSpan());
+            return;
+        }
+
+        if (enumerable is IList<T> list)
+        {
+            for (var i = 0; i < list.Count; i++)
+                Add(list[i]);
+            return;
+        }
+
+        foreach (var value in enumerable)
+            Add(value);
+    }
+
     public void Clear()
     {
         _count = 0;
@@ -63,7 +109,7 @@ public partial struct ValueList<T> : IList<T>, IDisposable
 
     public void CopyTo(T[] array, int arrayIndex)
     {
-        throw new NotImplementedException();
+        _array?.CopyTo(array, arrayIndex);
     }
 
     public Span<T>.Enumerator GetEnumerator() => Span.GetEnumerator();

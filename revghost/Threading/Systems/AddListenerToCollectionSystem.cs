@@ -4,6 +4,7 @@ using revghost.Domains.Time;
 using revghost.Ecs;
 using revghost.Injection.Dependencies;
 using revghost.Loop.EventSubscriber;
+using revghost.Shared.Collections;
 using revghost.Threading.Components;
 using revghost.Threading.V2;
 using revghost.Utility;
@@ -38,7 +39,9 @@ public class AddListenerToCollectionSystem : AppSystem
 
     private void OnUpdate(WorldTime worldTime)
     {
-        foreach (var entity in _listenerSet.GetEntities())
+        using var entities = new ValueList<Entity>(_listenerSet.GetEntities());
+        
+        foreach (var entity in entities)
         {
             var listener   = entity.Get<IListener>();
             var collection = entity.Get<PushToListenerCollection>().Entity.Get<ListenerCollectionBase>();
