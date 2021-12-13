@@ -41,6 +41,8 @@ public class SchedulerDependencyResolver : IDependencyResolver, IDisposable
             return true;
         
         resolver._collections.Add(collection);
+        
+        resolver._scheduler.Add(updateMethod, resolver, SchedulingParametersWithArgs.AsOnceWithArgs);
         return true;
     };
     
@@ -67,7 +69,6 @@ public class SchedulerDependencyResolver : IDependencyResolver, IDisposable
     public void Queue(IDependencyCollection collection)
     {
         _scheduler.Add(addCollection, (this, collection), SchedulingParametersWithArgs.AsOnceWithArgs);
-        _scheduler.Add(updateMethod, this, SchedulingParametersWithArgs.AsOnceWithArgs);
     }
 
     public void Dequeue(IDependencyCollection collection)
