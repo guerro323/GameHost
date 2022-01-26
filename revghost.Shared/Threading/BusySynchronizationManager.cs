@@ -42,7 +42,7 @@ namespace revghost.Shared.Threading
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Unlock()
+        public void Unlock(bool useMemoryBarrier = false)
         {
             if (_depth > 0)
             {
@@ -54,7 +54,7 @@ namespace revghost.Shared.Threading
             if (threadId != Interlocked.Exchange(ref _owner, 0))
                 throw new UnauthorizedAccessException("Unlocking failure");
             
-            Interlocked.MemoryBarrier();
+            if (useMemoryBarrier) Interlocked.MemoryBarrier();
         }
 
         public readonly struct SyncContext : IDisposable
