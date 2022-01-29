@@ -71,7 +71,7 @@ namespace revghost.Shared.Threading
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Dispose()
             {
-                _synchronizer.Unlock();
+                _synchronizer.Unlock(true);
             }
         }
     }
