@@ -5,37 +5,44 @@ namespace revghost.Shared.Collections;
 
 public partial struct ValueList<T>
 {
-    [MemberNotNull(nameof(_array))]
-    private void Allocate(int size)
+    private struct Controller
     {
-        if (_array != null)
+        public T[]? Data = Array.Empty<T>();
+        public int Count;
+        
+        [MemberNotNull(nameof(Data))]
+        private void Allocate(int size)
         {
-            ArrayPool<T>.Shared.Return(_array, _containsReference);
+            if (Data != null)
+            {
+                ArrayPool<T>.Shared.Return(Data, _containsReference);
 
-            var old = _array;
-            _array = ArrayPool<T>.Shared.Rent(size);
+                var old = Data;
+                Data = ArrayPool<T>.Shared.Rent(size);
 
-            Array.Copy(old, _array, old.Length);
+                Array.Copy(old, Data, old.Length);
+            }
+            else
+            {
+                Data = ArrayPool<T>.Shared.Rent(size);
+            }
         }
-        else {
-            _array = ArrayPool<T>.Shared.Rent(size);
-        }
-    }
 
-    [MemberNotNull(nameof(_array))]
-    private void Resize(int newSize)
-    {
-        var length = _array?.Length ?? 0;
-        if (newSize == 0)
+        [MemberNotNull(nameof(Data))]
+        public void Resize(int newSize)
         {
-            _array = Array.Empty<T>();
-            return;
+            var length = Data?.Length ?? 0;
+            if (newSize == 0)
+            {
+                Data = Array.Empty<T>();
+                return;
+            }
+
+            var target = length == 0 ? 16 : length * 2;
+            if (target < newSize)
+                target = newSize;
+
+            Allocate(target);
         }
-
-        var target = length == 0 ? 16 : length * 2;
-        if (target < newSize)
-            target = newSize;
-
-        Allocate(target);
     }
 }

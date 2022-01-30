@@ -8,30 +8,36 @@ public partial struct ValueList<T> : IList<T>, IDisposable
 {
     private static bool _containsReference = RuntimeHelpers.IsReferenceOrContainsReferences<T>();
 
-    private T[]? _array = Array.Empty<T>();
-    private int _count;
+    public Span<T> Span => _controller.Data.AsSpan(0, _controller.Count);
 
-    public Span<T> Span => _array.AsSpan(0, _count);
-
-    public ValueList(int capacity)
+    private Controller[] _controllerBacking;
+    private ref Controller _controller
     {
-        _array = ArrayPool<T>.Shared.Rent(capacity);
-        _count = 0;
+        get
+        {
+            if (_controllerBacking.Length == 0)
+                throw new InvalidOperationException("ValueList wasn't initialized correctly");
+            return ref _controllerBacking[0];
+        }
     }
 
-    public ValueList(ReadOnlySpan<T> span)
+    public ValueList()
     {
-        _array = null;
-        _count = 0;
+        _controllerBacking = ArrayPool<Controller>.Shared.Rent(1);
+    }
 
+    public ValueList(int capacity) : this()
+    {
+        _controller.Data = ArrayPool<T>.Shared.Rent(capacity);
+    }
+
+    public ValueList(ReadOnlySpan<T> span) : this()
+    {
         AddRange(span);
     }
 
-    public ValueList(IEnumerable<T> enumerable)
+    public ValueList(IEnumerable<T> enumerable) : this()
     {
-        _array = null;
-        _count = 0;
-        
         AddRange(enumerable);
     }
 
@@ -47,28 +53,31 @@ public partial struct ValueList<T> : IList<T>, IDisposable
 
     public int Count
     {
-        get => _count;
-        set => _count = value;
+        get => _controller.Count;
+        set => _controller.Count = value;
     }
 
     bool ICollection<T>.IsReadOnly => false;
 
     public void Add(T item)
     {
-        var count = _count;
+        ref var controller = ref _controller;
+        
+        var count = controller.Count;
 
-        _count += 1;
-        Resize(_count);
-
-        _array[count] = item;
+        controller.Count += 1;
+        controller.Resize(controller.Count);
+        controller.Data[count] = item;
     }
 
     public void AddRange(ReadOnlySpan<T> span)
     {
-        var count = _count;
+        ref var controller = ref _controller;
 
-        _count += span.Length;
-        Resize(_count);
+        var count = controller.Count;
+
+        controller.Count += span.Length;
+        controller.Resize(controller.Count);
 
         span.CopyTo(Span[count..]);
     }
@@ -95,8 +104,8 @@ public partial struct ValueList<T> : IList<T>, IDisposable
 
     public void Clear()
     {
-        _count = 0;
-        if (_containsReference && _array != null)
+        _controller.Count = 0;
+        if (_containsReference && _controller.Data != null)
         {
             Span.Clear();
         }
@@ -109,7 +118,7 @@ public partial struct ValueList<T> : IList<T>, IDisposable
 
     public void CopyTo(T[] array, int arrayIndex)
     {
-        _array?.CopyTo(array, arrayIndex);
+        _controller.Data?.CopyTo(array, arrayIndex);
     }
 
     public Span<T>.Enumerator GetEnumerator() => Span.GetEnumerator();
@@ -126,42 +135,42 @@ public partial struct ValueList<T> : IList<T>, IDisposable
 
     public int IndexOf(T item)
     {
-        if (_count == 0)
+        if (_controller.Count == 0)
             return -1;
 
-        return Array.IndexOf(_array!, item, 0, _count);
+        return Array.IndexOf(_controller.Data!, item, 0, _controller.Count);
     }
 
     public void Insert(int index, T item)
     {
-        if (index >= _count)
+        if (index >= _controller.Count)
         {
-            _count = index + 1;
-            Resize(_count);
+            _controller.Count = index + 1;
+            _controller.Resize(_controller.Count);
 
-            _array[index] = item;
+            _controller.Data[index] = item;
         }
         else
         {
-            Array.Copy(_array!, index, _array!, index + 1, _count - index);
-            _array![index] = item;
+            Array.Copy(_controller.Data!, index, _controller.Data!, index + 1, _controller.Count - index);
+            _controller.Data![index] = item;
         }
     }
 
     public void RemoveAt(int index)
     {
-        if (index > _count)
+        if (index > _controller.Count)
             throw new ArgumentOutOfRangeException();
 
-        _count -= 1;
-        if (index < _count)
+        _controller.Count -= 1;
+        if (index < _controller.Count)
         {
-            Array.Copy(_array!, index + 1, _array!, index, _count - index);
+            Array.Copy(_controller.Data!, index + 1, _controller.Data!, index, _controller.Count - index);
         }
 
         if (_containsReference)
         {
-            _array![index] = default!;
+            _controller.Data![index] = default!;
         }
     }
 
@@ -169,25 +178,35 @@ public partial struct ValueList<T> : IList<T>, IDisposable
     {
         get
         {
-            if (_count == 0)
+            if (_controller.Count == 0)
                 throw new IndexOutOfRangeException();
 
-            return _array![index];
+            return _controller.Data![index];
         }
         set
         {
-            if (index >= _count)
+            if (index >= _controller.Count)
                 throw new IndexOutOfRangeException();
 
-            _array![index] = value;
+            _controller.Data![index] = value;
         }
     }
 
+    public void Return()
+    {
+        if (_controller.Data != null)
+        {
+            ArrayPool<T>.Shared.Return(_controller.Data, _containsReference);
+        }
+    }
+    
     public void Dispose()
     {
-        if (_array != null)
+        if (_controller.Data != null)
         {
-            ArrayPool<T>.Shared.Return(_array, _containsReference);
+            ArrayPool<T>.Shared.Return(_controller.Data, _containsReference);
         }
+
+        ArrayPool<Controller>.Shared.Return(_controllerBacking, true);
     }
 }
