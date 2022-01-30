@@ -10,20 +10,15 @@ public partial struct ValueList<T> : IList<T>, IDisposable
 
     public Span<T> Span => _controller.Data.AsSpan(0, _controller.Count);
 
-    private Controller[] _controllerBacking;
+    private Controller[] _controllerBacking = ArrayPool<Controller>.Shared.Rent(1);
     private ref Controller _controller
     {
         get
         {
-            if (_controllerBacking.Length == 0)
+            if (_controllerBacking == null || _controllerBacking.Length == 0)
                 throw new InvalidOperationException("ValueList wasn't initialized correctly");
             return ref _controllerBacking[0];
         }
-    }
-
-    public ValueList()
-    {
-        _controllerBacking = ArrayPool<Controller>.Shared.Rent(1);
     }
 
     public ValueList(int capacity) : this()
