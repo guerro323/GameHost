@@ -17,8 +17,9 @@ public partial struct ValueList<T>
 
             Array.Copy(old, _array, old.Length);
         }
-
-        _array = ArrayPool<T>.Shared.Rent(size);
+        else {
+            _array = ArrayPool<T>.Shared.Rent(size);
+        }
     }
 
     [MemberNotNull(nameof(_array))]
