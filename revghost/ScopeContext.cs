@@ -56,14 +56,20 @@ public class ChildScopeContext : ScopeContext
 
     public override void Dispose()
     {
-        Parent.Disposed -= Dispose;
-        Parent = null;
+        if (Parent != null)
+        {
+            Parent.Disposed -= Dispose;
+            Parent = null;
+        }
 
         base.Dispose();
     }
 
     public override bool TryGet(Type type, out object obj)
     {
+        if (Parent == null)
+            throw new InvalidOperationException("This context was disposed");
+        
         return base.TryGet(type, out obj) || Parent.TryGet(type, out obj);
     }
 }

@@ -17,6 +17,8 @@ namespace revghost.Module.Systems;
 
 public class GatherModuleSystem : AppSystem
 {
+    private static readonly HostLogger _logger = new HostLogger(nameof(GatherModuleSystem));
+
     private readonly Dictionary<string, IPhysicalModuleWatcher> _moduleWatchers = new();
 
     private World _world;
@@ -98,7 +100,7 @@ public class GatherModuleSystem : AppSystem
             version ??= "0.0";
             targetType ??= string.Empty;
 
-            Console.WriteLine(
+            _logger.Info(
                 $"Detected Module Config! Type={type.Value} Name={name} Author={author} Version={version} Path={moduleFile.FullName}"
             );
 

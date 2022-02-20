@@ -9,6 +9,12 @@ public partial struct ValueList<T>
     {
         public T[]? Data = Array.Empty<T>();
         public int Count;
+
+        public Controller()
+        {
+            Data = Array.Empty<T>();
+            Count = 0;
+        }
         
         [MemberNotNull(nameof(Data))]
         private void Allocate(int size)

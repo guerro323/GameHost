@@ -24,6 +24,8 @@ public class GhostRunner : IDisposable
 
     public void Dispose()
     {
+        Domain.Dispose();
+        Scope.Dispose();
     }
 
     public bool Loop()

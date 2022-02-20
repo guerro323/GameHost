@@ -40,6 +40,42 @@ public class ModuleManager : AppSystem
         Disposables.Add(_moduleSet);
     }
 
+    protected override void OnDispose()
+    {
+        base.OnDispose();
+
+        _scheduler = new ConcurrentScheduler();
+        foreach (var module in _moduleSet.Keys)
+        {
+            var ent = _moduleSet[module];
+            // skip ghost module
+            if (module.Group == "GameHost" && module.Name == "Entry")
+                continue;
+            // skip main module
+            if (!ent.Has<AssemblyLoadContext>())
+                continue;
+
+            if (ent.Get<ModuleState>() == ModuleState.Loaded)
+            {
+                UnloadModule(ent);
+            }
+        }
+
+        for (var i = 0; i < 150; i++)
+        {
+            try
+            {
+                ((ConcurrentScheduler) _scheduler).Run();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex.ToString(), "final_unload");
+            }
+        }
+        
+        ((ConcurrentScheduler) _scheduler).Dispose();
+    }
+
     public Entity GetOrCreate(string moduleGroup, string moduleName)
     {
         var description = new HostModuleDescription(moduleGroup, moduleName);
@@ -190,7 +226,7 @@ public class ModuleManager : AppSystem
             assemblyLoadContext = new ModuleAssemblyLoadContext();
             entity.Set(assemblyLoadContext);
         }
-
+        
         if (entity.Has<AssemblyName>())
             asm = assemblyLoadContext.LoadFromAssemblyName(entity.Get<AssemblyName>());
         else if (entity.Has<IFile>())

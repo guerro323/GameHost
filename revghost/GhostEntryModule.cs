@@ -16,17 +16,26 @@ public class GhostEntryModule : HostModule
     {
         _hostScope = scope;
 
-        _hostScope.Context.Register(new ModuleManager(_hostScope));
-        _hostScope.Context.Register(new ManageModuleRequestSystem(_hostScope));
-        _hostScope.Context.Register(new GatherModuleSystem(_hostScope));
-        _hostScope.Context.Register(new ReloadModuleOnFileChangeSystem(_hostScope));
-        _hostScope.Context.Register(new AddListenerToCollectionSystem(_hostScope));
-        _hostScope.Context.Register(new RemoveDisposedListenerCollectionsSystem(_hostScope));
-        _hostScope.Context.Register(new UpdateLocalThreadedCollectionSystem(_hostScope));
+        void add<T>(T t)
+            where T : IDisposable
+        {
+            _hostScope.Context.Register(t);
+            Disposables.Add(t);
+        }
+
+        add(new ModuleManager(_hostScope));
+        add(new ManageModuleRequestSystem(_hostScope));
+        add(new GatherModuleSystem(_hostScope));
+        add(new ReloadModuleOnFileChangeSystem(_hostScope));
+        add(new AddListenerToCollectionSystem(_hostScope));
+        add(new RemoveDisposedListenerCollectionsSystem(_hostScope));
+        add(new UpdateLocalThreadedCollectionSystem(_hostScope));
 
         // This module should only be finalized once these systems are fullfilled dependency wise
         Dependencies.Add(new Dependency(typeof(ModuleManager)));
         Dependencies.Add(new Dependency(typeof(ManageModuleRequestSystem)));
+
+        _hostScope.Context.Disposed += Dispose;
     }
 
     protected override void OnInit()
