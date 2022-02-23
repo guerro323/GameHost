@@ -18,32 +18,15 @@ public struct OrderBuilder
         Group = group;
     }
 
-    public OrderBuilder Position(OrderPosition position)
-    {
-        Element.Position = position;
-        return this;
-    }
-
     public OrderBuilder After(Entity other)
     {
-        Group.Calculate(other);
-
-        Element.Index = Math.Max(Element.Index, other.Get<OrderElement>().Index + 1);
+        Element.Dependencies.Add(other);
         return this;
     }
 
     public OrderBuilder Before(Entity other)
     {
-        Group.Calculate(other);
-
-        Element.Index = Math.Min(Element.Index, other.Get<OrderElement>().Index - 1);
+        other.Get<OrderElement>().Dependencies.Add(View);
         return this;
     }
-}
-
-public enum OrderPosition
-{
-    AtBeginning,
-    AtMiddle,
-    AtEnd
 }

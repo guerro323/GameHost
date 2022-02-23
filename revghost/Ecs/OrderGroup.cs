@@ -1,7 +1,9 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using Collections.Pooled;
 using DefaultEcs;
+using revghost.Injection.Dependencies;
 using revghost.Shared;
 using revghost.Utility;
 
@@ -13,8 +15,6 @@ public class OrderGroup : IDisposable
     public readonly World World;
 
     public Span<Entity> Entities => _entities.Span;
-
-    private EntityMap<OrderElementName> _elementNameMap;
 
     // the goal was to originally use an EntitySet, but it use a bit more memory, and entities may not be in order of creation (because of pooling)
     private PooledList<Entity> _entities = new();
@@ -33,21 +33,6 @@ public class OrderGroup : IDisposable
             if (_entities.Remove(entity))
                 _isDirty = true;
         });
-
-        // If it's a custom world, then we add predicates for OrderGroup (since there could be multiple ones
-        if (IsCustomWorld)
-        {
-            _elementNameMap = World.GetEntities()
-                .With((in OrderGroup c) => c == this)
-                .With<OrderElement>()
-                .AsMap<OrderElementName>();
-        }
-        else
-        {
-            _elementNameMap = World.GetEntities()
-                .With<OrderElement>()
-                .AsMap<OrderElementName>();
-        }
     }
 
     public Entity Add(ProcessOrder? processOrder)
@@ -55,13 +40,15 @@ public class OrderGroup : IDisposable
         var entity = World.CreateEntity();
         entity.Set(processOrder ?? (_ => { }));
         entity.Set(new OrderElement());
-        entity.Set(new OrderElementFinalIndex());
 
         _entities.Add(entity);
         _isDirty = true;
 
         return entity;
     }
+
+    private HashSet<Entity> _isMarked = new();
+    private HashSet<Entity> _circularPrevention = new();
 
     public bool Build(bool forceBuild = false)
     {
@@ -71,6 +58,7 @@ public class OrderGroup : IDisposable
         }
 
         _isDirty = false;
+        _isMarked.Clear();
 
         foreach (var entity in _entities)
             entity.Get<OrderElement>().Clear();
@@ -78,21 +66,36 @@ public class OrderGroup : IDisposable
         foreach (var entity in _entities)
             Calculate(entity);
 
-        using (DisposableArray<FinalOrder>.Rent(_entities.Count, out var finalArray))
+        using (DisposableArray<Entity>.Rent(_entities.Count, out var sortedArray))
         {
-            var span = finalArray.AsSpan(0, _entities.Count);
-            for (var i = 0; i < _entities.Count; i++)
+            var span = sortedArray.AsSpan(0, _entities.Count);
+            var crawl = 0;
+            
+            _circularPrevention.Clear();
+            foreach (var entity in _entities)
             {
-                var element = _entities[i].Get<OrderElement>();
-                span[i] = new FinalOrder(element.Index, element.Position, _entities[i]);
+                if (!Crawl(entity, ref crawl, span))
+                {
+                    return false;
+                }
             }
 
-            span.Sort();
-                
+            if (_entities.Count != crawl)
+            {
+                HostLogger.Output.Error("Unmatched crawling, perhaps there was a circular dependency?", "OrderGroup");
+                foreach (var entity in _entities)
+                {
+                    if (_isMarked.Contains(entity)) continue;
+                    
+                    HostLogger.Output.Error($"{entity} was not sorted");
+                }
+
+                return false;
+            }
+            
             for (var i = 0; i < span.Length; i++)
             {
-                span[i].Entity.Get<OrderElementFinalIndex>().Value = i;
-                _entities[i] = span[i].Entity;
+                _entities[i] = span[i];
             }
         }
 
@@ -103,39 +106,43 @@ public class OrderGroup : IDisposable
     {
         if (IsCustomWorld)
             World.Dispose();
-
-        _elementNameMap.Dispose();
-
+        
         _entityDisposedMessage.Dispose();
     }
 
     public void Calculate(Entity entity)
     {
-        if (entity.Get<OrderElement>()._stateCalculated)
-            return;
-
         var builder = new OrderBuilder(entity, entity.Get<OrderElement>(), this);
         entity.Get<ProcessOrder>()(builder);
     }
-
-    private struct FinalOrder : IComparable<FinalOrder>
+    
+    private bool Crawl(Entity entity, ref int crawl, Span<Entity> sort)
     {
-        public int Index;
-        public OrderPosition Position;
-        public Entity Entity;
-
-        public FinalOrder(int index, OrderPosition position, Entity entity)
+        var element = entity.Get<OrderElement>();
+        if (_isMarked.Contains(entity))
+            return true;
+        
+        if (_circularPrevention.Contains(entity))
         {
-            Index = index;
-            Position = position;
-            Entity = entity;
+            HostLogger.Output.Error($"{entity} was in a circular dependency");
+            return false;
+        }
+        
+        _circularPrevention.Add(entity);
+        
+        foreach (var dep in element.Dependencies)
+        {
+            if (!Crawl(dep, ref crawl, sort))
+            {
+                HostLogger.Output.Error($"Couldn't crawl {entity}", "OrderGroup");
+                return false;
+            }
         }
 
-        public int CompareTo(FinalOrder other)
-        {
-            var indexComparison = Index.CompareTo(other.Index);
-            if (indexComparison != 0) return indexComparison;
-            return ((int) Position).CompareTo((int) other.Position);
-        }
+        _isMarked.Add(entity);
+        _circularPrevention.Remove(entity);
+        
+        sort[crawl++] = entity;
+        return true;
     }
 }
