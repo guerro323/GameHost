@@ -110,12 +110,17 @@ public class OrderGroup : IDisposable
         _entityDisposedMessage.Dispose();
     }
 
-    public void Calculate(Entity entity)
+    private void Calculate(Entity entity)
     {
         var builder = new OrderBuilder(entity, entity.Get<OrderElement>(), this);
         entity.Get<ProcessOrder>()(builder);
     }
     
+    // very simple algorithm:
+    // 1. Marked entities are skipped
+    // 2. We check if the entity was already being crawled, and if it does it's a circular dep error
+    // 3. Crawl into dependencies, and early return if there was a circular dependency.
+    // 4. Mark the entity and add it to the sort span
     private bool Crawl(Entity entity, ref int crawl, Span<Entity> sort)
     {
         var element = entity.Get<OrderElement>();
