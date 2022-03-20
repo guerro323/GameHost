@@ -120,7 +120,12 @@ public class DependencyCollection : IDependencyCollection, IHasDependencies, IDi
             onFinalList.Clear();
         }
 
-        return Queued.Count == 0;
+        if (Queued.Count != 0) 
+            return true;
+        
+        canStillBeResolvedSynchronously = false;
+        return false;
+
     }
 
     public void Dispose()

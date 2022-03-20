@@ -21,7 +21,8 @@ public class SchedulerDependencyResolver : IDependencyResolver, IDisposable
             bool wantToContinue;
             do
             {
-                collection.TryResolve(out wantToContinue);
+                if (!collection.TryResolve(out wantToContinue))
+                    break;
             } while (wantToContinue);
 
             if (collection.Dependencies.IsEmpty)
