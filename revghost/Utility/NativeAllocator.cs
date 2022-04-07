@@ -28,7 +28,7 @@ public unsafe struct NativeAllocator : IDisposable
     /// <typeparam name="T">The type of the managed object</typeparam>
     /// <returns>Return the managed object on native memory</returns>
     /// <remarks><see cref="additionalSize"/> can be used for strings (<see cref="NativeAllocatorExtensions.AllocString"/>)</remarks>
-    public T AllocZeroed<T>(int additionalSize = 0)
+    public readonly T AllocZeroed<T>(int additionalSize = 0)
     {
         var size = (nuint) (((int*) typeof(T).TypeHandle.Value)![1] + additionalSize);
         var memory = (byte*) Context->Alloc(ref *Context, ContextManagedObject, size);
@@ -47,7 +47,7 @@ public unsafe struct NativeAllocator : IDisposable
     /// <typeparam name="T">The type of the managed object</typeparam>
     /// <returns>Return the managed object on native memory</returns>
     /// <remarks><see cref="additionalSize"/> can be used for strings (<see cref="NativeAllocatorExtensions.AllocString"/>)</remarks>
-    public readonly T Alloc<T>(int additionalSize = 0)
+    public readonly T New<T>(int additionalSize = 0)
     {
         var size = (nuint) (((int*) typeof(T).TypeHandle.Value)![1] + additionalSize);
         var memory = (byte*) Context->Alloc(ref *Context, ContextManagedObject, size);
@@ -73,7 +73,7 @@ public unsafe struct NativeAllocator : IDisposable
     /// <param name="obj">The object to free</param>
     /// <typeparam name="T">The type of the managed object</typeparam>
     /// <returns>Whether or not it was successfully freed (if you don't use a tracking allocator the result will always be true)</returns>
-    public bool Free<T>(ref T obj)
+    public readonly bool Free<T>(ref T obj)
     {
         if (obj == null)
             return false;
@@ -126,7 +126,7 @@ public unsafe struct NativeAllocator : IDisposable
     /// <param name="data">Must be created from <see cref="NativeMemory.Alloc"/></param>
     /// <param name="managedObjectCompanion">Managed object that can be used as a companion for allocator methods</param>
     /// <returns>A new <see cref="NativeAllocator"/></returns>
-    public static NativeAllocator CreateContext(ref Data data, object managedObjectCompanion = null)
+    public static NativeAllocator CreateCustomContext(ref Data data, object managedObjectCompanion = null)
     {
         NativeAllocator allocator;
         allocator.Context = (Data*) Unsafe.AsPointer(ref data);
@@ -179,9 +179,9 @@ public unsafe struct NativeAllocator : IDisposable
 
 public static class NativeAllocatorExtensions
 {
-    public static string AllocString(this in NativeAllocator allocator, int size)
+    public static string NewString(this in NativeAllocator allocator, int size)
     {
-        var str = allocator.Alloc<string>((size + 1) * sizeof(char));
+        var str = allocator.New<string>((size + 1) * sizeof(char));
         var memorySpan = MemoryMarshal.CreateSpan(
             ref allocator.GetObjectBaseMemory(str),
             // Header + Length + FirstChar
@@ -195,12 +195,47 @@ public static class NativeAllocatorExtensions
         return str;
     }
 
-    public static string AllocString(this in NativeAllocator allocator, ReadOnlySpan<char> chars)
+    public static string NewString(this in NativeAllocator allocator, ReadOnlySpan<char> chars)
     {
-        var str = AllocString(allocator, chars.Length);
+        var str = NewString(allocator, chars.Length);
         var span = MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference(str.AsSpan()), chars.Length);
         chars.CopyTo(span);
 
         return str;
+    }
+
+    public static string Join(this in NativeAllocator allocator, ReadOnlySpan<char> left, ReadOnlySpan<char> right)
+    {
+        var final = NewString(allocator, left.Length + right.Length);
+        var span = MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference(final.AsSpan()), final.Length);
+        
+        left.CopyTo(span[..left.Length]);
+        right.CopyTo(span.Slice(left.Length, right.Length));
+
+        return final;
+    }
+
+    public static GuardAllocation<T> GuardAlloc<T>(this in NativeAllocator allocator)
+    {
+        return new GuardAllocation<T>(allocator, allocator.AllocZeroed<T>());
+    }
+}
+
+public unsafe struct GuardAllocation<T> : IDisposable
+{
+    private NativeAllocator _allocator;
+    private object _object;
+
+    public GuardAllocation(NativeAllocator allocator, object obj)
+    {
+        _allocator = allocator;
+        _object = obj;
+    }
+
+    public T Value => Unsafe.As<object, T>(ref Unsafe.AsRef<GuardAllocation<T>>(Unsafe.AsPointer(ref this))._object);
+
+    public void Dispose()
+    {
+        _allocator.Dispose();
     }
 }
