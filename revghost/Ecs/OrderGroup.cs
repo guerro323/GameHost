@@ -23,7 +23,7 @@ public class OrderGroup : IDisposable
 
     private bool _isDirty;
 
-    public OrderGroup(World customWorld = null)
+    public OrderGroup(World? customWorld = null)
     {
         IsCustomWorld = customWorld != null;
         World = customWorld ?? new World();
@@ -104,9 +104,12 @@ public class OrderGroup : IDisposable
 
     public void Dispose()
     {
-        if (IsCustomWorld)
+        if (!IsCustomWorld)
+        {
+            HostLogger.Output.Info("Disposed OrderGroup non-custom world");
             World.Dispose();
-        
+        }
+
         _entityDisposedMessage.Dispose();
     }
 

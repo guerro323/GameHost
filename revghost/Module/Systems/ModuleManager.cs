@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -155,9 +156,12 @@ public class ModuleManager : AppSystem
                     return;
                 }
 
-                args.entity.Get<ModuleState>() = ModuleState.Zombie;
-                throw new InvalidOperationException(
-                    $"Module '{args.entity.Get<HostModuleDescription>().ToPath()}' couldn't be unloaded!"
+                args.entity.Get<ModuleState>() = ModuleState.None; // Don't set to zombie
+
+                HostLogger.Output.Error(
+                    $"Module '{args.entity.Get<HostModuleDescription>().ToPath()}' couldn't be unloaded!",
+                    "ModuleManager",
+                    "module-unload-final"
                 );
             }
 
@@ -208,6 +212,8 @@ public class ModuleManager : AppSystem
         // Fast creation path
         if (entity.Has<LoadModuleList>())
         {
+            HostLogger.Output.Info($"Loading module {entity.Get<HostModuleDescription>().ToPath()} via fast path", "module-load");
+            
             module = entity.Get<LoadModuleList>().List.Last()(_hostScope);
             entity.Set(module.GetType().Assembly);
             entity.Set(module);
@@ -220,17 +226,63 @@ public class ModuleManager : AppSystem
         Assembly asm;
         AssemblyLoadContext assemblyLoadContext;
         if (entity.Has<AssemblyLoadContext>())
+        {
+            HostLogger.Output.Info($"Module {entity.Get<HostModuleDescription>().ToPath()} set with existing assembly context", "module-load");
             assemblyLoadContext = entity.Get<AssemblyLoadContext>();
+        }
         else
         {
+            HostLogger.Output.Info($"Module {entity.Get<HostModuleDescription>().ToPath()} set with new assembly context", "module-load");
+            
             assemblyLoadContext = new ModuleAssemblyLoadContext();
             entity.Set(assemblyLoadContext);
         }
-        
+
         if (entity.Has<AssemblyName>())
+        {
+            HostLogger.Output.Info($"Loading module {entity.Get<HostModuleDescription>().ToPath()} via AssemblyName", "module-load");
             asm = assemblyLoadContext.LoadFromAssemblyName(entity.Get<AssemblyName>());
+        }
         else if (entity.Has<IFile>())
-            asm = assemblyLoadContext.LoadFromAssemblyPath(entity.Get<IFile>().FullName);
+        {   
+            HostLogger.Output.Info($"Loading module {entity.Get<HostModuleDescription>().ToPath()} via file '{entity.Get<IFile>().FullName}'", "module-load");
+            using var bytes = entity.Get<IFile>().GetPooledBytes();
+            using var stream = new MemoryStream(bytes.ToArray());
+
+            var file = entity.Get<IFile>();
+            var resolving = (AssemblyLoadContext context, AssemblyName name) =>
+            {
+                var directory = Path.GetDirectoryName(file.FullName);
+                var filename = name.Name.Split(',')[0] + ".dll".ToLower();
+                var asmFile = Path.Combine(directory, filename);
+
+                var resolver = new AssemblyDependencyResolver(file.FullName);
+                var asmPath = resolver.ResolveAssemblyToPath(name);
+                
+                HostLogger.Output.Info("Resolved to path:  " + asmPath);
+
+                try
+                {
+                    var bytes = File.ReadAllBytes(asmPath);
+                    using var stream = new MemoryStream(bytes);
+                    
+                    var asm = context.LoadFromStream(stream);
+                    return asm;
+                }
+                catch (Exception ex)
+                {
+                    HostLogger.Output.Error(
+                        $"Couldn't load directly {filename} in phase 1",
+                        "ModuleManager",
+                        "module-load");
+
+                    return null;
+                }
+            };
+            assemblyLoadContext.Resolving += resolving;
+            
+            asm = assemblyLoadContext.LoadFromStream(stream);
+        }
         else
             throw new InvalidOperationException(
                 $"Loading module {entity} but there is neither an {nameof(LoadModuleList)}, {nameof(AssemblyName)} or {nameof(IFile)}!"

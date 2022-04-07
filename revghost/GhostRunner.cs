@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.Loader;
 using DefaultEcs;
 using revghost.Domains;
 using revghost.Injection;
@@ -6,6 +7,7 @@ using revghost.IO.Storage;
 using revghost.Module.Storage;
 using revghost.Shared.Threading.Schedulers;
 using revghost.Threading;
+using revghost.Utility;
 
 namespace revghost;
 
@@ -24,8 +26,36 @@ public class GhostRunner : IDisposable
 
     public void Dispose()
     {
+        HostLogger.Output.Info("Disposing GhostRunner");
+        
         Domain.Dispose();
         Scope.Dispose();
+
+        foreach (var ctx in AssemblyLoadContext.All)
+        {
+            if (!ctx.IsCollectible)
+            {
+                HostLogger.Output.Info(
+                    $"Not possible to unload assembly context '{ctx.Name}' because it wasn't collectible. Contains:\n" +
+                    $"{string.Join(",\n", ctx.Assemblies)}");
+                continue;
+            }
+
+            try
+            {
+                HostLogger.Output.Info(
+                    $"Trying to unload assembly context '{ctx.Name}' at the runner disposal. Contains:\n" +
+                    $"{string.Join(",\n", ctx.Assemblies)}");
+                
+                ctx.Unload();
+            }
+            catch (Exception ex)
+            {
+                HostLogger.Output.Info(
+                    $"(!) Couldn't unload an assembly context '{ctx.Name}' at the runner disposal! Contains:\n" +
+                    $"{string.Join(",\n", ctx.Assemblies)}");
+            }
+        }
     }
 
     public bool Loop()
