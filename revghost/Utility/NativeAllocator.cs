@@ -6,6 +6,9 @@ using System.Runtime.InteropServices;
 
 namespace revghost.Utility;
 
+/// <summary>
+/// Allocator that allocate managed object in native memory
+/// </summary>
 public unsafe struct NativeAllocator : IDisposable
 {
     public struct Data
@@ -18,6 +21,13 @@ public unsafe struct NativeAllocator : IDisposable
     internal Data* Context;
     internal object ContextManagedObject;
     
+    /// <summary>
+    /// Allocate an object and zero its memory
+    /// </summary>
+    /// <param name="additionalSize">The additional size to add to the object</param>
+    /// <typeparam name="T">The type of the managed object</typeparam>
+    /// <returns>Return the managed object on native memory</returns>
+    /// <remarks><see cref="additionalSize"/> can be used for strings (<see cref="NativeAllocatorExtensions.AllocString"/>)</remarks>
     public T AllocZeroed<T>(int additionalSize = 0)
     {
         var size = (nuint) (((int*) typeof(T).TypeHandle.Value)![1] + additionalSize);
@@ -30,6 +40,13 @@ public unsafe struct NativeAllocator : IDisposable
         return Unsafe.AsRef<T>(&memory);
     }
 
+    /// <summary>
+    /// Allocate an object with garbage memory
+    /// </summary>
+    /// <param name="additionalSize">The additional size to add to the object</param>
+    /// <typeparam name="T">The type of the managed object</typeparam>
+    /// <returns>Return the managed object on native memory</returns>
+    /// <remarks><see cref="additionalSize"/> can be used for strings (<see cref="NativeAllocatorExtensions.AllocString"/>)</remarks>
     public readonly T Alloc<T>(int additionalSize = 0)
     {
         var size = (nuint) (((int*) typeof(T).TypeHandle.Value)![1] + additionalSize);
@@ -40,11 +57,22 @@ public unsafe struct NativeAllocator : IDisposable
         return Unsafe.AsRef<T>(&memory);
     }
     
+    /// <summary>
+    /// Get the base memory of an object (past of its header)
+    /// </summary>
+    /// <param name="obj">The object to get the memory pointer from</param>
+    /// <returns>The pointer to the object memory</returns>
     public readonly ref byte GetObjectBaseMemory(object obj)
     {
         return ref *(byte*) Unsafe.As<object, IntPtr>(ref obj);
     }
 
+    /// <summary>
+    /// Free an object
+    /// </summary>
+    /// <param name="obj">The object to free</param>
+    /// <typeparam name="T">The type of the managed object</typeparam>
+    /// <returns>Whether or not it was successfully freed (if you don't use a tracking allocator the result will always be true)</returns>
     public bool Free<T>(ref T obj)
     {
         if (obj == null)
@@ -64,6 +92,9 @@ public unsafe struct NativeAllocator : IDisposable
         return Context->Free(ref *Context, ContextManagedObject, Unsafe.AsPointer(ref memory));
     }
 
+    /// <summary>
+    /// Dispose a <see cref="NativeAllocator"/> and its context
+    /// </summary>
     public void Dispose()
     {
         if (Context->Dispose != null)
@@ -72,6 +103,11 @@ public unsafe struct NativeAllocator : IDisposable
         NativeMemory.Free(Context);
     }
 
+    /// <summary>
+    /// Create a new <see cref="NativeAllocator"/> context
+    /// </summary>
+    /// <param name="tracking">Whether or not allocation should be tracked</param>
+    /// <returns>A new <see cref="NativeAllocator"/></returns>
     public static NativeAllocator CreateContext(bool tracking = true)
     {
         NativeAllocator allocator;
@@ -84,6 +120,12 @@ public unsafe struct NativeAllocator : IDisposable
         return allocator;
     }
 
+    /// <summary>
+    /// Create a custom <see cref="NativeAllocator"/> context
+    /// </summary>
+    /// <param name="data">Must be created from <see cref="NativeMemory.Alloc"/></param>
+    /// <param name="managedObjectCompanion">Managed object that can be used as a companion for allocator methods</param>
+    /// <returns>A new <see cref="NativeAllocator"/></returns>
     public static NativeAllocator CreateContext(ref Data data, object managedObjectCompanion = null)
     {
         NativeAllocator allocator;
