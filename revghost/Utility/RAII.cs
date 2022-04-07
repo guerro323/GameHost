@@ -1,22 +1,34 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace revghost.Utility;
 
 public static unsafe class RAII
 {
+    public enum DebugReferenceOption
+    {
+        None,
+        Simple,
+        Full
+    }
+    
     public static readonly NativeAllocator Allocator;
 
     public static bool IsTracking = true;
+    public static bool DebugMemory = false;
+    public static DebugReferenceOption DebugReference = DebugReferenceOption.None;
 
     private struct Information
     {
         
     }
 
-    private static readonly Dictionary<IntPtr, Information> Tracked = new();
+    private static readonly ConcurrentDictionary<IntPtr, Information> Tracked = new();
 
     private static readonly NativeAllocator.Data MethodTable = new()
     {
@@ -48,14 +60,44 @@ public static unsafe class RAII
 
     public static void Increment(object obj)
     {
-        GetCounter(obj) += 1;
+        var result = Interlocked.Increment(ref GetCounter(obj));
+        if (DebugReference != DebugReferenceOption.None)
+        {
+            var additional = string.Empty;
+            if (DebugReference == DebugReferenceOption.Full)
+            {
+                var stackTrace = new StackTrace(1, true);
+                additional = $"\n{stackTrace}";
+            }
+            
+            var ptr = Unsafe.As<object, IntPtr>(ref obj);
+            HostLogger.Output.Info(
+                $"Increment {IntPtr.Subtract(ptr, sizeof(int))}, count={result}{additional}",
+                "RAII",
+                "ref/inc");
+        }
     }
 
     public static bool Decrement(object obj)
     {
-        ref var counter = ref GetCounter(obj);
-        counter -= 1;
-        if (counter <= 0)
+        var result = Interlocked.Decrement(ref GetCounter(obj));
+        if (DebugReference != DebugReferenceOption.None)
+        {
+            var additional = string.Empty;
+            if (DebugReference == DebugReferenceOption.Full)
+            {
+                var stackTrace = new StackTrace(1, true);
+                additional = $"\n{stackTrace}";
+            }
+            
+            var ptr = Unsafe.As<object, IntPtr>(ref obj);
+            HostLogger.Output.Info(
+                $"Decrement {IntPtr.Subtract(ptr, sizeof(int))}, count={result}{additional}",
+                "RAII",
+                "ref/dec");
+        }
+        
+        if (result <= 0)
         {
             Allocator.Free(ref obj);
             return true;
@@ -68,10 +110,17 @@ public static unsafe class RAII
     {
         var memory = (byte*) NativeMemory.Alloc(size + sizeof(int));
         Unsafe.AsRef<int>(memory) = 0;
+
+        if (DebugMemory)
+        {
+            HostLogger.Output.Info(
+                $"Allocated pointer at: {(IntPtr) memory} (size={size})",
+                "RAII",
+                "alloc");
+        }
         
-        Console.WriteLine($"alloc at {(IntPtr) memory}");
-        
-        Tracked.Add((IntPtr) memory, new Information());
+        if (!Tracked.TryAdd((IntPtr) memory, new Information()))
+            throw new InvalidOperationException("invalid synchronization");
 
         return memory + sizeof(int);
     }
@@ -79,22 +128,54 @@ public static unsafe class RAII
     private static bool Free(ref NativeAllocator.Data data, object companion, void* ptr)
     {
         var managedPtr = (IntPtr) (byte*) ptr - sizeof(int);
-        Console.WriteLine($"free at {managedPtr}");
-
         if (Tracked.ContainsKey(managedPtr))
         {
             NativeMemory.Free((byte*) ptr - sizeof(int));
-            Tracked.Remove(managedPtr);
-            
+            Tracked.TryRemove(managedPtr, out _);
+
+            if (DebugMemory)
+            {
+                HostLogger.Output.Info(
+                    $"Freed tracked pointer: {managedPtr}",
+                    "RAII",
+                    "free/success");
+            }
+
             return true;
         }
-        
+
+        if (DebugMemory)
+        {
+            HostLogger.Output.Warn(
+                $"Tried to freed an address that wasn't tracked: {managedPtr}",
+                "RAII",
+                "free/not-tracked");
+        }
+
         return false;
     }
 
     private static void Dispose(ref NativeAllocator.Data data, object companion)
     {
         
+    }
+
+    public static void ReadTracked<TList>(TList list)
+        where TList : IList<TrackedInfo>
+    {
+        foreach (var (address, info) in Tracked)
+        {
+            list.Add(new TrackedInfo
+            {
+                Address = address
+            });
+        }
+    }
+
+    public struct TrackedInfo
+    {
+        public IntPtr Address;
+        public StackTrace? StackTrace;
     }
 }
 
@@ -125,7 +206,7 @@ public unsafe struct RefClass<T> : IDisposable
         _creationAddr = currentAddr;
     }
 
-    public void Create()
+    internal void CoreCreate()
     {
         StructuralChange();
 
@@ -133,7 +214,23 @@ public unsafe struct RefClass<T> : IDisposable
         RAII.Increment(_object);
     }
 
-    public void Set(T replace)
+    [StackTraceHidden]
+    internal void CoreSetNoIncrement(T replace)
+    {
+        StructuralChange();
+        
+        var previous = _object;
+
+        _object = replace;
+
+        if (RAII.IsRAIIObject(previous))
+        {
+            RAII.Decrement(previous);
+        }
+    }
+    
+    [StackTraceHidden]
+    internal void CoreSet(T replace)
     {
         StructuralChange();
         
@@ -150,7 +247,27 @@ public unsafe struct RefClass<T> : IDisposable
             RAII.Decrement(previous);
         }
     }
+    
+    [StackTraceHidden]
+    internal void CoreSet(RefClass<T> replace)
+    {
+        StructuralChange();
+        
+        var previous = _object;
+        if (RAII.IsRAIIObject(replace._object))
+        {
+            RAII.Increment(replace._object);
+        }
 
+        _object = replace._object;
+
+        if (RAII.IsRAIIObject(previous))
+        {
+            RAII.Decrement(previous);
+        }
+    }
+
+    [StackTraceHidden]
     public T Get()
     {
         if (RAII.IsRAIIObject(_object))
@@ -166,6 +283,7 @@ public unsafe struct RefClass<T> : IDisposable
         return _object;
     }
 
+    [StackTraceHidden]
     public TRet Act<TArg, TRet>(Func<T, TArg, TRet> func, TArg arg)
     {
         TRet ret;
@@ -183,6 +301,7 @@ public unsafe struct RefClass<T> : IDisposable
         return ret;
     }
 
+    [StackTraceHidden]
     public TRet Act<TRet>(Func<T, TRet> func)
     {
         TRet ret;
@@ -200,6 +319,7 @@ public unsafe struct RefClass<T> : IDisposable
         return ret;
     }
 
+    [StackTraceHidden]
     public void Act<TArg>(Action<T, TArg> action, TArg arg)
     {
         if (RAII.IsRAIIObject(_object))
@@ -214,6 +334,7 @@ public unsafe struct RefClass<T> : IDisposable
         }
     }
 
+    [StackTraceHidden]
     public void Act(Action<T> action)
     {
         if (RAII.IsRAIIObject(_object))
@@ -235,12 +356,40 @@ public unsafe struct RefClass<T> : IDisposable
             RAII.Decrement(_object);
         }
     }
+}
 
-    public static implicit operator RefClass<T>(T obj)
+public static class RefClass
+{
+    public static RefClass<T> Return<T>(T obj) where T : class
     {
         var ret = new RefClass<T>();
-        ret.Set(obj);
-
+        ret.CoreSet(obj);
+        
         return ret;
+    }
+    
+    public static RefClass<T> Argument<T>(T obj) where T : class
+    {
+        var ret = new RefClass<T>();
+        ret.CoreSetNoIncrement(obj);
+        
+        return ret;
+    }
+}
+
+public static class RefClassExtension
+{
+    [StackTraceHidden]
+    public static void Set<T>(this in RefClass<T> refClass, T obj) where T : class
+    {
+        ref var bypassReadonly = ref Unsafe.AsRef(in refClass);
+        bypassReadonly.CoreSet(obj);
+    }
+    
+    [StackTraceHidden]
+    public static void Set<T>(this in RefClass<T> refClass, RefClass<T> other) where T : class
+    {
+        ref var bypassReadonly = ref Unsafe.AsRef(in refClass);
+        bypassReadonly.CoreSet(other);
     }
 }

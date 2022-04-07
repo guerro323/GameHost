@@ -28,7 +28,8 @@ public unsafe struct NativeAllocator : IDisposable
     /// <typeparam name="T">The type of the managed object</typeparam>
     /// <returns>Return the managed object on native memory</returns>
     /// <remarks><see cref="additionalSize"/> can be used for strings (<see cref="NativeAllocatorExtensions.AllocString"/>)</remarks>
-    public readonly T AllocZeroed<T>(int additionalSize = 0)
+    public readonly T NewZeroed<T>(int additionalSize = 0)
+        where T : class
     {
         var size = (nuint) (((int*) typeof(T).TypeHandle.Value)![1] + additionalSize);
         var memory = (byte*) Context->Alloc(ref *Context, ContextManagedObject, size);
@@ -48,6 +49,7 @@ public unsafe struct NativeAllocator : IDisposable
     /// <returns>Return the managed object on native memory</returns>
     /// <remarks><see cref="additionalSize"/> can be used for strings (<see cref="NativeAllocatorExtensions.AllocString"/>)</remarks>
     public readonly T New<T>(int additionalSize = 0)
+        where T : class
     {
         var size = (nuint) (((int*) typeof(T).TypeHandle.Value)![1] + additionalSize);
         var memory = (byte*) Context->Alloc(ref *Context, ContextManagedObject, size);
@@ -74,19 +76,12 @@ public unsafe struct NativeAllocator : IDisposable
     /// <typeparam name="T">The type of the managed object</typeparam>
     /// <returns>Whether or not it was successfully freed (if you don't use a tracking allocator the result will always be true)</returns>
     public readonly bool Free<T>(ref T obj)
+        where T : class
     {
         if (obj == null)
             return false;
         
-        ref var memory = ref Unsafe.NullRef<byte>();
-        if (typeof(T).IsValueType)
-        {
-            memory = Unsafe.As<T, byte>(ref obj);
-        }
-        else
-        {
-            memory = ref GetObjectBaseMemory(obj);
-        }
+        ref var memory = ref GetObjectBaseMemory(obj);
 
         obj = default;
         return Context->Free(ref *Context, ContextManagedObject, Unsafe.AsPointer(ref memory));
@@ -151,7 +146,7 @@ public unsafe struct NativeAllocator : IDisposable
         var hashset = Unsafe.As<object, HashSet<IntPtr>>(ref companion);
         var memory = NativeMemory.Alloc(size);
         hashset.Add((IntPtr) memory);
-        
+
         return memory;
     }
 
@@ -174,6 +169,7 @@ public unsafe struct NativeAllocator : IDisposable
         {
             NativeMemory.Free((void*) ptr);
         }
+        hashset.Clear();
     }
 }
 
@@ -215,9 +211,29 @@ public static class NativeAllocatorExtensions
         return final;
     }
 
-    public static GuardAllocation<T> GuardAlloc<T>(this in NativeAllocator allocator)
+    public static string Format<T>(this in NativeAllocator allocator, T value, ReadOnlySpan<char> format = default, IFormatProvider? provider = null, int size = 128)
+        where T : ISpanFormattable
     {
-        return new GuardAllocation<T>(allocator, allocator.AllocZeroed<T>());
+        var str = NewString(allocator, size);
+        var span = MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference(str.AsSpan()), str.Length);
+
+        value.TryFormat(span, out var charsWritten, format, provider);
+        
+        // resize string
+        var memorySpan = MemoryMarshal.CreateSpan(
+            ref allocator.GetObjectBaseMemory(str),
+            // Header + Length + FirstChar
+            sizeof(long) + sizeof(int) + sizeof(char)
+        );
+        MemoryMarshal.Cast<byte, int>(memorySpan)[2] = charsWritten;
+
+        return str;
+    }
+
+    public static GuardAllocation<T> GuardAlloc<T>(this in NativeAllocator allocator)
+        where T : class
+    {
+        return new GuardAllocation<T>(allocator, allocator.NewZeroed<T>());
     }
 }
 
