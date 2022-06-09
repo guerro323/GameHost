@@ -16,7 +16,9 @@ public partial struct ValueList<T>
             Count = 0;
         }
         
+        #if !NETSTANDARD
         [MemberNotNull(nameof(Data))]
+        #endif
         private void Allocate(int size)
         {
             if (Data != null)
@@ -34,7 +36,9 @@ public partial struct ValueList<T>
             }
         }
 
+#if !NETSTANDARD
         [MemberNotNull(nameof(Data))]
+#endif
         public void Resize(int newSize)
         {
             var length = Data?.Length ?? 0;

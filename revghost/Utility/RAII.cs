@@ -1,3 +1,5 @@
+//#define ENABLE_DEBUG_TRACE
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -17,7 +19,7 @@ public static unsafe class RAII
         Full
     }
     
-    public static readonly NativeAllocator Allocator;
+    public static readonly Allocator Allocator;
 
     public static bool IsTracking = true;
     public static bool DebugMemory = false;
@@ -25,12 +27,15 @@ public static unsafe class RAII
 
     private struct Information
     {
-        
+#if ENABLE_DEBUG_TRACE
+        public StackTrace? AllocStrackTrace;
+        public List<StackTrace> References;
+#endif
     }
 
     private static readonly ConcurrentDictionary<IntPtr, Information> Tracked = new();
 
-    private static readonly NativeAllocator.Data MethodTable = new()
+    private static readonly Allocator.Data MethodTable = new()
     {
         Alloc = &Alloc,
         Free = &Free,
@@ -39,7 +44,7 @@ public static unsafe class RAII
     
     static RAII()
     {
-        Allocator = NativeAllocator.CreateCustomContext(
+        Allocator = Allocator.CreateCustomContext(
             ref MethodTable
         );
     }
@@ -58,41 +63,80 @@ public static unsafe class RAII
         return Tracked.ContainsKey(IntPtr.Subtract(ptr, sizeof(int)));
     }
 
-    public static void Increment(object obj)
+    public static void Increment(object obj
+        #if ENABLE_DEBUG_TRACE
+        , StackTrace referenceTrace
+#endif
+        )
     {
         var result = Interlocked.Increment(ref GetCounter(obj));
         if (DebugReference != DebugReferenceOption.None)
         {
+            var managedPtr = IntPtr.Subtract(Unsafe.As<object, IntPtr>(ref obj), sizeof(int));
             var additional = string.Empty;
             if (DebugReference == DebugReferenceOption.Full)
             {
                 var stackTrace = new StackTrace(1, true);
                 additional = $"\n{stackTrace}";
+
+#if ENABLE_DEBUG_TRACE
+                if (referenceTrace == null)
+                {
+                    additional = " (Untracked!)" + additional;
+                }
+                else
+                {
+                    var references = Tracked[managedPtr].References;
+                    lock (references)
+                    {
+                        references.Add(referenceTrace);
+                    }
+                }
+#endif
             }
-            
-            var ptr = Unsafe.As<object, IntPtr>(ref obj);
+
             HostLogger.Output.Info(
-                $"Increment {IntPtr.Subtract(ptr, sizeof(int))}, count={result}{additional}",
+                $"Increment {managedPtr}, count={result}{additional}",
                 "RAII",
                 "ref/inc");
         }
     }
 
-    public static bool Decrement(object obj)
+    public static bool Decrement(object obj
+#if ENABLE_DEBUG_TRACE
+    , StackTrace referenceTrace
+#endif
+        )
     {
         var result = Interlocked.Decrement(ref GetCounter(obj));
         if (DebugReference != DebugReferenceOption.None)
         {
             var additional = string.Empty;
+            var managedPtr = IntPtr.Subtract(Unsafe.As<object, IntPtr>(ref obj), sizeof(int));
+            
             if (DebugReference == DebugReferenceOption.Full)
             {
                 var stackTrace = new StackTrace(1, true);
                 additional = $"\n{stackTrace}";
+                
+#if ENABLE_DEBUG_TRACE
+                if (referenceTrace == null)
+                {
+                    additional = " (Untracked!)" + additional;
+                }
+                else
+                {
+                    var references = Tracked[managedPtr].References;
+                    lock (references)
+                    {
+                        references.Remove(referenceTrace);
+                    }
+                }
+#endif
             }
             
-            var ptr = Unsafe.As<object, IntPtr>(ref obj);
             HostLogger.Output.Info(
-                $"Decrement {IntPtr.Subtract(ptr, sizeof(int))}, count={result}{additional}",
+                $"Decrement {managedPtr}, count={result}{additional}",
                 "RAII",
                 "ref/dec");
         }
@@ -106,7 +150,7 @@ public static unsafe class RAII
         return false;
     }
 
-    private static void* Alloc(ref NativeAllocator.Data data, object companion, nuint size)
+    private static void* Alloc(ref Allocator.Data data, object companion, nuint size)
     {
         var memory = (byte*) NativeMemory.Alloc(size + sizeof(int));
         Unsafe.AsRef<int>(memory) = 0;
@@ -118,14 +162,23 @@ public static unsafe class RAII
                 "RAII",
                 "alloc");
         }
-        
-        if (!Tracked.TryAdd((IntPtr) memory, new Information()))
+
+        var information = new Information();
+#if ENABLE_DEBUG_TRACE
+        if (DebugReference == DebugReferenceOption.Full)
+        {
+            information.AllocStrackTrace = new StackTrace(1, true);
+            information.References = new List<StackTrace>();
+        }
+#endif
+
+        if (!Tracked.TryAdd((IntPtr) memory, information))
             throw new InvalidOperationException("invalid synchronization");
 
         return memory + sizeof(int);
     }
 
-    private static bool Free(ref NativeAllocator.Data data, object companion, void* ptr)
+    private static bool Free(ref Allocator.Data data, object companion, void* ptr)
     {
         var managedPtr = (IntPtr) (byte*) ptr - sizeof(int);
         if (Tracked.ContainsKey(managedPtr))
@@ -155,7 +208,7 @@ public static unsafe class RAII
         return false;
     }
 
-    private static void Dispose(ref NativeAllocator.Data data, object companion)
+    private static void Dispose(ref Allocator.Data data, object companion)
     {
         
     }
@@ -167,7 +220,12 @@ public static unsafe class RAII
         {
             list.Add(new TrackedInfo
             {
-                Address = address
+                Address = address,
+                ReferenceCount = GetCounter(address),
+#if ENABLE_DEBUG_TRACE
+                AllocationStacktrace = info.AllocStrackTrace,
+                References = info.References
+#endif
             });
         }
     }
@@ -175,7 +233,28 @@ public static unsafe class RAII
     public struct TrackedInfo
     {
         public IntPtr Address;
-        public StackTrace? StackTrace;
+        public int ReferenceCount;
+        public StackTrace? AllocationStacktrace;
+        public List<StackTrace> References;
+
+        [MethodImpl(MethodImplOptions.NoOptimization)]
+        public override string ToString()
+        {
+            var additional = string.Empty;
+            if (AllocationStacktrace is { } stacktrace)
+            {
+                additional += $"\n Created at:\n{stacktrace}";
+            }
+
+            if (References != null)
+            {
+                foreach (var referenceStackTrace in References)
+                {
+                    additional += $"Referenced at:\n{referenceStackTrace}";
+                }
+            }
+            return $"Address={Address} References={ReferenceCount + 1}{additional}";
+        }
     }
 }
 
@@ -185,6 +264,10 @@ public unsafe struct RefClass<T> : IDisposable
     // we use this field to throw if we are doing any structural changes on a copied RefClass<T>
     private IntPtr _creationAddr;
     private T _object;
+
+    #if ENABLE_DEBUG_TRACE
+    private StackTrace _debugTrace;
+#endif
 
     public RefClass()
     {
@@ -206,12 +289,32 @@ public unsafe struct RefClass<T> : IDisposable
         _creationAddr = currentAddr;
     }
 
+    private void _Increment()
+    {
+#if ENABLE_DEBUG_TRACE
+        if (RAII.DebugReference == RAII.DebugReferenceOption.Full)
+            _debugTrace = new StackTrace(1, true);
+        RAII.Increment(_object, _debugTrace);
+#else
+        RAII.Increment(_object);
+#endif
+    }
+
+    private void _Decrement(object target)
+    {
+#if ENABLE_DEBUG_TRACE
+        RAII.Decrement(target, _debugTrace);
+#else
+        RAII.Decrement(target);
+#endif
+    }
+
     internal void CoreCreate()
     {
         StructuralChange();
 
         _object = RAII.Allocator.New<T>();
-        RAII.Increment(_object);
+        _Increment();
     }
 
     [StackTraceHidden]
@@ -225,7 +328,7 @@ public unsafe struct RefClass<T> : IDisposable
 
         if (RAII.IsRAIIObject(previous))
         {
-            RAII.Decrement(previous);
+            _Decrement(previous);
         }
     }
     
@@ -235,16 +338,16 @@ public unsafe struct RefClass<T> : IDisposable
         StructuralChange();
         
         var previous = _object;
-        if (RAII.IsRAIIObject(replace))
-        {
-            RAII.Increment(replace);
-        }
-
         _object = replace;
+        
+        if (RAII.IsRAIIObject(_object))
+        {
+            _Increment();
+        }
 
         if (RAII.IsRAIIObject(previous))
         {
-            RAII.Decrement(previous);
+            _Decrement(previous);
         }
     }
     
@@ -254,30 +357,19 @@ public unsafe struct RefClass<T> : IDisposable
         StructuralChange();
         
         var previous = _object;
-        if (RAII.IsRAIIObject(replace._object))
-        {
-            RAII.Increment(replace._object);
-        }
-
         _object = replace._object;
+        
+        if (RAII.IsRAIIObject(_object))
+        {
+            _Increment();
+        }
 
         if (RAII.IsRAIIObject(previous))
         {
-            RAII.Decrement(previous);
+            _Decrement(previous);
         }
     }
 
-    [StackTraceHidden]
-    public T Get()
-    {
-        if (RAII.IsRAIIObject(_object))
-        {
-            RAII.Increment(_object);
-        }
-
-        return _object;
-    }
-    
     public T GetUnsafe()
     {
         return _object;
@@ -289,9 +381,9 @@ public unsafe struct RefClass<T> : IDisposable
         TRet ret;
         if (RAII.IsRAIIObject(_object))
         {
-            RAII.Increment(_object);
+            _Increment();
             ret = func(_object, arg);
-            RAII.Decrement(_object);
+            _Decrement(_object);
         }
         else
         {
@@ -307,9 +399,9 @@ public unsafe struct RefClass<T> : IDisposable
         TRet ret;
         if (RAII.IsRAIIObject(_object))
         {
-            RAII.Increment(_object);
+            _Increment();
             ret = func(_object);
-            RAII.Decrement(_object);
+            _Decrement(_object);
         }
         else
         {
@@ -324,9 +416,9 @@ public unsafe struct RefClass<T> : IDisposable
     {
         if (RAII.IsRAIIObject(_object))
         {
-            RAII.Increment(_object); 
+            _Increment(); 
             action(_object, arg);
-            RAII.Decrement(_object);
+            _Decrement(_object);
         }
         else
         {
@@ -339,9 +431,9 @@ public unsafe struct RefClass<T> : IDisposable
     {
         if (RAII.IsRAIIObject(_object))
         {
-            RAII.Increment(_object); 
+            _Increment(); 
             action(_object);
-            RAII.Decrement(_object);
+            _Decrement(_object);
         }
         else
         {
@@ -353,14 +445,14 @@ public unsafe struct RefClass<T> : IDisposable
     {
         if (RAII.IsRAIIObject(_object))
         {
-            RAII.Decrement(_object);
+            _Decrement(_object);
         }
     }
 }
 
 public static class RefClass
 {
-    public static RefClass<T> Return<T>(T obj) where T : class
+    public static RefClass<T> Open<T>(T obj) where T : class
     {
         var ret = new RefClass<T>();
         ret.CoreSet(obj);
