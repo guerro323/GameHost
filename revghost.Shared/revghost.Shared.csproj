@@ -12,6 +12,7 @@
         <RepositoryUrl>https://github.com/guerro323/GameHost</RepositoryUrl>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <PackageVersion>2022.0713.1503</PackageVersion>
     </PropertyGroup>
 
     <ItemGroup>

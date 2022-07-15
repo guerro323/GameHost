@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.1</TargetFramework>
         <LangVersion>10</LangVersion>
         <VersionPrefix>2022.0320.1317</VersionPrefix>
         <Copyright>guerro323</Copyright>
@@ -13,6 +12,7 @@
         <RootNamespace>revghost</RootNamespace>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>
