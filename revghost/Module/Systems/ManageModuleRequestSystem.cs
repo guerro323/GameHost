@@ -23,10 +23,10 @@ public class ManageModuleRequestSystem : AppSystem
 
     public ManageModuleRequestSystem(Scope scope) : base(scope)
     {
-        Dependencies.AddRef(() => ref _scheduler);
-        Dependencies.AddRef(() => ref _world);
-        Dependencies.AddRef(() => ref _moduleManager);
-        Dependencies.AddRef(() => ref _domainUpdateLoop);
+        Dependencies.Add(() => ref _scheduler);
+        Dependencies.Add(() => ref _world);
+        Dependencies.Add(() => ref _moduleManager);
+        Dependencies.Add(() => ref _domainUpdateLoop);
     }
 
     private EntitySet _loadSet;

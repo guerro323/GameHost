@@ -17,8 +17,8 @@ public class ReloadModuleOnFileChangeSystem : AppSystem
         
     public ReloadModuleOnFileChangeSystem(Scope scope) : base(scope)
     {
-        Dependencies.AddRef(() => ref _world);
-        Dependencies.AddRef(() => ref _updateLoop);
+        Dependencies.Add(() => ref _world);
+        Dependencies.Add(() => ref _updateLoop);
     }
 
     private EntitySet _notifySet;

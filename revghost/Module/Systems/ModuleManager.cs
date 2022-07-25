@@ -24,9 +24,9 @@ public class ModuleManager : AppSystem
 
     public ModuleManager(Scope scope) : base(scope)
     {
-        Dependencies.AddRef(() => ref _hostScope);
-        Dependencies.AddRef(() => ref _world);
-        Dependencies.AddRef(() => ref _scheduler);
+        Dependencies.Add(() => ref _hostScope);
+        Dependencies.Add(() => ref _world);
+        Dependencies.Add(() => ref _scheduler);
     }
 
     private EntityMap<HostModuleDescription> _moduleSet;

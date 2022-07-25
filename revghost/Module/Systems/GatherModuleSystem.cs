@@ -29,10 +29,10 @@ public class GatherModuleSystem : AppSystem
 
     public GatherModuleSystem(Scope scope) : base(scope)
     {
-        Dependencies.AddRef(() => ref _world);
-        Dependencies.AddRef(() => ref _moduleManager);
-        Dependencies.AddRef(() => ref _storage);
-        Dependencies.AddRef(() => ref _updateLoop);
+        Dependencies.Add(() => ref _world);
+        Dependencies.Add(() => ref _moduleManager);
+        Dependencies.Add(() => ref _storage);
+        Dependencies.Add(() => ref _updateLoop);
     }
 
     private EntitySet _notifySet;
