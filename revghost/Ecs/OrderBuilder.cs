@@ -1,5 +1,6 @@
 using System;
 using DefaultEcs;
+using revghost.Utility;
 
 namespace revghost.Ecs;
 
@@ -27,6 +28,36 @@ public struct OrderBuilder
     public OrderBuilder Before(Entity other)
     {
         other.Get<OrderElement>().Dependencies.Add(View);
+        return this;
+    }
+
+    public OrderBuilder After(Type type)
+    {
+        if (Group._entityTypeMultiMap.TryGetEntities(type, out var span))
+        {
+            foreach (var entity in span)
+                After(entity);
+        }
+        else
+        {
+            HostLogger.Output.Warn($"No entities found with type '{type}'", nameof(OrderBuilder), "order-after");
+        }
+
+        return this;
+    }
+
+    public OrderBuilder Before(Type type)
+    {
+        if (Group._entityTypeMultiMap.TryGetEntities(type, out var span))
+        {
+            foreach (var entity in span)
+                Before(entity);
+        }
+        else
+        {
+            HostLogger.Output.Warn($"No entities found with type '{type}'", nameof(OrderBuilder), "order-before");
+        }
+
         return this;
     }
 }

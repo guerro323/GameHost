@@ -111,4 +111,28 @@ public class Tests
         
         Assert.IsFalse(group.Build());
     }
+
+    [Test]
+    public void TestType()
+    {
+        using var group = new OrderGroup();
+        
+        var a = group.Add(b => b.After(typeof(B)));
+        a.Set(typeof(A));
+        
+        var b = group.Add(_ => {});
+        b.Set(typeof(B));
+
+        group.Build();
+        
+        Assert.AreEqual(new[] {b, a}, group.Entities.ToArray());
+    }
+
+    public class A
+    {
+    }
+
+    public class B
+    {
+    }
 }

@@ -34,6 +34,8 @@ public class DefaultDomainUpdateLoopSubscriber : IDomainUpdateLoopSubscriber, ID
     public Entity Subscribe(Action<WorldTime> callback, ProcessOrder process)
     {
         var entity = _orderGroup.Add(process);
+        if (callback.Method.DeclaringType != null)
+            entity.Set(callback.Method.DeclaringType);
         entity.Set(callback);
 
         return entity;

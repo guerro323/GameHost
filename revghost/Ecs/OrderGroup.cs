@@ -13,6 +13,7 @@ public class OrderGroup : IDisposable
 {
     public readonly bool IsCustomWorld;
     public readonly World World;
+    
 
     public Span<Entity> Entities => _entities.Span;
 
@@ -22,6 +23,8 @@ public class OrderGroup : IDisposable
     private IDisposable _entityDisposedMessage;
 
     private bool _isDirty;
+
+    internal EntityMultiMap<Type> _entityTypeMultiMap;
 
     public OrderGroup(World? customWorld = null)
     {
@@ -33,6 +36,8 @@ public class OrderGroup : IDisposable
             if (_entities.Remove(entity))
                 _isDirty = true;
         });
+        _entityTypeMultiMap = World.GetEntities()
+            .AsMultiMap<Type>();
     }
 
     public Entity Add(ProcessOrder? processOrder)
@@ -111,6 +116,7 @@ public class OrderGroup : IDisposable
         }
 
         _entityDisposedMessage.Dispose();
+        _entityTypeMultiMap.Dispose();
     }
 
     private void Calculate(Entity entity)
