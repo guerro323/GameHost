@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using revghost.Injection.Dynamic;
 
 namespace revghost.Injection.Dependencies;
@@ -63,7 +64,7 @@ public class ReturnByRefDependency<T> : IDependency, IResolvedObject
 
 public static class ReturnByRefDependencyExtensions
 {
-    public static void AddRef<T>(this IDependencyCollection dependencyCollection,
+    public static void Add<T>(this IDependencyCollection dependencyCollection,
         ReturnByRefDependency<T>.Delegate func)
     {
         dependencyCollection.Add(new ReturnByRefDependency<T>(typeof(T), func));
