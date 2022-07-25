@@ -42,6 +42,8 @@ public class DomainWorker : IDisposable, IReadOnlyDomainWorker
 
     public TimeSpan Delta { get; private set; }
 
+    public TimeSpan RealtimeElapsed => elapsedStopwatch.Elapsed;
+    public TimeSpan RealtimeDelta => RealtimeElapsed - Elapsed;
 
     public float Performance
     {

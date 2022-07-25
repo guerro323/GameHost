@@ -9,5 +9,9 @@ public interface IReadOnlyDomainWorker
     TimeSpan OptimalDeltaTarget { get; }
     TimeSpan Elapsed { get; }
     TimeSpan Delta { get; }
+
+    TimeSpan RealtimeElapsed { get; }
+    TimeSpan RealtimeDelta { get; }
+
     float Performance { get; }
 }
