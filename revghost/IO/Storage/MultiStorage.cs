@@ -59,7 +59,7 @@ public class MultiStorage : IStorage, IEnumerable<IStorage>
             catch (Exception ex)
             {
                 HostLogger.Output.Warn(
-                    $"Couldn't access sub storage on store '{store.GetType()}'",
+                    $"Couldn't access sub storage on store '{store.GetType()}', Exception:\n{ex}",
                     "MultiStorage",
                     "storage-multi-substorage-denied"
                 );
