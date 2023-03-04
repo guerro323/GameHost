@@ -28,7 +28,7 @@ public partial struct ValueList<T>
                 var old = Data;
                 Data = ArrayPool<T>.Shared.Rent(size);
 
-                Array.Copy(old, Data, old.Length);
+                Array.Copy(old, Data, Math.Min(size, old.Length));
             }
             else
             {
@@ -47,6 +47,9 @@ public partial struct ValueList<T>
                 Data = Array.Empty<T>();
                 return;
             }
+
+            if (newSize < length)
+                return;
 
             var target = length == 0 ? 16 : length * 2;
             if (target < newSize)
